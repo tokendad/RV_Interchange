@@ -1,8 +1,14 @@
 # Interchange Core — Architecture
 
+**Project:** RV Interchange
 **Status:** design, pre-implementation
 **Date:** 2026-07-29
 **Scope:** the cross-brand parts-interchange database for RV components
+
+> **Naming note:** the project was initially scoped as "rvpartsmarketplace." That name is
+> retired. The database is the product; the marketplace (Stage 3/4 in
+> `PLAN-Staged_Build.md`) is a separate, later application that references this database —
+> not the other way around. Project name going forward: **RV Interchange**.
 
 ---
 
@@ -79,7 +85,20 @@ The record. Specs, dimensions, materials, electrical characteristics.
 
 - 1:many. A human-speakable **pointer** to an equivalence class.
 - Allowed to be wrong. Allowed to be re-clustered.
-- **Never shown in the UI.** It exists for phone calls and Sharpie-on-a-shelf.
+
+#### Visibility: hidden by default, optional for dealers
+
+**Decided 2026-07-29.** General-consumer views never show the interchange number —
+only the manufacturer identifier (e.g. "Suburban SW6DEL"). Dealers and salvage yards may
+opt in to a view that surfaces it as a secondary line, since it is genuinely useful as a
+phone/inventory handle for that audience. This is a display-layer toggle, not a schema
+difference — the same record, gated by account type.
+
+```
+Consumer view:        Suburban SW6DEL
+Dealer view (opt-in):  Suburban SW6DEL
+                        RV Interchange: 412-0087-B
+```
 
 #### The code contains nothing
 
@@ -101,6 +120,38 @@ intact. This is the entire justification for opacity — plan for it, don't trea
 
 A new fitting manufacturer's part gets its own `component_id`, joins the existing group,
 and nothing else in the system changes.
+
+#### Stability rules for the code itself
+
+- **Never reuse a retired group or variant number.** A dead number stays dead.
+- **Never renumber for cosmetic reasons.** Colour, packaging, and condition never touch
+  the code (see `compat_mode` §5).
+- **Splits create new numbers.** The forking group keeps its old number; the new cluster
+  gets the next unused one.
+- **Merges preserve redirects.** If two groups turn out to be the same equivalence class,
+  the retired number resolves forward to the surviving one rather than going dead. Lookups
+  against a merged-away number must still succeed.
+- **Never recycle variant letters.** A retired `-C` stays retired within its group, even
+  after a merge or split, so a stale reference (a customer's old note, a cached page) never
+  silently starts meaning something else.
+
+#### Candidate vs. published numbers
+
+Internal clustering is expected to churn — that's the whole point of computing groups
+rather than hand-assigning them. But a number that's visible to a dealer on the phone needs
+to *stay put*.
+
+So the code has two states:
+
+- **Candidate:** an internal cluster, may still merge, split, or be corrected. Not exposed
+  outside the system.
+- **Published:** assigned after review, stable from that point forward under the rules
+  above.
+
+A group can sit at CANDIDATE confidence (§7) indefinitely without being published — evidence
+strength and publication are related but separate decisions. Don't publish a number just
+because an edge crossed a confidence threshold; publish it when the *identity of the group*
+is judged stable enough to hand to a stranger on the phone.
 
 ---
 
