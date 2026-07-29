@@ -1,7 +1,14 @@
 # Staged Build Plan
 
+**Project:** RV Interchange
 **Status:** design, pre-implementation
 **Date:** 2026-07-29
+
+> **Note:** Stages 1–2 below (the database and the free lookup tool) constitute the
+> **RV Interchange** project. Stage 3 (listings) and Stage 4 (dealers) describe a
+> **separate marketplace project**, to be started later, that consumes RV Interchange as
+> its data layer. They're kept in this plan for sequencing context, not as scope of the
+> current project.
 
 ---
 
