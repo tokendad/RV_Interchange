@@ -1,13 +1,44 @@
-# RV Parts Interchange — Design Set
+# RV Interchange — Design Set
 
-Captured 2026-07-29 from a design session. Pre-implementation. No code written yet.
+**Project name:** RV Interchange (retired name: "rvpartsmarketplace" — see naming note
+below).
+
+Captured 2026-07-29 from a design session, plus two external design reviews incorporated
+the same day. Pre-implementation. No code written yet.
 
 | Document | What's in it |
 |---|---|
-| `ARCHITECTURE-Interchange_Core.md` | The schema. Three-layer identity, namespaced identifiers, edge vocabulary, compat modes, part-type taxonomy, confidence model, tiered search, persistence. |
+| `ARCHITECTURE-Interchange_Core.md` | The schema. Three-layer identity, namespaced identifiers, edge vocabulary, compat modes, part-type taxonomy, confidence model, tiered search, persistence, number stability rules. |
 | `PLAN-Staged_Build.md` | Four-stage build order, v0 scope and bet, roles architecture, the retention problem, legal position, next actions. |
 | `VENDOR-Suburban.md` | First vendor adapter research. Model grammar, captured specs, first real interchange edge, four data-quality findings, definition of done. |
 | `fixtures/ground-truth.yaml` | Hand-written expected records for the five in-hand parts. Write this before the schema. |
+
+## Naming
+
+The project is **RV Interchange**. The database — component identity, aliases,
+attributes, directional substitution edges, evidence — is the product and the moat.
+
+A marketplace (listings, transactions, dealer leads) may be built later as a **separate,
+standalone project** that references RV Interchange as its data layer. It is not part of
+this project's scope, and the original working name ("rvpartsmarketplace") is retired
+because it implied otherwise.
+
+## External design reviews (incorporated 2026-07-29)
+
+Two design reviews were submitted for comparison against the working design and merged in:
+
+- **Design Review #002 (numbering system):** confirmed the existing three-layer identity
+  and number format. Three additions adopted: group merges preserve redirects, variant
+  letters are never recycled, and numbers have a candidate/published distinction (internal
+  clusters churn freely; published numbers are stable). One conflict resolved: interchange
+  numbers are hidden from general consumers by default, and shown as an opt-in secondary
+  line for dealer/salvage-yard accounts.
+- **Design Review #003 (knowledge graph framing):** confirmed the system is already
+  graph-shaped (typed nodes and directed, evidence-backed edges) and recommended naming it
+  as such, without adopting a dedicated graph database — Postgres with explicit edge tables
+  is sufficient for now. The confidence-scoring example in that review (flat percentage per
+  candidate) was **not** adopted; the Beta(α, β) confidence/certainty model in
+  `ARCHITECTURE-Interchange_Core.md` §7 remains authoritative.
 
 ## The one-paragraph version
 
