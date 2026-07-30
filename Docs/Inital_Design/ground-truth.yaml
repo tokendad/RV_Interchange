@@ -118,6 +118,30 @@ components:
       One component, three part numbers, colour-only difference.
       Colour is NOT part of the interchange key.
 
+  # -- NOT one of the five in-hand parts. Vendor-researched only (SKU 5248A),
+  # included solely as the target of the cross-capacity evidence edge below.
+  # Do not treat this as fixture-complete the way the five in-hand parts are.
+  - component_id: c_placeholder_wh_12del
+    part_type_id: 412
+    interchange_code: 412-0088-A   # different group from 412-0087 — different cutout
+    identifiers:
+      - {ns: suburban, value: SW12DEL, visibility: exterior_plate}
+      - {ns: suburban, value: "5248A", visibility: none_marked}
+    attributes:
+      capacity_gal:  {value: 12,    provenance: retailer_spec_block}
+      input_btuh:    {value: 12000, provenance: retailer_spec_block}
+      element_watts: {value: [1400, 1440], provenance: retailer_spec_block, conflict: true}
+      cutout_h:      {value: 16.38, unit: in, provenance: retailer_spec_block}
+      cutout_w:      {value: 16.38, unit: in, provenance: retailer_spec_block}
+      cutout_d:      {value: 22.25, unit: in, provenance: retailer_spec_block}
+      weight_empty:  {value: 48.0,  unit: lb, provenance: retailer_spec_block}
+      weight_full:   {value: 148.08, unit: lb, provenance: retailer_spec_block}
+    note: >
+      Vendor-researched sibling, not physically in hand. Exists in this fixture
+      only because a real customer review on its product page ties it to
+      c_placeholder_wh_6del via a confirmed field substitution — see the
+      cross-capacity edge below.
+
   # =========================================================================
   # 2. THERMOSTAT — multi-namespace identity; the crosswalk proof case
   # =========================================================================
@@ -258,6 +282,50 @@ edges:
         Retailer sells these as separate products at different prices.
         Cross-reference is the only evidence. Needs a teardown or a
         buyer confirmation before it can leave CANDIDATE.
+
+  # FIRST EDGE WITH REAL FIELD EVIDENCE — not prior-only. A genuine customer
+  # review, found by accident while checking a different fact, is exactly the
+  # "buyer-confirmed install" evidence event the confidence model was built for.
+  - type: substitutes
+    a: c_placeholder_wh_6del
+    b: c_placeholder_wh_12del
+    group: cross_capacity_upgrade  # NOT the same interchange group — different cutout
+    asymmetric: true
+    basis: buyer_confirmed_install
+    source: >
+      Customer review, John Harmon, 2021-08-30, on suburbanrvparts.com's SW12DEL
+      product page (5248A). Found while cross-checking SW16VE facts — not sought
+      out, which is itself worth noting per PLAN-Staged_Build.md §6.4 ("free
+      negative/positive signals arrive without asking").
+    confidence:
+      alpha: 4          # prior Beta(1,1) unknown/incomplete + buyer-confirmed install (+3)
+      beta: 1
+      value: 0.80
+      certainty: 5
+      note: >
+        Still n=1 — one confirmed install is not a verified tier (needs n>=8 per
+        ARCHITECTURE-Interchange_Core.md §8). But it is no longer CANDIDATE-by-prior-
+        alone; this is the fixture's first edge with an actual evidence event behind it.
+    a_to_b:
+      verdict: fits_with_modification
+      caveats:
+        - blocking: true
+          text: >
+            Cutout must be enlarged from 12.75x12.75 to 16.38x16.38. This is not a
+            same-group substitution — capacities and cutouts differ. Framed here as
+            an intentional upgrade path, not an interchange match.
+        - blocking: false
+          text: "Bypass line needs to be lengthened."
+      note: >
+        Confirmed real-world case: gas lit on second attempt, buyer reports "operates
+        as described." One data point for a broader open question — does this
+        modification path generalize (any smaller SW6xxx accepting a larger cutout),
+        or is it specific to this pair? Not yet enough evidence to say.
+    b_to_a:
+      verdict: not_observed
+      caveats: []
+      note: "No case found of someone shrinking a 12-gallon cutout down to 6-gallon."
+
 
 ---
 
