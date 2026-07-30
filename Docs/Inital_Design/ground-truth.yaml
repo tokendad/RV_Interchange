@@ -18,6 +18,12 @@ part_types:
     critical_attributes: [cutout_h, cutout_w, cutout_d, capacity_gal, ignition_type]
     tags: [plumbing, lp_gas, electrical, appliance]
     pcdb_term_id: null
+    # TODO: c_placeholder_wh_iw60rl (below) is a tankless on-demand unit with NO
+    # cutout_h/w/d — critical_attributes above don't fit it. It's filed under 412
+    # anyway because it's still "a water heater" for search purposes, but a real
+    # implementation needs either a subtype or a second critical_attributes set
+    # (vent_hole_diameter_in instead of cutout_*) before this type is trusted for
+    # attribute-mode matching across the whole 412 population.
 
   - id: 415
     label: thermostat, analog wall
@@ -141,6 +147,66 @@ components:
       only because a real customer review on its product page ties it to
       c_placeholder_wh_6del via a confirmed field substitution — see the
       cross-capacity edge below.
+
+  # -- NOT one of the five in-hand parts. Vendor-researched only. Tankless
+  # platform, structurally different from every other 412 in this fixture —
+  # see the part_type_id: 412 TODO above. Included because the manufacturer's
+  # own service manual documents it as a retrofit target for FOUR existing
+  # tank-unit cutout families (two of them Suburban's own, two Atwood's) —
+  # see the substitutes edges below, obs #14.
+  - component_id: c_placeholder_wh_iw60rl
+    part_type_id: 412
+    interchange_code: 412-0089-A   # own group — tankless, no cutout, not comparable to 412-0087/0088
+    identifiers:
+      - {ns: suburban, value: IW60RL, visibility: exterior_plate}
+      - {ns: suburban, value: "5280A", visibility: none_marked}
+    attributes:
+      tankless:              {value: true, provenance: retailer_spec_block}
+      capacity_gal:          {value: 0.5,  provenance: retailer_spec_block}
+      input_btuh:            {value: 60000, provenance: retailer_spec_block}
+      ignition_type:         {value: direct_spark, provenance: retailer_spec_block}
+      vent_hole_diameter_in: {value: 3.750, unit: in, provenance: manufacturer_pdf}
+      product_size_h:        {value: 12.5, unit: in, provenance: retailer_spec_block}
+      product_size_w:        {value: 12.5, unit: in, provenance: retailer_spec_block}
+      product_size_d:        {value: 20.0, unit: in, provenance: manufacturer_pdf, note: "retailer_spec_block agrees exactly — cross-source corroboration"}
+      weight_empty:          {value: 36,   unit: lb, provenance: retailer_spec_block}
+    note: >
+      No cutout_h/w/d — genuinely doesn't have one (confirmed via manufacturer
+      service manual, obs #14, not just an unfetched attribute). Only opening
+      required for a fresh install is the 3.750in vent hole. For a retrofit
+      into an existing tank unit's opening, see the substitutes edges below —
+      those require a replacement panel (part number varies by target) plus
+      the vent hole, not a cutout resize.
+
+  # -- Atwood entries: FIRST non-Suburban components in this fixture. Not
+  # specific models — Suburban's own Nautilus manual (obs #14) names its
+  # retrofit-panel targets by brand + capacity only, not by SKU. Zero
+  # Atwood-specific research otherwise. Treat as manufacturer-asserted
+  # family placeholders, not verified components, until a real Atwood
+  # product page exists.
+  - component_id: c_placeholder_wh_atwood_6gal
+    part_type_id: 412
+    interchange_code: null   # not yet classified — family-level placeholder only
+    identifiers: []
+    attributes:
+      capacity_gal: {value: 6, provenance: manufacturer_pdf}
+      brand:        {value: Atwood, provenance: manufacturer_pdf}
+    note: >
+      Represents "any Atwood 6-gallon tank water heater" as named generically
+      in obs #14 (Suburban's Nautilus service manual), which specs replacement
+      panel 521147 for this whole capacity family rather than one SKU.
+
+  - component_id: c_placeholder_wh_atwood_10gal
+    part_type_id: 412
+    interchange_code: null   # not yet classified — family-level placeholder only
+    identifiers: []
+    attributes:
+      capacity_gal: {value: 10, provenance: manufacturer_pdf}
+      brand:        {value: Atwood, provenance: manufacturer_pdf}
+    note: >
+      Represents "any Atwood 10-gallon tank water heater" as named generically
+      in obs #14 (Suburban's Nautilus service manual), which specs replacement
+      panel 521150 for this whole capacity family rather than one SKU.
 
   # =========================================================================
   # 2. THERMOSTAT — multi-namespace identity; the crosswalk proof case
@@ -325,6 +391,164 @@ edges:
       verdict: not_observed
       caveats: []
       note: "No case found of someone shrinking a 12-gallon cutout down to 6-gallon."
+
+  # FIRST MANUFACTURER-DOCUMENTED EDGES, AND FIRST CROSS-VENDOR (non-Suburban)
+  # EDGES IN THIS FIXTURE. Source is Suburban/Airxcel's own Nautilus (IW60)
+  # service manual (obs #14), not a retailer page or a buyer anecdote — the
+  # manufacturer directly specs a retrofit path from four existing tank-unit
+  # cutout families onto the tankless IW60RL via a replacement panel (PN
+  # varies by target) plus a newly-cut 3.750in vent hole. Stronger evidence
+  # class than buyer_confirmed_install above: this is the vendor asserting
+  # supported compatibility with a stocked part number, not one buyer's
+  # single successful install. Still not "verified" tier (ARCHITECTURE-
+  # Interchange_Core.md §8 requires n>=8 real installs) — manufacturer intent
+  # and field-confirmed frequency are different kinds of evidence.
+
+  - type: substitutes
+    a: c_placeholder_wh_6del
+    b: c_placeholder_wh_iw60rl
+    group: iw60_retrofit_suburban_6gal
+    asymmetric: true
+    basis: manufacturer_documented
+    requires_part: {ns: suburban, value: "6276APW", role: replacement_panel}
+    source: >
+      Suburban/Airxcel Nautilus (IW60) Service and Training Manual (obs #14),
+      Replacement Panel Part Numbers table: Suburban 6-gallon -> 6276APW.
+      Per VENDOR-Suburban.md §3, SW6D/SW6DE/SW6DEL share one cutout family,
+      so this applies to c_placeholder_wh_6de as well, not just the in-hand
+      6DEL — not duplicated as a second edge to avoid a redundant pair.
+    confidence:
+      alpha: 5    # manufacturer-asserted with a stocked part number, stronger
+      beta: 1     # than a single buyer anecdote, but still not a real-install count
+      value: 0.833
+      certainty: 5
+      note: >
+        Manufacturer-documented, not field-confirmed by any known install.
+        Do not conflate with "verified" — that tier is defined by real
+        install count (n>=8), which is orthogonal to manufacturer intent.
+    a_to_b:
+      verdict: fits_with_modification
+      caveats:
+        - blocking: true
+          text: >
+            Existing 12.75x12.75 tank cutout is COVERED by replacement panel
+            6276APW, not resized. A new 3.750in vent hole must still be cut
+            (vent cap ordered separately — see obs #14 Table 1).
+        - blocking: true
+          text: "Replacement panel (6276APW) must be ordered separately from the IW60RL unit itself."
+      note: Fresh-install case (no panel needed) requires only the vent hole; see component note.
+    b_to_a:
+      verdict: not_observed
+      caveats: []
+      note: "Reverse direction (installing a tank unit into a former IW60RL's vent-only opening) not documented — the panel is designed to receive the tankless unit, not the other way around."
+
+  - type: substitutes
+    a: c_placeholder_wh_12del
+    b: c_placeholder_wh_iw60rl
+    group: iw60_retrofit_suburban_10_12_16gal
+    asymmetric: true
+    basis: manufacturer_documented
+    requires_part: {ns: suburban, value: "6277APW", role: replacement_panel}
+    source: >
+      Obs #14, same table: Suburban 10/12/16-gallon -> 6277APW (one PN covers
+      all three capacities). Only the 12-gallon component (SW12DEL) exists in
+      this fixture today; the manual's own claim extends to 10 and 16-gallon
+      Suburban tank units as well, which have no component records yet.
+    confidence:
+      alpha: 5
+      beta: 1
+      value: 0.833
+      certainty: 4
+      note: Same manufacturer-documented tier as the 6-gallon edge; certainty docked
+        one point for spanning capacities (10/16-gal) with no component of their own yet.
+    a_to_b:
+      verdict: fits_with_modification
+      caveats:
+        - blocking: true
+          text: >
+            Existing 16.38x16.38 tank cutout is COVERED by replacement panel
+            6277APW, not resized. A new 3.750in vent hole must still be cut.
+        - blocking: true
+          text: "Replacement panel (6277APW) must be ordered separately from the IW60RL unit itself."
+      note: Same panel PN also documented for Suburban 10-gal and 16-gal tank units (SW10*, SW16*) — not yet their own components in this fixture.
+    b_to_a:
+      verdict: not_observed
+      caveats: []
+      note: "Reverse direction not documented, same reasoning as the 6-gallon edge."
+
+  - type: substitutes
+    a: c_placeholder_wh_atwood_6gal
+    b: c_placeholder_wh_iw60rl
+    group: iw60_retrofit_atwood_6gal
+    asymmetric: true
+    basis: manufacturer_documented
+    requires_part: {ns: suburban, value: "521147", role: replacement_panel}
+    source: >
+      Obs #14: Atwood 6-gallon -> 521147. FIRST ATWOOD REFERENCE in this
+      fixture — a competing manufacturer's product, named by a Suburban
+      document. No Atwood-specific research (product pages, dimensions,
+      identifiers) has been done; the target here is the family placeholder
+      component, not a verified Atwood model.
+    confidence:
+      alpha: 4
+      beta: 1
+      value: 0.80
+      certainty: 3
+      note: >
+        Manufacturer-documented but for a target family this fixture has
+        zero independent research on — certainty docked below the Suburban-
+        to-Suburban retrofit edges for that reason, even though the
+        evidence *type* is the same.
+    a_to_b:
+      verdict: fits_with_modification
+      caveats:
+        - blocking: true
+          text: >
+            Existing Atwood 6-gallon tank cutout is COVERED by replacement
+            panel 521147, not resized. A new 3.750in vent hole must still be cut.
+        - blocking: true
+          text: "Replacement panel (521147) must be ordered separately from the IW60RL unit itself."
+        - blocking: false
+          text: "Target is a manufacturer-named family, not a specific Atwood model — cutout dimensions for this family are unconfirmed in this fixture."
+      note: Cross-vendor retrofit path, sourced entirely from the Suburban side.
+    b_to_a:
+      verdict: not_observed
+      caveats: []
+      note: "Reverse direction not documented, same reasoning as the Suburban edges."
+
+  - type: substitutes
+    a: c_placeholder_wh_atwood_10gal
+    b: c_placeholder_wh_iw60rl
+    group: iw60_retrofit_atwood_10gal
+    asymmetric: true
+    basis: manufacturer_documented
+    requires_part: {ns: suburban, value: "521150", role: replacement_panel}
+    source: >
+      Obs #14: Atwood 10-gallon -> 521150. Same caveats as the Atwood
+      6-gallon edge above — family placeholder target, no independent
+      Atwood research yet.
+    confidence:
+      alpha: 4
+      beta: 1
+      value: 0.80
+      certainty: 3
+      note: Same reasoning as the Atwood 6-gallon edge.
+    a_to_b:
+      verdict: fits_with_modification
+      caveats:
+        - blocking: true
+          text: >
+            Existing Atwood 10-gallon tank cutout is COVERED by replacement
+            panel 521150, not resized. A new 3.750in vent hole must still be cut.
+        - blocking: true
+          text: "Replacement panel (521150) must be ordered separately from the IW60RL unit itself."
+        - blocking: false
+          text: "Target is a manufacturer-named family, not a specific Atwood model — cutout dimensions for this family are unconfirmed in this fixture."
+      note: Cross-vendor retrofit path, sourced entirely from the Suburban side.
+    b_to_a:
+      verdict: not_observed
+      caveats: []
+      note: "Reverse direction not documented, same reasoning as the Suburban edges."
 
 
 ---
