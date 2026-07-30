@@ -4,9 +4,10 @@
 **Status:** research in progress
 **Date:** 2026-07-29
 **Adapter priority:** 1 of 7 (first vendor)
-**Part families covered here:** water heaters (SW series). Furnaces, ranges/cooktops:
-preliminary structure only — see `VENDOR-Suburban-Furnace_Cooktop.md`, low confidence,
-not yet fixture-ready.
+**Part families covered here:** water heaters (SW series, tank-style). A first data point
+also now exists for the `IW` on-demand/tankless line (§4) — not yet its own research thread.
+Furnaces, ranges/cooktops: preliminary structure only — see
+`VENDOR-Suburban-Furnace_Cooktop.md`, low confidence, not yet fixture-ready.
 
 ---
 
@@ -334,6 +335,41 @@ turned up in a cross-vendor listing. The confirmed grammar chart (§3.2) only do
 `DEM` (WITH the element) — a bare `DM` isn't on it. Either the chart is incomplete, or `DM`
 is a distinct, older designation that predates `DEM`. Needs its own product-page check.
 
+### IW60RL (SKU 5280A) — Nautilus on-demand line, different platform entirely
+
+Not an `SW`-series unit at all — a separate tankless/on-demand product line ("Nautilus"),
+found via the vendor's own recirculating-loop variant listing.
+
+| Field | Value | Source |
+|---|---|---|
+| Model | IW60RL | retailer spec block |
+| Type | LP Gas, on-demand (tankless) | retailer spec block |
+| Capacity | 0.5 gal | retailer spec block |
+| Ignition | Direct Spark Ignition | retailer spec block |
+| BTU | 60,000 | retailer spec block |
+| Product size | 12.5"w × 12.5"h × 20"d | retailer spec block |
+| With switch | No | retailer spec block |
+| Marine | No | retailer spec block |
+| Net weight | 36 lb | retailer spec block |
+| Warranty | Limited 2 year | retailer prose |
+
+**No cutout dimensions published on this page.** Consistent with it being tankless — a
+0.5-gallon buffer tank plus heat exchanger has a materially different install profile than
+the tank-style `SW` line, so "no cutout given" here is not the same data gap as SW16VE's
+(§4, still-missing-depth) — it may not even be the right attribute to look for on this
+platform. Needs its own attribute schema question before assuming `part_type_id: 412`
+(the SW-series water-heater type) applies unmodified.
+
+Cross-sell on this page surfaces companion parts under different SKUs — a module board
+(521212) and a recirculating pump (233390 / 521299) — worth noting these are accessory/repair
+parts for the IW60RL, not alternate models of it.
+
+**New open thread:** the `IW` prefix ("Nautilus") is now a second product family, alongside
+the already-flagged `SAW` line (§4, SW16VE section), that exists outside the `SW` grammar
+entirely. Two different non-`SW` water-heater families have surfaced from casual browsing
+without deliberately searching for them — worth a pass through the vendor's full water-heater
+category page to check for a third.
+
 ### 4.1 Cutout vs product size
 
 **Only cutout is the interchange key.** This vendor gives both, which is unusually generous;
@@ -558,6 +594,9 @@ Concretely:
 - Determine whether `C` and `M` suffixes affect cutout specifically (⟵ `C` label resolved
   above; `M` label now resolved too — see §3.2 — but neither's *dimensional* consequence
   is confirmed).
+- **New:** `IW60RL` (5280A, "Nautilus" on-demand/tankless line) captured — see §4. No cutout
+  data, and it's not clear `part_type_id: 412` even applies to a tankless unit. Needs its own
+  attribute-schema pass, not just a slot in the `SW`-series fixture.
 
 ---
 
