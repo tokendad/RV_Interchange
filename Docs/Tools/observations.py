@@ -134,7 +134,7 @@ _BLANK_LINES_RE = re.compile(r"\n\s*\n+")
 # guesses to speed up hand-typing extracted JSON, not a real parser — always
 # eyeball the source page before trusting a match.
 _FIELD_PATTERNS = {
-    "sku": re.compile(r"\b(?:SKU|Item\s*#|Part\s*#|Model\s*#?)\s*[:#]?\s*([A-Za-z0-9\-]{3,20})", re.IGNORECASE),
+    "sku": re.compile(r"\b(?:SKU|Item\s*#|Part\s*#|Model\s*#?)\s*[:#]?\s*(?=[A-Za-z0-9\-]*\d)([A-Za-z0-9\-]{3,20})", re.IGNORECASE),
     "dimensions_in": re.compile(r"\d+(?:\.\d+)?\"?\s*[xX]\s*\d+(?:\.\d+)?\"?\s*[xX]\s*\d+(?:\.\d+)?\"?\s*(?:in\b|inch(?:es)?\b)?", re.IGNORECASE),
     "weight_lbs": re.compile(r"\d+(?:\.\d+)?\s*(?:lbs?\.?|pounds?)\b", re.IGNORECASE),
     "btu": re.compile(r"\d{3,6}\s*BTU\b", re.IGNORECASE),
