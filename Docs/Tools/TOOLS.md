@@ -28,6 +28,27 @@ safe to move, back up, or put under version control alongside the markdown docs.
 Run `python3 observations.py --help` or `python3 observations.py fetch --help` for full
 option lists.
 
+## Interactive fetch
+
+`fetch` now works with as few or as many arguments as you give it:
+
+    python3 observations.py fetch
+
+with no arguments at all prompts for the URL and source name, fetches the page,
+then shows a best-effort guess at common spec fields (SKU, dimensions, weight,
+BTU, voltage, price) found in the page text via regex. Type `a` to pull all of
+those in, add more with `name=value`, then confirm before it's saved — nothing
+is written until you approve it. The raw page is still saved even if you
+discard the extracted fields.
+
+These guesses are regex pattern matches, not a real parser — always check them
+against the actual page before trusting them.
+
+Pass `--extracted`/`--extracted-file` to skip the prompt (extracted data is used
+as given, same as before). Pass `--no-interactive` for scripts/automation — this
+makes `url` and `--source-name` required again and disables field capture, so it
+behaves exactly like the original non-interactive `fetch`.
+
 ## Known limitation, fixed 2026-07-29
 
 Live commerce pages embed session IDs and Cloudflare challenge tokens inside <script>

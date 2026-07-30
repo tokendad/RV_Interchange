@@ -58,6 +58,7 @@ Review what's in there:
 
 import argparse
 import hashlib
+import html
 import json
 import re
 import sqlite3
@@ -122,6 +123,95 @@ def content_hash(text):
         return None
     normalized = _SCRIPT_BLOCK_RE.sub("", text)
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+_STYLE_BLOCK_RE = re.compile(r"<style\b[^>]*>.*?</style>", re.IGNORECASE | re.DOTALL)
+_TAG_RE = re.compile(r"<[^>]+>")
+_WHITESPACE_RE = re.compile(r"[ \t\r\f\v]+")
+_BLANK_LINES_RE = re.compile(r"\n\s*\n+")
+
+# Best-effort regexes for common spec fields on RV parts pages. These are
+# guesses to speed up hand-typing extracted JSON, not a real parser — always
+# eyeball the source page before trusting a match.
+_FIELD_PATTERNS = {
+    "sku": re.compile(r"\b(?:SKU|Item\s*#|Part\s*#|Model\s*#?)\s*[:#]?\s*([A-Za-z0-9\-]{3,20})", re.IGNORECASE),
+    "dimensions_in": re.compile(r"\d+(?:\.\d+)?\"?\s*[xX]\s*\d+(?:\.\d+)?\"?\s*[xX]\s*\d+(?:\.\d+)?\"?\s*(?:in\b|inch(?:es)?\b)?", re.IGNORECASE),
+    "weight_lbs": re.compile(r"\d+(?:\.\d+)?\s*(?:lbs?\.?|pounds?)\b", re.IGNORECASE),
+    "btu": re.compile(r"\d{3,6}\s*BTU\b", re.IGNORECASE),
+    "voltage": re.compile(r"\b\d{1,3}\s*[Vv](?:olts?)?\b"),
+    "price": re.compile(r"\$\s?\d+(?:\.\d{2})?"),
+}
+
+
+def strip_tags(html_text):
+    """Rough HTML-to-text for eyeballing a fetched page in the terminal."""
+    text = _SCRIPT_BLOCK_RE.sub(" ", html_text)
+    text = _STYLE_BLOCK_RE.sub(" ", text)
+    text = _TAG_RE.sub(" ", text)
+    text = html.unescape(text)
+    text = _WHITESPACE_RE.sub(" ", text)
+    text = _BLANK_LINES_RE.sub("\n", text)
+    return text.strip()
+
+
+def detect_candidate_fields(text):
+    """Best-effort regex guesses at common spec fields. Not authoritative."""
+    found = {}
+    for name, pattern in _FIELD_PATTERNS.items():
+        m = pattern.search(text)
+        if m:
+            found[name] = m.group(0).strip()
+    return found
+
+
+def interactive_capture(raw_html):
+    """Show auto-detected candidates, let the user approve/edit/add, return
+    the extracted dict (or None if there's nothing to save)."""
+    text = strip_tags(raw_html)
+    candidates = detect_candidate_fields(text)
+
+    print()
+    print("--- Auto-detected candidate fields (verify against the page!) ---")
+    if candidates:
+        for k, v in candidates.items():
+            print(f"  {k}: {v}")
+    else:
+        print("  (none detected)")
+    print("-------------------------------------------------------------")
+    print("Enter fields as name=value (blank line to finish).")
+    print("Type 'a' to accept all detected fields above, then keep adding/editing.")
+
+    fields = {}
+    while True:
+        try:
+            line = input("> ").strip()
+        except EOFError:
+            break
+        if not line:
+            break
+        if line.lower() == "a":
+            fields.update(candidates)
+            print(f"  added {len(candidates)} detected field(s)")
+            continue
+        if "=" not in line:
+            print("  format is name=value (or 'a' or blank line to finish)")
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip(), value.strip()
+        if key:
+            fields[key] = value
+
+    if not fields:
+        return None
+
+    print()
+    print("Extracted JSON:")
+    print(json.dumps(fields, indent=2))
+    confirm = input("Save this with the observation? [Y/n] ").strip().lower()
+    if confirm not in ("", "y", "yes"):
+        print("Discarding extracted fields — raw page will still be saved.")
+        return None
+    return fields
 
 
 def get_conn(db_path):
@@ -192,14 +282,36 @@ def cmd_fetch(args):
     conn = get_conn(args.db)
     extracted = load_extracted(args)
 
-    resp = requests.get(args.url, timeout=30, headers={
+    url = args.url
+    source_name = args.source_name
+
+    if args.no_interactive:
+        if not url:
+            print("URL is required (positional arg) with --no-interactive.", file=sys.stderr)
+            sys.exit(1)
+        if not source_name:
+            print("--source-name is required with --no-interactive.", file=sys.stderr)
+            sys.exit(1)
+    else:
+        if not url:
+            url = input("URL to fetch: ").strip()
+            if not url:
+                print("No URL given.", file=sys.stderr)
+                sys.exit(1)
+        if not source_name:
+            source_name = input("Source name (e.g. suburbanrvparts.com): ").strip()
+            if not source_name:
+                print("Source name is required.", file=sys.stderr)
+                sys.exit(1)
+
+    resp = requests.get(url, timeout=30, headers={
         "User-Agent": "Mozilla/5.0 (RV-Interchange research capture)"
     })
     resp.raise_for_status()
     raw = resp.text
 
     new_hash = content_hash(raw)
-    old_hash = latest_hash_for_url(conn, args.url)
+    old_hash = latest_hash_for_url(conn, url)
 
     if old_hash == new_hash and not args.force:
         print(f"Unchanged since last fetch (hash {new_hash[:12]}...). "
@@ -207,16 +319,19 @@ def cmd_fetch(args):
         return
 
     if old_hash is not None and old_hash != new_hash:
-        print(f"CONTENT CHANGED for {args.url}")
+        print(f"CONTENT CHANGED for {url}")
         print(f"  old hash: {old_hash[:12]}...")
         print(f"  new hash: {new_hash[:12]}...")
         print("  Inserting as a new observation (a revision, not a correction).")
 
+    if extracted is None and not args.no_interactive:
+        extracted = interactive_capture(raw)
+
     obs_id = insert_observation(
         conn,
         source_type=args.source_type,
-        source_name=args.source_name,
-        url=args.url,
+        source_name=source_name,
+        url=url,
         raw_content=raw,
         extracted=extracted,
         extraction_method=args.extraction_method,
@@ -317,8 +432,10 @@ def build_parser():
     p_init.set_defaults(func=cmd_init)
 
     p_fetch = sub.add_parser("fetch", help="Fetch a URL and store it as an observation")
-    p_fetch.add_argument("url")
-    p_fetch.add_argument("--source-name", required=True)
+    p_fetch.add_argument("url", nargs="?", default=None,
+                          help="Omit to be prompted for it")
+    p_fetch.add_argument("--source-name", default=None,
+                          help="Omit to be prompted for it")
     p_fetch.add_argument("--source-type", default="retailer_page", choices=sorted(SOURCE_TYPES))
     p_fetch.add_argument("--extracted", help="JSON string of the fields you pulled from the page")
     p_fetch.add_argument("--extracted-file", help="Path to a JSON file instead of an inline string")
@@ -327,6 +444,9 @@ def build_parser():
     p_fetch.add_argument("--fetched-by", default="walter")
     p_fetch.add_argument("--force", action="store_true",
                           help="Insert even if content hash matches the last fetch")
+    p_fetch.add_argument("--no-interactive", action="store_true",
+                          help="Never prompt: url/--source-name become required, "
+                               "and --extracted is left as given (no field capture)")
     p_fetch.set_defaults(func=cmd_fetch)
 
     p_add = sub.add_parser("add", help="Add an observation with no URL (measurement, PDF, photo, call)")
