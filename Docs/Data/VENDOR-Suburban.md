@@ -353,16 +353,44 @@ found via the vendor's own recirculating-loop variant listing.
 | Net weight | 36 lb | retailer spec block |
 | Warranty | Limited 2 year | retailer prose |
 
-**No cutout dimensions published on this page.** Consistent with it being tankless — a
-0.5-gallon buffer tank plus heat exchanger has a materially different install profile than
-the tank-style `SW` line, so "no cutout given" here is not the same data gap as SW16VE's
-(§4, still-missing-depth) — it may not even be the right attribute to look for on this
-platform. Needs its own attribute schema question before assuming `part_type_id: 412`
-(the SW-series water-heater type) applies unmodified.
+**No cutout dimensions were on the retailer page — resolved, not a gap.** The manufacturer's
+own service manual (Suburban/Airxcel, "Nautilus (IW60) Service and Training Manual" —
+[myrvworks.com PDF](https://myrvworks.com/wp-content/uploads/2020/04/Suburban-Nautilus-Service-Manual.pdf),
+captured as observation #14) confirms this platform genuinely has **no tank cutout at all.**
+It's not a missing attribute, it's a different attribute shape entirely — this platform needs
+its own schema, not `part_type_id: 412`'s cutout fields:
 
-Cross-sell on this page surfaces companion parts under different SKUs — a module board
-(521212) and a recirculating pump (233390 / 521299) — worth noting these are accessory/repair
-parts for the IW60RL, not alternate models of it.
+- **New install:** the only opening required is a **3.750" diameter vent hole**. Vent cap is
+  ordered separately (Table 1: PNs 260616/260617/260618/260638, selected by wall thickness /
+  vent-cap-length, 0–1" through 5–6").
+- **Retrofit install (replacing an existing tank unit):** a **replacement panel** — sized to
+  the *old* unit's cutout — gets caulked into the existing opening, covering it. Only the
+  3.750" vent hole is newly cut; the tank cutout itself is reused, not resized. Panel part
+  number is selected by the outgoing unit's brand and capacity:
+
+  | Outgoing unit | Capacities | Replacement panel PN |
+  |---|---|---|
+  | Suburban | 6 gal | 6276APW (Polar White) |
+  | Suburban | 10, 12, 16 gal | 6277APW (Polar White) |
+  | Atwood | 6 gal | 521147 (Polar White) |
+  | Atwood | 10 gal | 521150 (Polar White) |
+
+**Interchange consequence — this is a cross-vendor `substitutes` candidate, not just a
+same-vendor one.** The manual explicitly documents the IW60(RL) as a drop-in retrofit target
+for five different cutout families across **two manufacturers** (Suburban 6-gal, Suburban
+10/12/16-gal, Atwood 6-gal, Atwood 10-gal), via the panel adapter rather than a matching
+cutout. That's a `basis: manufacturer_documented` edge, stronger evidence than the single
+buyer-confirmed review in §5.4, and it's the first confirmed Atwood cross-reference anywhere
+in this document. Each of those five edges would need `verdict: fits_with_modification` (new
+vent hole + panel required) and a `requires_part` reference to the correct panel PN — this
+is not a caveat-free drop-in.
+
+Dimensions from the manual match the retailer page exactly (12.5"h × 12.5"w × 20"d) —
+independent corroboration between manufacturer and retailer sources.
+
+Cross-sell on the retailer page surfaces companion parts under different SKUs — a module
+board (521212) and a recirculating pump (233390 / 521299) — worth noting these are
+accessory/repair parts for the IW60RL, not alternate models of it.
 
 **New open thread:** the `IW` prefix ("Nautilus") is now a second product family, alongside
 the already-flagged `SAW` line (§4, SW16VE section), that exists outside the `SW` grammar
@@ -594,9 +622,13 @@ Concretely:
 - Determine whether `C` and `M` suffixes affect cutout specifically (⟵ `C` label resolved
   above; `M` label now resolved too — see §3.2 — but neither's *dimensional* consequence
   is confirmed).
-- **New:** `IW60RL` (5280A, "Nautilus" on-demand/tankless line) captured — see §4. No cutout
-  data, and it's not clear `part_type_id: 412` even applies to a tankless unit. Needs its own
-  attribute-schema pass, not just a slot in the `SW`-series fixture.
+- ~~`IW60RL` (5280A, "Nautilus" on-demand/tankless line): no cutout data, unclear if
+  `part_type_id: 412` applies.~~ **Resolved 2026-07-30** via the manufacturer service
+  manual (obs #14) — see §4. Confirmed: no tank cutout on this platform at all, just a
+  3.750" vent hole, plus a manufacturer-documented cross-vendor retrofit path (replacement
+  panels for Suburban 6/10/12/16-gal and Atwood 6/10-gal cutouts). **Still open:** this
+  platform needs its own `attribute_schema` (vent hole, not cutout h/w/d) before it goes in
+  the fixture — not a slot in the existing 412 schema.
 
 ---
 
