@@ -1102,13 +1102,21 @@ rather than contradicting evidence:
   configuration in older documentation, built from shared stock components, but was never
   assigned its own catalog-level SKU the way `D`/`DE`/`DEL`/etc. were.
 
-**What's still genuinely dark:** `DM` — no manufacturer numeric spec, no confirmed SKU, and
-now real evidence pointing at *why*: it's a discontinued/non-catalog configuration, not an
-unfetched document. It's the only suffix left without a numeric spec; everything else in the
-suffix table below has closed. A parts-list PDF or product page may still exist somewhere, but
-two more targeted searches (a 2014 Forest River-hosted manual, blocked by a 403; a 2019
-official "ALL MODELS" manual, which excludes it outright) came up empty or negative rather than
-silent.
+**`DM` — cutout dimension now manufacturer-confirmed (obs #31).** The 2014 Forest River-hosted
+manual (`204670`, dated 12-15-2014) that previously 403'd turned out to be reachable via a
+direct link the user supplied — it's a clean, native-text PDF (no OCR needed), model-specific
+to `SW4D`/`SW6D`/`SW6DE`/`SW6DM`/`SW6DEM`. Its Figure 1 framed-opening spec gives
+**A = B = 12¾" +⅛"/−0"** for this whole model group — a manufacturer-sourced confirmation that
+`SW6DM` sits in the small (12¾") cutout family, upgrading obs #28's retailer-sourced claim of
+the same thing to primary-source status. It carries no product-dimension table, no BTU/weight
+figures, and no SKU — it's an install/operation manual, the same genre as obs #27, not a spec
+sheet, so it doesn't close the numeric-spec or SKU gap.
+
+**What's still genuinely dark:** `DM`'s **product size, weight, BTU rating, and SKU** — no
+manufacturer document has published any of these for `SW6DM`/`SW10DM`, and the 2019 official
+"ALL MODELS" manual (obs #29) excludes the suffix outright, consistent with the
+discontinued/non-catalog theory. The cutout dimension, at least, is now closed on
+manufacturer authority rather than retailer prose.
 
 **Opening/cutout note, revised:** obs #22 is the first source to publish a manufacturer
 *cutout* figure (not just product size) for the `D`/`DE`/`DEL`/`DEC`/`DELC` family, and it
@@ -1193,7 +1201,7 @@ observation still stands; obs #21-25 don't change it.
 | `DELC` | one page | retailer only — **no mfr specs** | unchanged | **fully spec'd (obs #22)** — SKUs + unit/cutout dims at 6/10/12/16 gal; `SW12DELC` SKU conflicts with §2 (see §7.1) |
 | `DEC` | not found | **still not found** — inferred from grammar only | unchanged | **fully spec'd (obs #22)** — SKUs + unit/cutout dims at 6/10/12/16 gal, first direct confirmation ever |
 | `DEM` | zero pages | **fully spec'd** at 6 and 10 gal | extended to 12/16 gal (obs #21) | unchanged |
-| `DM` | zero pages | named (`SW10DM`) — still no specs | unchanged | mfr manual confirms `SW6DM` + meaning (obs #27); cutout-family membership retailer-confirmed (obs #28); current (2019) official manual excludes `DM` entirely (obs #29) — likely discontinued; **still no numeric spec or SKU from any source** |
+| `DM` | zero pages | named (`SW10DM`) — still no specs | unchanged | mfr manual confirms `SW6DM` + meaning (obs #27); cutout dimension (12¾"×12¾") **mfr-confirmed** (obs #31, supersedes retailer-sourced obs #28); current (2019) official manual excludes `DM` entirely (obs #29) — likely discontinued; **still no product dims, weight, BTU, or SKU from any source** |
 | `V` standalone | zero pages | named (`SW16V`, obs #19) — no specs | mfr product dims captured (obs #21) — matches SW16D | unchanged |
 | `VE` | one page | retailer only — **no mfr specs** | mfr product dims captured (obs #21) — matches SW16DE | unchanged |
 | `SAW` | completely dark | one model captured (§4) | unchanged | unchanged |
