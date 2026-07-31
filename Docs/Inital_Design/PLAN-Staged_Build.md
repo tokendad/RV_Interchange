@@ -242,32 +242,49 @@ four of five items are done, and the work has moved past what that list anticipa
    `fixtures/ground-truth.yaml`, now also carrying vendor-researched components that anchor
    real edges.
 
+### Also done, since 35 observations
+
+5. ~~Build the SW-series model parser.~~ **Done** — `Docs/Tools/suburban_parser.py`. Decodes
+   model strings to structured attributes, resolves substitution edges (install-side-supply-
+   aware, not just feature-count), and implements the `full − empty` weight validity rule.
+   Self-tested, cross-checked against `ground-truth.yaml` with 0 mismatches.
+6. ~~Enforce source-trust ranking.~~ **Done** — `Docs/Tools/resolver.py` adds a
+   machine-readable `source_tier` column on `observations`, backfilled for all 35 rows.
+7. **Prerequisite for the resolver, found by measuring the input.** 35 observations had
+   accumulated 175 distinct `extracted` keys, 132 seen exactly once — the no-schema-on-insert
+   design working as intended, but it meant no resolver could be written against raw field
+   names yet. `resolver.py` now classifies every key (alias, compound, or explicitly-reviewed
+   ignore) and makes the `cutout_*` → `opening_h`/`opening_w` correction (§6.5) mechanical
+   instead of re-litigated per record. Unclassified keys raise instead of dropping silently.
+
 ### Still open — and now the actual blocker
 
-5. **Design the component/edge schema, then build the resolver.** Unchanged from the original
-   list and still not started. This was always meant to follow the fixture, and the fixture
-   has been ready for some time. Every further vendor document improves the input to a
-   pipeline that does not yet exist.
+8. **Design the component/edge schema, then build the observations→components/edges
+   resolver itself.** The model parser and the vocabulary/alias layer it needs are both done;
+   the resolver that walks `observations.db` through that vocabulary into resolved components
+   and edges — the thing `VENDOR-Suburban.md` §8 calls "pipeline reproduces the fixture" — is
+   not. This was always meant to follow the fixture, and the fixture has been ready for some
+   time.
 
 ### Added since
 
-6. **Fill the in-hand measurement gaps.** `fixtures/ground-truth.yaml` still carries
+9. **Fill the in-hand measurement gaps.** `fixtures/ground-truth.yaml` still carries
    `TODO_measure` on the ceiling register and roof vent — the two parts where geometry *is*
    the identity. No source can supply these; they need a tape measure.
-7. **Second vendor adapter.** Suburban is deep enough to prove the pattern. Coleman-Mach /
-   Airxcel is next (§ `VENDOR-Suburban.md` §10) and hits multi-namespace identity early via
-   the in-hand thermostat.
-8. **Resolve the SKU channel-split model.** Suburban confirmed 5148A/5248A are the same unit
-   sold to different channels (`VENDOR-Suburban.md` §7.2). Identifiers need a channel
-   qualifier, not just a namespace — that's an `ARCHITECTURE-Interchange_Core.md` §3 change,
-   not just a vendor note.
+10. **Second vendor adapter.** Suburban is deep enough to prove the pattern. Coleman-Mach /
+    Airxcel is next (§ `VENDOR-Suburban.md` §10) and hits multi-namespace identity early via
+    the in-hand thermostat.
+11. **Resolve the SKU channel-split model.** Suburban confirmed 5148A/5248A are the same unit
+    sold to different channels (`VENDOR-Suburban.md` §7.2) — that part is done. Identifiers
+    still need a channel qualifier in the schema itself, not just a namespace — that's an
+    `ARCHITECTURE-Interchange_Core.md` §3 change, not just a vendor note, and it isn't made yet.
 
-> **Worth stating plainly:** research is outrunning implementation. The interchange core
-> (Stage 1) was scoped as *"vendor adapters, zero users required"* — but an adapter is code
-> that turns sources into records, and so far the sources have been turned into *documents*.
-> The documents are unusually good. They are not the deliverable.
+> **Updated 2026-07-31.** Research was outrunning implementation as of the last note; that gap
+> has narrowed. The model parser and the vocabulary layer the resolver needs are both built
+> and tested. What's left is the resolver itself — the code that actually walks observations
+> through that vocabulary into components and edges, not just the plumbing it depends on.
 >
-> The §8 definition-of-done in `VENDOR-Suburban.md` still has every pipeline checkbox
-> unticked. That is the honest status of Stage 1.
+> The §8 definition-of-done in `VENDOR-Suburban.md` now has 6 of 9 boxes checked (2 partial,
+> 1 open — the resolver). That is the honest status of Stage 1.
 
 
