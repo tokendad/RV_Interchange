@@ -1200,9 +1200,22 @@ until now), hannarv.com gives `5054A` (obs #33, with its own vendor number `4108
 `SW6PE` (the electric variant, not the same model) is `5118A` per dyersonline (obs #32). `5117A`
 and `5054A` are not a legacy/current pair in any pattern seen elsewhere in this file (no `+100`
 or similar arithmetic relates them) — this looks like two different retailers' internal catalog
-numbers, or one may be a distributor/vendor number rather than a Suburban SKU. Unresolved;
-needs a manufacturer document (the Pilot family still has none contributing a SKU) or a
-same-retailer cross-check before picking one as current.
+numbers, or one may be a distributor/vendor number rather than a Suburban SKU.
+
+**User-supplied explanation, not yet document-confirmed:** `5117A` is the **master retail
+SKU** — the catalog number on individually boxed consumer units sold through retail/online
+channels (Walmart, RV parts stores). `5054A` is an **OEM/bulk SKU** — used for pallet
+quantities sold directly to RV factories for assembly-line installation, and sometimes passed
+through by wholesale distributors to end consumers instead of the retail number. This fits the
+pattern of parallel numbering schemes seen nowhere else in this file (the D-family's `+100`
+renumbering was a time-based supersession; this would be a channel-based split, two SKUs
+live simultaneously for the same physical unit rather than one replacing the other). **Treat as
+a plausible, user-supplied hypothesis, not a manufacturer-confirmed fact** — no primary
+Suburban document has been found stating a retail/OEM SKU split explicitly. The Newmar
+parts portal (obs #34, a coach-builder's OEM parts diagram for `SW6P`/`SW6PR`/`SW6PE`/`SW6PER`)
+was checked as a possible source for the OEM-side number — it only carries component-level
+part numbers (reignitor, burner assembly, etc.), no top-level assembly SKU, so it neither
+confirms nor refutes the split.
 
 **Still open:** the 10-gallon Pilot models (`SW10P`/`SW10PR`/`SW10PE`/`SW10PER`) — searches
 turned up product pages at adventurerv.net and dyersonline.com, but both 403'd/404'd on fetch;
@@ -1213,7 +1226,7 @@ at every capacity — only plain `P` and `PE` have retailer pages so far.
 
 | Suffix | At 11 observations | At 20 observations | At 21 observations | At 22 observations |
 |---|---|---|---|---|
-| `P` `PR` `PE` `PER` | completely dark | **fully spec'd** — 8 models, mfr dims + weights | unchanged | `SW6P`/`SW6PE` now retailer-corroborated (obs #32/33, exact dim match) but surfaced a 3-way SKU conflict on `SW6P` (`5117A`/`5054A`); `PR`/`PER` and all 10-gal models still retailer-dark |
+| `P` `PR` `PE` `PER` | completely dark | **fully spec'd** — 8 models, mfr dims + weights | unchanged | `SW6P`/`SW6PE` now retailer-corroborated (obs #32/33, exact dim match); `SW6P` SKU conflict (`5117A` vs `5054A`) plausibly explained as retail-vs-OEM/bulk channel split (user hypothesis, not mfr-confirmed); `PR`/`PER` and all 10-gal models still retailer-dark |
 | `D` | SKU only | spec'd (mfr) + retailer page | now at 4/6/10/12/16 gal (obs #21) | **+ mfr cutout dims (obs #22)** |
 | `DE` | one page | spec'd (mfr) + retailer page | now at 4/6/10/12/16 gal (obs #21) | **+ mfr cutout dims (obs #22)** |
 | `DEL` | two pages | retailer only — **no mfr specs** | mfr product dims at 6/10/12/16 gal (obs #21) | **+ mfr cutout dims; confirmed absent at 4-gal (obs #22)** |
