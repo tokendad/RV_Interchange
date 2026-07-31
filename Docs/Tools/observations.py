@@ -93,7 +93,8 @@ CREATE TABLE IF NOT EXISTS observations (
     content_hash       TEXT,
     raw_content        TEXT,
     extracted          TEXT,
-    extraction_method  TEXT NOT NULL
+    extraction_method  TEXT NOT NULL,
+    source_tier        INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS idx_obs_url ON observations(url);

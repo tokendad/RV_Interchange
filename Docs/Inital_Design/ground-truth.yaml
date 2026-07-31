@@ -203,11 +203,12 @@ components:
       - {ns: suburban, value: SW12DEL, visibility: exterior_plate}
       - {ns: suburban, value: "5248A", visibility: none_marked}
       - {ns: suburban, value: "5148A", visibility: none_marked}
-      # 5248A current, 5148A legacy — resolved 2026-07-30 (obs #25, 2025
-      # catalog) as a genuine manufacturer SKU renumbering, not a source
-      # conflict. VENDOR-Suburban.md §7.1 has the full evidence trail; an
-      # earlier version of that section wrongly favored 5148A as "correct"
-      # before the 2025 catalog surfaced.
+      # Both co-current, not legacy/current — manufacturer-confirmed 2026-07-31
+      # (obs #35, direct email from Suburban): 5148A is the manufacturer-channel
+      # SKU, 5248A is the distributor-channel SKU, same physical unit, packaging
+      # difference only. Supersedes the earlier 2026-07-30 (obs #25) reading of
+      # this pair as a legacy→current renumbering. VENDOR-Suburban.md §7.2 has
+      # the full evidence trail; §7.1 documents the now-superseded reasoning.
     attributes:
       capacity_gal:  {value: 12,    provenance: retailer_spec_block}
       input_btuh:    {value: 12000, provenance: retailer_spec_block}

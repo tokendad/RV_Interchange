@@ -224,11 +224,50 @@ much as opportunity. See §5.
 
 ## 9. Immediate next actions
 
-1. Build the `observations` table. Source-agnostic, append-only. **Before fetching anything.**
-2. Hand-pull ~12 Suburban SW-series documents (SW4D through SW16DEL).
-3. Transcribe the three model-number grammar charts from
-   `suburbanrvparts.com/model-number-breakdown/` — they are images, not text.
-4. Hand-write ground-truth records for the five in-hand parts
-   (`fixtures/ground-truth.yaml`).
-5. *Then* design the component/edge schema — as "what shape holds these records."
-   An hour of work that will be right, rather than a week that is theoretical.
+*Updated 2026-07-30 at 35 observations. The original list is preserved struck-through —
+four of five items are done, and the work has moved past what that list anticipated.*
+
+### Done
+
+1. ~~Build the `observations` table.~~ **Done** — `tools/observations.py`, append-only,
+   HTML + PDF capture with scan detection, 35 observations live.
+2. ~~Hand-pull ~12 Suburban SW-series documents.~~ **Superseded.** The count was set before
+   the sources were known. Actual capture spans manufacturer brochures, two service manuals,
+   an OEM parts portal, a 2002 archived spec chart, and a direct reply from Suburban support
+   — a better spread than twelve retailer pages would have given.
+3. ~~Transcribe the three model-number grammar charts.~~ **Done for water heaters**
+   (cross-validated, `VENDOR-Suburban.md` §3.2). Furnace and cooktop charts remain
+   image-only and low-trust — see `VENDOR-Suburban-Furnace_Cooktop.md`.
+4. ~~Hand-write ground-truth records for the five in-hand parts.~~ **Done** —
+   `fixtures/ground-truth.yaml`, now also carrying vendor-researched components that anchor
+   real edges.
+
+### Still open — and now the actual blocker
+
+5. **Design the component/edge schema, then build the resolver.** Unchanged from the original
+   list and still not started. This was always meant to follow the fixture, and the fixture
+   has been ready for some time. Every further vendor document improves the input to a
+   pipeline that does not yet exist.
+
+### Added since
+
+6. **Fill the in-hand measurement gaps.** `fixtures/ground-truth.yaml` still carries
+   `TODO_measure` on the ceiling register and roof vent — the two parts where geometry *is*
+   the identity. No source can supply these; they need a tape measure.
+7. **Second vendor adapter.** Suburban is deep enough to prove the pattern. Coleman-Mach /
+   Airxcel is next (§ `VENDOR-Suburban.md` §10) and hits multi-namespace identity early via
+   the in-hand thermostat.
+8. **Resolve the SKU channel-split model.** Suburban confirmed 5148A/5248A are the same unit
+   sold to different channels (`VENDOR-Suburban.md` §7.2). Identifiers need a channel
+   qualifier, not just a namespace — that's an `ARCHITECTURE-Interchange_Core.md` §3 change,
+   not just a vendor note.
+
+> **Worth stating plainly:** research is outrunning implementation. The interchange core
+> (Stage 1) was scoped as *"vendor adapters, zero users required"* — but an adapter is code
+> that turns sources into records, and so far the sources have been turned into *documents*.
+> The documents are unusually good. They are not the deliverable.
+>
+> The §8 definition-of-done in `VENDOR-Suburban.md` still has every pipeline checkbox
+> unticked. That is the honest status of Stage 1.
+
+

@@ -945,9 +945,41 @@ deep enough — governed by the manual's clearance rule, not by an opening dimen
 
 | Source | Claimed "cutout depth" | Verdict |
 |---|---|---|
-| suburbanrvparts.com | 19.19" | Copied its own product-size depth into a cutout row. No such dimension exists. |
-| pplmotorhomes.com | 19.75" | Stated a depth as a "cut-out dimension." Also not an opening dimension; may be a real cavity-clearance figure, but it is mislabeled. |
-| **Suburban master manual** | **— (none)** | **Opening is 2D: A × B.** |
+| suburbanrvparts.com | 19.19" | **Faithfully reproducing Suburban's own convention — not an error.** See the correction below. |
+| pplmotorhomes.com | 19.75" | Neither the framed opening nor the unit depth. Unexplained; possibly a cavity-clearance figure of PPL's own. |
+| **Suburban master manual, Figure 1** | **— (none)** | **The framed opening is 2D: A × B.** |
+| **suburbanrv.com 2023 brochure (obs #22)** | **19.19"** | Manufacturer publishes a `CUTOUT DIMENSIONS` **triple**, depth = unit depth at every capacity. |
+
+> **CORRECTION — logged 2026-07-30, second pass.** This section originally called
+> suburbanrvparts' 19.19" figure a copy error and counted it as *"the third confirmed
+> systematic template error"* on that site, after §6.1 and §6.2. **Withdrawn.**
+>
+> Suburban's own current brochure (obs #22, suburbanrv.com, dated 2023-03) publishes a
+> `CUTOUT DIMENSIONS` row with **three** figures, in which the depth is numerically identical
+> to the `UNIT DIMENSIONS` depth at every single capacity — 19.19" for 6-gal, 16.125" for
+> 4-gal, and so on. That is precisely the pattern this section attributed to retailer
+> sloppiness. **The retailer was copying the manufacturer accurately.**
+>
+> Two things to keep separate, because only one of them changes:
+>
+> - **The schema decision stands, and is now better supported.** The framed opening is
+>   two-dimensional (Figure 1, unambiguous), and the brochure's cutout H/W — 12.75" and
+>   16.38" — match Figure 1 exactly. A third figure that always equals the unit depth carries
+>   no independent information and cannot serve as an interchange key. `cutout_d` stays
+>   retired; `opening_h`/`opening_w` + `unit_depth` remain correct.
+> - **The error attribution does not stand.** suburbanrvparts has **two** confirmed systematic
+>   errors (§6.1 alt text, §6.2 wattage), not three. The source-trust ranking was calibrated
+>   partly on a third that turns out not to exist.
+>
+> Best reading of Suburban's intent: the brochure's "cutout depth" is a **minimum cavity
+> depth** — *"you need at least this much room behind the wall"* — which naturally equals the
+> unit's own depth. That's a real and useful constraint. It is simply not an opening
+> dimension, and it duplicates `unit_depth` rather than adding to it.
+>
+> *Methodological note: a conclusion can be right while the reasoning offered for it is
+> wrong. Both need checking. This is the second instance in this document — see also the §4
+> correction, where mislabeled evidence supported a claim that a better source later
+> confirmed.*
 
 #### What replaces it in the schema
 
@@ -1222,6 +1254,38 @@ turned up product pages at adventurerv.net and dyersonline.com, but both 403'd/4
 not yet independently verified. `PR`/`PER` (the re-igniter variants) also remain retailer-dark
 at every capacity — only plain `P` and `PE` have retailer pages so far.
 
+### 7.2 `SW12DEL` 5148A/5248A — manufacturer confirms it's a channel split, not a supersession (obs #35)
+
+**Manufacturer-confirmed 2026-07-31.** User emailed Suburban directly asking about the
+5148A/5248A conflict on `SW12DEL` and received a reply (saved at
+`Docs/Data/Suburban/Re_ sw12del-SKU- 2026-07-31 0839.eml`):
+
+> "Suburban sells to both manufacturers and distributors. Manufacturers don't care what the
+> packaging looks like but distributors like something that looks nicer than a plain cardboard
+> box that can be set on the shelves in their stores. 5148A (for manufacturers) & 5248A (for
+> distributors) are the same water heater with different packaging. By law, if anything is
+> different with our products, even the packaging, it must have a different SKU number."
+
+**This overturns the §7.1 framing for this pair.** §7.1 concluded `5148A` was legacy/superseded
+and `5248A` current, based on the +100 shift appearing to postdate `5148A` in a later catalog.
+The manufacturer's own answer says both numbers are live at the same time, sold in parallel
+through different channels (OEM/manufacturer vs. distributor), not one replacing the other over
+time. The +100 pattern across the D/DE/DEL family (§7.1's table) is real and still holds as a
+numbering scheme, but "current vs. superseded" was the wrong axis — "manufacturer channel vs.
+distributor channel" is the right one, at least for this pair.
+
+**This is also the first manufacturer-confirmed instance of the channel-split mechanism
+hypothesized (user-supplied, unconfirmed) for `SW6P`'s `5117A`/`5054A` conflict just above.
+Treat that hypothesis as substantially strengthened by direct analogy, still not itself
+confirmed** — Suburban's email was specific to `SW12DEL`/5148A/5248A, not a general policy
+statement, and `5117A`/`5054A` don't show the same `+100`-style numeric relationship `5148A`/
+`5248A` do, so the mechanism analogy doesn't resolve the SW6P SKU conflict on its own.
+
+**Cataloging implication:** treat `5148A` and `5248A` as two co-current manufacturer SKUs for
+the same physical `SW12DEL` unit (packaging/channel variants), not a legacy→current pair.
+`ground-truth.yaml`'s `c_placeholder_wh_12del` comment (currently reads "5248A current, 5148A
+legacy") should be corrected to reflect this.
+
 ### Suffix status, then vs. now
 
 | Suffix | At 11 observations | At 20 observations | At 21 observations | At 22 observations |
@@ -1258,15 +1322,48 @@ Roughly the scope of one CivicMirror state adapter.
 
 Concretely:
 
-- [ ] `observations` table exists and is append-only
-- [ ] Three grammar charts transcribed from images
-- [ ] SW-series model parser: string → {capacity, ignition, power, relay}
-- [ ] ~12 SW-series documents fetched and cached raw
-- [ ] Ground-truth fixture hand-written (`fixtures/ground-truth.yaml`)
-- [ ] Pipeline reproduces the fixture
-- [ ] SW6DE↔SW6DEL asymmetric edge resolves correctly in both directions
-- [ ] `full − empty` validity rule implemented and run across the line
-- [ ] Source-trust ranking enforced (spec block > prose > alt text)
+- [x] `observations` table exists and is append-only (`Docs/Tools/observations.db` / `observations.py`)
+- [x] Three grammar charts transcribed from images (§3.2)
+- [x] SW-series model parser: string → {capacity, ignition, power, relay}
+      (`Docs/Tools/suburban_parser.py`, `--self-test` passes: 13 decode cases, 4 negative
+      cases, 4 tolerance checks)
+- [x] ~12 SW-series documents fetched and cached raw (35 observations logged)
+- [x] Ground-truth fixture hand-written (`Docs/Inital_Design/ground-truth.yaml`)
+- [~] Pipeline reproduces the fixture — `suburban_parser.py --check-fixture` reproduces
+      capacity/opening for every model-number identifier in the fixture (0 mismatches), but
+      there is no full observations→components/edges resolver yet, so this is partial.
+      **Prerequisite now built** (`Docs/Tools/resolver.py`): a canonical vocabulary + alias
+      map for `extracted`'s field names, which the actual resolver has to be written against.
+      Measured at 35 observations: 175 distinct top-level keys, 132 appearing exactly once —
+      the two-table design (append-only raw layer, no schema on `extracted`) working as
+      intended, not failing, but it does mean the resolver can't be written against raw field
+      names. All 175 are now classified (99 aliases, 68 explicitly-ignored-with-reason, 8
+      compound keys), `--validate` confirms zero unmapped, and any future observation with a
+      genuinely new key fails loudly (`ValueError`) rather than dropping it silently. The
+      `cutout_*` → `opening_h`/`opening_w` correction (§6.5) is now mechanical — depth is
+      dropped and logged on every record, not re-litigated per observation. The
+      observations→components/edges resolver itself is still not built.
+- [x] SW6DE↔SW6DEL asymmetric edge resolves correctly in both directions
+      (`compare_models()`, general feature-superset comparison, not hardcoded to this pair —
+      verified against capacity/ignition mismatches and the SW6DEM motorhome-only constraint.
+      Refined further: reasoning is install-side-supply-aware, not feature-count-aware — gaining
+      a feature is only a clean `drop_in` if its electrical supply is already required by the
+      source model. This correctly keeps SW6DE→SW6DEL a drop-in (the relay only needs 12V DC,
+      already present for D-line ignition) while downgrading SW6D→SW6DE to `fits_with_caveat`
+      (the element pulls in a 120V AC requirement the D never had) — a case plain feature-set
+      comparison alone got wrong.)
+- [x] `full − empty` validity rule implemented and run across the line
+      (`check_weight_consistency()`, 0.971 ± 0.01 fill ratio per §6.3, checked against three
+      manufacturer chart rows and both suspect retailer weight records)
+- [x] Source-trust ranking enforced (spec block > prose > alt text) — `observations.source_tier`
+      (`Docs/Tools/resolver.py`) is now a machine-readable INTEGER column (1=best, 9=worst),
+      backfilled for all 35 rows via `infer_source_tier()`: defaults from
+      `(source_type, extraction_method)`, overridden per-observation where the record's own
+      `trust_tier`/`confidence_note` text already made an explicit call (obs #6 forced to the
+      bottom tier, obs #20/#22/#25/#26/#29/#31 to the top, obs #28/#30 downgraded). The
+      resolver can now rank conflicting values mechanically instead of re-deriving "which
+      source do I believe" from prose per conflict — the actual conflict-resolution logic
+      that *uses* this ranking is still part of the not-yet-built resolver.
 
 ---
 
