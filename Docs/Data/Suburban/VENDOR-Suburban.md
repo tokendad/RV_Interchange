@@ -1003,7 +1003,7 @@ nominal on a 6-gallon, which Suburban explicitly does not.
 
 ## 7. Coverage — what's captured, what's dark
 
-*Rebuilt 2026-07-30 at 20 observations, revised through 28 observations (2026-07-31).
+*Rebuilt 2026-07-30 at 20 observations, revised through 30 observations (2026-07-31).
 Regenerate from the db rather than trusting this table's age.*
 
 > **UPDATE — logged 2026-07-30 (obs #22).** User-supplied manufacturer brochure
@@ -1081,8 +1081,34 @@ block. **No SKU has been found for `SW6DM`/`SW10DM` in any manufacturer document
 with (but not proof of) the user's secondary-source claim that `DM` models don't carry
 standard catalog SKUs; that claim itself is still retailer-sourced, not manufacturer-confirmed.
 
-**What's still genuinely dark:** `DM` — no manufacturer numeric spec, no confirmed SKU. It's
-the only suffix left in that state; everything else in the suffix table below has closed.
+**`DM` — further update 2026-07-31 (obs #29, #30): likely discontinued, not just undocumented.**
+User's own research had already concluded `SW6DM`/`SW10DM` are "custom OEM items" with no
+product page or catalog SKU; a targeted search for a modern spec sheet turned up corroborating
+rather than contradicting evidence:
+
+- Suburban's current (2019), comprehensive, official **"ALL MODELS" manual** (PN 205269, obs
+  #29, verified directly — real text layer, no OCR needed) lists every suffix this project
+  tracks — `D`/`DE`/`DEC`/`DEL`/`DELC`/`DEM` — at every capacity, and **bare `DM` appears
+  nowhere on it**. A full-text search of all 20 pages for a bare `DM` token returns zero
+  matches; only `DEM` exists. This is the strongest evidence yet that `DM` has dropped out of
+  Suburban's current catalog entirely, which is consistent with — not just compatible with —
+  the "no product page, no SKU" conclusion already reached independently.
+- A ManualsLib-hosted **older** SW10D manual (obs #30, **captured at LOW-MEDIUM trust** — via
+  a page-summary of a paywalled scan, not a raw file I parsed myself; needs direct
+  re-verification before relying on it) reportedly lists `SW10DM` on its cover and gives it a
+  generic parts-breakdown diagram shared with `SW10D`/`SW10DE` — component-level part numbers
+  only (module board, gas valve, etc., all shared parts), no top-level assembly SKU and no
+  dimension table. If accurate, this fits the same pattern: `DM` existed as a real
+  configuration in older documentation, built from shared stock components, but was never
+  assigned its own catalog-level SKU the way `D`/`DE`/`DEL`/etc. were.
+
+**What's still genuinely dark:** `DM` — no manufacturer numeric spec, no confirmed SKU, and
+now real evidence pointing at *why*: it's a discontinued/non-catalog configuration, not an
+unfetched document. It's the only suffix left without a numeric spec; everything else in the
+suffix table below has closed. A parts-list PDF or product page may still exist somewhere, but
+two more targeted searches (a 2014 Forest River-hosted manual, blocked by a 403; a 2019
+official "ALL MODELS" manual, which excludes it outright) came up empty or negative rather than
+silent.
 
 **Opening/cutout note, revised:** obs #22 is the first source to publish a manufacturer
 *cutout* figure (not just product size) for the `D`/`DE`/`DEL`/`DEC`/`DELC` family, and it
@@ -1167,7 +1193,7 @@ observation still stands; obs #21-25 don't change it.
 | `DELC` | one page | retailer only — **no mfr specs** | unchanged | **fully spec'd (obs #22)** — SKUs + unit/cutout dims at 6/10/12/16 gal; `SW12DELC` SKU conflicts with §2 (see §7.1) |
 | `DEC` | not found | **still not found** — inferred from grammar only | unchanged | **fully spec'd (obs #22)** — SKUs + unit/cutout dims at 6/10/12/16 gal, first direct confirmation ever |
 | `DEM` | zero pages | **fully spec'd** at 6 and 10 gal | extended to 12/16 gal (obs #21) | unchanged |
-| `DM` | zero pages | named (`SW10DM`) — still no specs | unchanged | mfr manual confirms `SW6DM` + meaning (obs #27); cutout-family membership retailer-confirmed (obs #28); **still no numeric spec or SKU from any source** |
+| `DM` | zero pages | named (`SW10DM`) — still no specs | unchanged | mfr manual confirms `SW6DM` + meaning (obs #27); cutout-family membership retailer-confirmed (obs #28); current (2019) official manual excludes `DM` entirely (obs #29) — likely discontinued; **still no numeric spec or SKU from any source** |
 | `V` standalone | zero pages | named (`SW16V`, obs #19) — no specs | mfr product dims captured (obs #21) — matches SW16D | unchanged |
 | `VE` | one page | retailer only — **no mfr specs** | mfr product dims captured (obs #21) — matches SW16DE | unchanged |
 | `SAW` | completely dark | one model captured (§4) | unchanged | unchanged |
