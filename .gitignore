@@ -42,3 +42,6 @@ __pycache__/
 # hand-transcribed into observations.db, not committed as raw fetched files)
 Docs/Data/**/https___*.html
 Docs/Data/**/https___*_files/
+
+# Oversized source PDFs (exceed GitHub's 100MB limit) — kept on disk, not in git
+Docs/Data/Atwood/ParkPower Catalog.pdf
