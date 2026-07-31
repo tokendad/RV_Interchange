@@ -1003,8 +1003,28 @@ nominal on a 6-gallon, which Suburban explicitly does not.
 
 ## 7. Coverage — what's captured, what's dark
 
-*Rebuilt 2026-07-30 at 20 observations. Regenerate from the db rather than trusting this
-table's age.*
+*Rebuilt 2026-07-30 at 20 observations, revised through 28 observations (2026-07-31).
+Regenerate from the db rather than trusting this table's age.*
+
+> **UPDATE — logged 2026-07-30 (obs #22).** User-supplied manufacturer brochure
+> (`suburbanrv.com`, the primary manufacturer domain — higher trust than any source used so
+> far, dated 2023-03-01) directly confirms `DEC` and `DELC` with real SKUs at 6/10/12/16 gal,
+> plus manufacturer product *and* cutout dimensions for the whole `D`/`DE`/`DEL`/`DEC`/`DELC`
+> family. **`DM` is now the only suffix with zero manufacturer or retailer specs.** New
+> finding: **4-gallon only ships as `D`/`DE`** — `DEL`/`DEC`/`DELC` do not exist at 4-gal,
+> per the manufacturer's own availability grid. Also surfaced an apparent conflict on
+> `SW12DELC`'s SKU — **resolved as a manufacturer SKU renumbering, not an error; see §7.1.**
+
+> **CORRECTION — logged 2026-07-30.** This section previously claimed "zero manufacturer
+> data for the DEL/DELC/V generation." That was wrong, not because new evidence arrived, but
+> because existing evidence was missed: obs #19 (the master service manual)'s `raw_content`
+> already contained the full spec-sheet table (page 6) for the entire line, including
+> `DEL`/`DEM`/`V`/`VE` at every capacity — it just hadn't been promoted into a structured
+> extraction, so it didn't get counted. A user-supplied second mirror of the same document
+> (manuals.heartlandowners.org) prompted a re-check; the table is now captured structurally
+> as **obs #21**. The section below is corrected accordingly. `DELC`, `DEC`, and `DM` remain
+> genuinely absent from every manufacturer source found so far — that part of the original
+> finding stands.
 
 **35 `SW` models are named across all sources.** The useful framing has changed: the earlier
 version of this table asked *"which suffixes have we seen?"* — that question is now closed.
@@ -1023,39 +1043,135 @@ document closed the entire dimension.
 
 *(`SW3P` is inferred into the small family — the manual postdates it and starts at 4 gal.)*
 
-### Unit specs: 15 of 35, and all on one side of a line
+### Unit specs: 33 of 35, `DM` is the only suffix with no numeric spec or SKU
 
 | Source | Models | Generation |
 |---|---|---|
-| Manufacturer spec chart (obs #20) + factory sheet (obs #17) | 15 | 3/6/10 gal · `P` `PR` `PE` `PER` `D` `DE` `DEM` |
+| Manufacturer brochure, D-family (**obs #22**) | 21 | 4/6/10/12/16 gal · `D` `DE` `DEL` `DEC` `DELC` — first mfr source with *both* unit and cutout dims for these suffixes |
+| Manufacturer spec chart, full line (obs #19 raw / obs #21 structured) | 26 | 4/6/10/12/16 gal · `P` `PR` `PE` `PER` `D` `DE` `DEL` `DEM` `V` `VE` |
+| Manufacturer factory sheet, earlier edition (obs #17) | 15 (14 overlap obs #21, `SW3P` unique) | 3/6/10 gal · `P` `PR` `PE` `PER` `D` `DE` `DEM` |
 | Retailer pages (obs #1, 2, 4, 5, 8, 11, 18) | 6 | 6/12/16 gal · `D` `DE` `DEL` `DELC` `VE` |
-| **Both** | **2** | `SW6D`, `SW6DE` |
-| **Neither — named only** | **~16** | mostly 12/16 gal and the `DEL`/`DELC` line |
+| **Neither — named only** | **~2** | `DM` suffix; a couple of likely regex artifacts (see caveat below) |
 
-**The sharp finding: there is zero manufacturer data for the `DEL`/`DELC`/`V` generation.**
-Every `DEL`, `DELC`, and `V`-family figure in this project traces to a retailer — and
-suburbanrvparts is the source with three confirmed systematic errors (§6.1, §6.2, §6.5).
-The two documents that resolved those errors both predate the models that need resolving.
+**Manufacturer *product and cutout* dimensions now exist for every named suffix except `DM`**
+— `P`/`PR`/`PE`/`PER`/`D`/`DE`/`DEL`/`DEM`/`V`/`VE`/`DEC`/`DELC`, across every capacity each
+suffix is offered at. `SW3P` vs `SW4P` is a generational swap, not overlap (see §9) — the
+earlier factory sheet (obs #17) predates the master manual and lists `SW3P`; the master
+manual and the obs #22 brochure both list `SW4P`/`SW4D` in the same small-family slot.
+
+**New constraint, not previously documented anywhere in this project:** obs #22's own
+availability grid states **`DEL`/`DEC`/`DELC` do not exist at 4-gallon** — only `D` and `DE`
+ship in that capacity. Don't assume every suffix spans every capacity; check the grid.
+
+**`DM` — updated 2026-07-31, no longer zero-evidence but still no numeric spec.** User
+supplied a 1993 Suburban install/operation manual (Form 2119-C, obs #27) that names `SW6DM`
+directly and documents its wiring — a scanned, image-only PDF (14 pages, zero text layer),
+OCR'd locally with `tesseract` rather than skipped. It **confirms `DM`'s meaning**: grouped
+with `SW6D`/`SW6DE` for DC/thermostat wiring, explicitly *excluded* from the 120VAC
+electric-element section — i.e. bare `M` is motor-aid-heat-exchanger-only, no electric
+element, distinct from `DEM` (motor-aid **with** electric element). It independently confirms
+the engine-coolant heat-exchanger mechanism the user's secondary sources (Home Depot,
+pantherrvproducts) described, from primary manufacturer material rather than retailer text.
+**But it carries no dimension table** — the manual's own "Figure 1... maintain inside
+dimensions listed below" didn't OCR into readable numerals, so `SW6DM`'s opening/product size
+is still not confirmed by any document. A second source (obs #28, a retailer fitment note)
+places `SW6DM` inside the confirmed 6-gal cutout family alongside `SW6DE`/`SW6DEL`/etc. — the
+first source to say so for this specific suffix — but at `retailer_prose` trust, not a spec
+block. **No SKU has been found for `SW6DM`/`SW10DM` in any manufacturer document** — consistent
+with (but not proof of) the user's secondary-source claim that `DM` models don't carry
+standard catalog SKUs; that claim itself is still retailer-sourced, not manufacturer-confirmed.
+
+**What's still genuinely dark:** `DM` — no manufacturer numeric spec, no confirmed SKU. It's
+the only suffix left in that state; everything else in the suffix table below has closed.
+
+**Opening/cutout note, revised:** obs #22 is the first source to publish a manufacturer
+*cutout* figure (not just product size) for the `D`/`DE`/`DEL`/`DEC`/`DELC` family, and it
+matches the fixture's `opening_h`/`opening_w` exactly (12.75 small family, 16.38 large
+family). Its cutout row also carries a depth figure, numerically identical to the unit-depth
+figure in every column — this is a fresh, independent instance of exactly the pattern
+`ground-truth.yaml`'s 2026-07-30 `cutout_d` retirement note predicted ("any source publishing
+a third cutout figure is either repeating the unit's own depth or mislabelling a
+cavity-clearance number"). Read as **corroborating** that decision, not reopening it.
+
+### 7.1 `SW12DEL`/`SW12DELC` SKU conflict — RESOLVED, and the earlier reasoning here was wrong
+
+**Resolved 2026-07-30 (obs #25).** The prior version of this section argued, from sequential-
+numbering pattern alone, that suburbanrvparts.com's `5248A`/`5331A` were transcription errors
+and the manufacturer brochure's `5148A/F`/`5231A/F` were more likely correct. **That
+conclusion was backwards.** It's not an error on either side — it's a real manufacturer SKU
+renumbering that happened between the two manufacturer documents' dates, and the pattern
+argument itself pointed at the right mechanism while misidentifying which side was "current."
+
+User supplied a second, later manufacturer document — Suburban's **2025 Aftermarket Catalog**
+(`SUB-401.02_2025 AMCAT.pdf`, suburbanrv.com) — independently text-extracted (pdfplumber, no
+OCR needed, no reliance on the secondary research below taken on faith). It lists:
+
+| Model | obs #22, March 2023 brochure | obs #25, 2025 catalog | Δ |
+|---|---|---|---|
+| `SW6D` | 5138A/E | **5238A** | +100 |
+| `SW10D` | 5142A/F | **5242A** | +100 |
+| `SW12D` | 5146A/F | **5246A** | +100 |
+| `SW6DE` | 5139A/E | **5239A** | +100 |
+| `SW10DE` | 5143A/F | **5243A** | +100 |
+| `SW12DE` | 5147A/F | **5247A** | +100 |
+| `SW6DEL` | 5140A/E | **5240A** | +100 |
+| `SW10DEL` | 5144A/F | **5244A** | +100 |
+| `SW12DEL` | 5148A/F | **5248A** | +100 |
+
+**Every model shifts by exactly +100, no exceptions.** `SW12DEL`'s current SKU is `5248A` —
+matching suburbanrvparts.com (obs #23) exactly. That retailer page was already using the
+post-renumbering SKU; the 2023 brochure was one generation stale, not wrong for its time.
+
+**`SW12DELC` — update, now effectively closed.** The 2025 catalog (obs #25) doesn't cover
+`DEC`/`DELC` directly (it's a trimmed `D`/`DE`/`DEL`-only aftermarket selection), so the
++100 rule for this specific model was pattern-inferred, not document-confirmed — until a
+third manufacturer document closed the gap. User located Suburban's ~2021 spec sheet
+(`Tank Water Heater 101121.pdf`, footer `LS101121`, obs #26), which **independently
+confirms `SW12DELC` = `5231A/F`**, matching obs #22 (2023) exactly. Two manufacturer
+documents two years apart now agree on the legacy number, and suburbanrvparts.com's live
+page (obs #24) agrees with the +100-predicted current number (`5331A`) exactly as well.
+That's legacy confirmed twice, current confirmed once, and the arithmetic ties both
+together — treat `5331A` as CURRENT and `5231A/F` as SUPERSEDED with the same confidence as
+the document-confirmed `SW12DEL` case, even though no single document has been found stating
+the `DELC` renumbering explicitly.
+
+*(obs #26 also surfaced the first `DEM`-line SKUs captured in this project — `SW6DEM` 5141A,
+`SW10DEM` 5145A, `SW12DEM` 5149A, `SW16DEM` 5153A, all legacy-era — and a small unresolved
+data-quality flag: that document's table prints the same 19.19" depth for both the 4-gal and
+6-gal columns, where obs #22/#25 give 16.125" for 4-gal. Likely a column-merge artifact in
+that specific PDF's table, not a real spec conflict, but not confirmed either way.)*
+
+**Lesson for the rest of this file:** a broken sequential pattern is real signal, but it
+signals *"something changed,"* not automatically *"the source that breaks the pattern is
+wrong."* Check publication dates before concluding which side of a pattern-break is stale.
+
+**Provenance note:** `Suburban_SKU_Research.md` (in this same folder) is another LLM's
+(ChatGPT/Gemini) web research on this exact question, supplied by the user as a lead — it
+correctly hypothesized the 51xx→52xx renumbering and cited the 2025 catalog by URL. That
+hypothesis is what prompted fetching obs #25 directly rather than trusting the secondary
+write-up itself; the resolution above rests on obs #25's own primary-source text extraction,
+not on the research document's claims.
 
 Symmetrically: **no Pilot-family model has a retailer page**, so nothing corroborates the
-2002 chart from the other direction.
+manufacturer chart from an independent second source for `P`/`PR`/`PE`/`PER` — this
+observation still stands; obs #21-25 don't change it.
 
 ### Suffix status, then vs. now
 
-| Suffix | At 11 observations | At 20 observations |
-|---|---|---|
-| `P` `PR` `PE` `PER` | completely dark | **fully spec'd** — 8 models, mfr dims + weights |
-| `D` | SKU only | spec'd (mfr) + retailer page |
-| `DE` | one page | spec'd (mfr) + retailer page |
-| `DEL` | two pages | retailer only — **no mfr specs** |
-| `DELC` | one page | retailer only — **no mfr specs** |
-| `DEC` | not found | **still not found** — inferred from grammar only |
-| `DEM` | zero pages | **fully spec'd** at 6 and 10 gal |
-| `DM` | zero pages | named (`SW10DM`) — still no specs |
-| `V` standalone | zero pages | named (`SW16V`, obs #19) — no specs |
-| `VE` | one page | retailer only — **no mfr specs** |
-| `SAW` | completely dark | one model captured (§4) |
-| `IW` (Nautilus) | not known to exist | manual + retrofit table (§4) |
+| Suffix | At 11 observations | At 20 observations | At 21 observations | At 22 observations |
+|---|---|---|---|---|
+| `P` `PR` `PE` `PER` | completely dark | **fully spec'd** — 8 models, mfr dims + weights | unchanged | unchanged — still the only family with no retailer corroboration |
+| `D` | SKU only | spec'd (mfr) + retailer page | now at 4/6/10/12/16 gal (obs #21) | **+ mfr cutout dims (obs #22)** |
+| `DE` | one page | spec'd (mfr) + retailer page | now at 4/6/10/12/16 gal (obs #21) | **+ mfr cutout dims (obs #22)** |
+| `DEL` | two pages | retailer only — **no mfr specs** | mfr product dims at 6/10/12/16 gal (obs #21) | **+ mfr cutout dims; confirmed absent at 4-gal (obs #22)** |
+| `DELC` | one page | retailer only — **no mfr specs** | unchanged | **fully spec'd (obs #22)** — SKUs + unit/cutout dims at 6/10/12/16 gal; `SW12DELC` SKU conflicts with §2 (see §7.1) |
+| `DEC` | not found | **still not found** — inferred from grammar only | unchanged | **fully spec'd (obs #22)** — SKUs + unit/cutout dims at 6/10/12/16 gal, first direct confirmation ever |
+| `DEM` | zero pages | **fully spec'd** at 6 and 10 gal | extended to 12/16 gal (obs #21) | unchanged |
+| `DM` | zero pages | named (`SW10DM`) — still no specs | unchanged | mfr manual confirms `SW6DM` + meaning (obs #27); cutout-family membership retailer-confirmed (obs #28); **still no numeric spec or SKU from any source** |
+| `V` standalone | zero pages | named (`SW16V`, obs #19) — no specs | mfr product dims captured (obs #21) — matches SW16D | unchanged |
+| `VE` | one page | retailer only — **no mfr specs** | mfr product dims captured (obs #21) — matches SW16DE | unchanged |
+| `SAW` | completely dark | one model captured (§4) | unchanged | unchanged |
+| `IW` (Nautilus) | not known to exist | manual + retrofit table (§4) | unchanged | unchanged |
 
 ### Caveat on the model count
 
