@@ -148,6 +148,7 @@ CREATE INDEX IF NOT EXISTS idx_ident_equiv_evidence_candidate
 def init_db(path):
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA)
     conn.commit()
     return conn
@@ -180,7 +181,8 @@ def self_test(verbose=False):
 def main():
     if "--self-test" in sys.argv:
         sys.exit(self_test(verbose="--verbose" in sys.argv))
-    sys.exit(init_db(DEFAULT_DB) and 0)
+    init_db(DEFAULT_DB)
+    sys.exit(0)
 
 
 if __name__ == "__main__":

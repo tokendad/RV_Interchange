@@ -8,7 +8,7 @@ doc, §7) — compute_confidence() sums relationship_evidence rows on demand.
 """
 
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 

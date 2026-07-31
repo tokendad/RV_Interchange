@@ -15,10 +15,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from resolver import normalize_extracted
-from suburban_parser import parse_model, compare_models
+from suburban_parser import compare_models
 from interchange_models import (
     Component, Identifier, Edge, EdgeSubstitutionDetail, EdgeCaveat,
-    EdgeRequiredPart, RelationshipEvidence, prior_for_basis, compute_confidence,
+    RelationshipEvidence, prior_for_basis, compute_confidence,
 )
 from interchange_schema import init_db
 from interchange_store import (
@@ -85,7 +85,7 @@ def resolve_substitution_pair(conn, from_id, from_model, to_id, to_model, group_
 
     basis = "attribute_match_exact"
     edge_ids = []
-    for direction, src_id, dst_id, cmp_key in (
+    for _, src_id, dst_id, cmp_key in (
         ("a_to_b", from_id, to_id, "a_to_b"), ("b_to_a", to_id, from_id, "b_to_a"),
     ):
         verdict_info = cmp[cmp_key]
@@ -187,7 +187,11 @@ def _find_fixture_edge(edges_doc, a_id, b_id):
 
 
 def check_fixture(ground_truth_path, obs_db_path):
-    import yaml
+    try:
+        import yaml
+    except ImportError:
+        print("pyyaml not installed", file=sys.stderr)
+        return 1
 
     docs = [d for d in yaml.safe_load_all(open(ground_truth_path)) if d]
     edges_doc = next((d["edges"] for d in docs if isinstance(d, dict) and "edges" in d), [])
