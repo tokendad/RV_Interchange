@@ -95,6 +95,8 @@ components:
       - {ns: suburban, value: SW6DEL, visibility: exterior_plate}
       - {ns: suburban, value: "5240A", visibility: none_marked}
       - {ns: suburban, value: "5140A", visibility: none_marked}
+      # 5240A current, 5140A legacy — see c_placeholder_wh_6de below for the
+      # renumbering evidence (obs #22 vs obs #25); same +100 pattern applies here.
     attributes:
       capacity_gal:   {value: 6,     provenance: retailer_spec_block}
       input_btuh:     {value: 12000, provenance: data_plate}
@@ -139,6 +141,10 @@ components:
     identifiers:
       - {ns: suburban, value: SW6DE, visibility: exterior_plate}
       - {ns: suburban, value: "5239A", visibility: none_marked}
+      - {ns: suburban, value: "5139A", visibility: none_marked}
+      # 5239A current, 5139A legacy — same 2023->2025 +100 SKU renumbering
+      # confirmed for the whole D/DE/DEL line (obs #22 vs obs #25). See
+      # VENDOR-Suburban.md §7.1.
     attributes:
       capacity_gal:   {value: 6,     provenance: retailer_spec_block}
       input_btuh:     {value: 12000, provenance: retailer_spec_block}
@@ -196,6 +202,12 @@ components:
     identifiers:
       - {ns: suburban, value: SW12DEL, visibility: exterior_plate}
       - {ns: suburban, value: "5248A", visibility: none_marked}
+      - {ns: suburban, value: "5148A", visibility: none_marked}
+      # 5248A current, 5148A legacy — resolved 2026-07-30 (obs #25, 2025
+      # catalog) as a genuine manufacturer SKU renumbering, not a source
+      # conflict. VENDOR-Suburban.md §7.1 has the full evidence trail; an
+      # earlier version of that section wrongly favored 5148A as "correct"
+      # before the 2025 catalog surfaced.
     attributes:
       capacity_gal:  {value: 12,    provenance: retailer_spec_block}
       input_btuh:    {value: 12000, provenance: retailer_spec_block}
