@@ -36,3 +36,9 @@ google-services.json
 # Python
 __pycache__/
 *.pyc
+
+# Raw web-archive page captures (evidence lives in observations.db, not git —
+# see Docs/Data/PARKED-myrvworks_manual_library.md convention: sources get
+# hand-transcribed into observations.db, not committed as raw fetched files)
+Docs/Data/**/https___*.html
+Docs/Data/**/https___*_files/
