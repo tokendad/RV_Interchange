@@ -363,17 +363,42 @@ components:
   - component_id: c_placeholder_register
     part_type_id: 418
     interchange_code: 418-0001-A
-    identifiers: []
+    identifiers:
+      # No marking on the physical part itself. This identifier is a
+      # manufacturer/model MATCH BY GEOMETRY + retailer corroboration, not a
+      # marking read off the unit — visibility reflects that honestly.
+      - {ns: dwin, value: RO-9850, visibility: unmarked_geometry_match}
     identifier_visibility: none_marked
     attributes:
-      duct_diameter: {value: null, unit: in, provenance: TODO_measure}
-      shape:         {value: round, provenance: in_hand}
-      colour:        {value: null, provenance: TODO}   # display axis only
+      duct_diameter:   {value: 5.0,  unit: in, provenance: in_hand_measured, source: "obs #36", tolerance_note: "catalog spec (obs #37) states 5-1/8in; in-hand tape reading against a molded/flashed edge reads ~5in — within measurement error, not treated as a conflict"}
+      flange_diameter: {value: 7.0,  unit: in, provenance: in_hand_measured, source: "obs #36", tolerance_note: "matches catalog spec (obs #37) of a 7in exterior mounting flange essentially exactly"}
+      depth:           {value: 1.875, unit: in, provenance: manufacturer_spec_via_retailer, source: "obs #37", note: "duct spud depth, not independently re-measured in-hand — carried from the corroborating catalog spec, flagged for confirmation"}
+      shape:            {value: round, provenance: in_hand}
+      actuation:        {value: rotatable_louvers_always_open, provenance: in_hand, source: "obs #36"}
+      colour:           {value: white, provenance: in_hand}   # display axis only
     note: >
-      No markings anywhere. Identity is geometry plus colour. Colour goes on
-      the display axis, never the interchange key. Worst case for text search,
-      best case for attribute search — which is itself the argument for
-      attribute-first identification.
+      No markings anywhere on the physical part — same "identity is pure
+      geometry" case this fixture entry was written to anchor. Resolved via
+      photographed tape measurements (obs #36: ~5in duct spud, ~6.75-7in
+      flange, round, always-open rotatable-louver style) matched against
+      D&W International's (dwincorp.com) RO-9850 round plastic grille, whose
+      published specs (obs #37, a retailer spec block — dwincorp's own
+      listing page, obs #38, names the model but publishes no dimensions)
+      are a near-exact match: 5in nominal / 5-1/8in duct, 7in flange,
+      1-7/8in spud depth, rotatable-louver-always-open. `duct_diameter` and
+      `flange_diameter` are the two in-hand-measured, decision-critical
+      attributes for this part_type; `depth` is carried from the
+      corroborating spec pending a direct in-hand re-check. Confidence is
+      geometry-match, not marking-read — see identifier visibility above.
+    confidence:
+      note: >
+        Model identification (RO-9850) rests on dimensional + feature match
+        to one retailer's spec block, not a manufacturer spec sheet with
+        dimensions (dwincorp's own page lists the model but no numbers) and
+        not any marking on the part. Treat as CANDIDATE tier for the
+        identifier; the geometry attributes themselves (duct_diameter,
+        flange_diameter) are in_hand_measured and don't depend on the ID
+        being right.
 
 ---
 

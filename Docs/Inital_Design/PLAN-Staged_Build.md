@@ -271,6 +271,11 @@ four of five items are done, and the work has moved past what that list anticipa
 9. **Fill the in-hand measurement gaps.** `fixtures/ground-truth.yaml` still carries
    `TODO_measure` on the ceiling register and roof vent — the two parts where geometry *is*
    the identity. No source can supply these; they need a tape measure.
+   **Ceiling register: done 2026-07-31** — `duct_diameter` (~5in) and `flange_diameter`
+   (~7in) measured in-hand (obs #36, corrected by obs #39) and matched to D&W International's
+   RO-9850 round plastic grille (obs #37/#38); see `Docs/Data/DWIN/VENDOR-DWIN.md`. Identifier
+   is CANDIDATE tier — a geometry/feature match against one retailer's spec block, not a
+   marking read off the part. Roof vent (`c_placeholder_vent`) is still open.
 10. **Second vendor adapter.** Suburban is deep enough to prove the pattern. Coleman-Mach /
     Airxcel is next (§ `VENDOR-Suburban.md` §10) and hits multi-namespace identity early via
     the in-hand thermostat.
