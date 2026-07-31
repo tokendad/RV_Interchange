@@ -33,6 +33,7 @@ migrate to Postgres later without a schema rethink if concurrent writes or scale
 edges                            -- shared core, one row per directed relationship
 edge_substitution_detail         -- substitutes: confidence-bearing, directional
 edge_caveat                      -- child of edge_substitution_detail
+edge_required_part               -- child of edge_substitution_detail
 edge_contains_detail             -- contains: parent component -> child part (ns/value/role)
 edge_supersession_detail         -- supersedes: replacement chains
 edge_controls_detail             -- controls: switch/thermostat -> appliance
@@ -97,7 +98,6 @@ edge_substitution_detail
   edge_id              FK -> edges (1:1)
   basis                -- attribute_match_exact | buyer_confirmed_install |
                           manufacturer_documented | retailer_cross_reference
-  requires_part_ns, requires_part_value   -- e.g. suburban/6276APW, nullable
   verdict              -- drop_in | fits_with_caveat | fits_with_modification | not_observed
   source_text          -- free text provenance (obs #14, review excerpt, etc.)
 ```
@@ -122,6 +122,20 @@ edge_caveat
   text
   becomes_input         -- nullable; the follow-up question text, e.g.
                            "Do you have an interior electric switch? [yes/no]"
+```
+
+A required part (the fixture's `requires_part` field, e.g. `suburban/6276APW` for the
+IW60RL retrofit) is likewise a child table rather than a nullable pair of columns on
+`edge_substitution_detail` — most substitution edges require no extra part, and some
+retrofits need more than one (obs #14's IW60RL case already implies a replacement panel
+*and* a separately-ordered vent cap, surfaced today only as caveat text):
+
+```
+edge_required_part
+  id
+  edge_id               FK -> edges
+  ns, value
+  role                  -- e.g. replacement_panel, vent_cap, gasket_kit
 ```
 
 ## 6. Other typed detail tables — thin, one row each
