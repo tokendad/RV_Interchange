@@ -179,9 +179,86 @@ def self_test(verbose=False):
     return 0
 
 
+def _find_fixture_edge(edges_doc, a_id, b_id):
+    for e in edges_doc:
+        if e.get("type") == "substitutes" and e.get("a") == a_id and e.get("b") == b_id:
+            return e
+    return None
+
+
+def check_fixture(ground_truth_path, obs_db_path):
+    import yaml
+
+    docs = [d for d in yaml.safe_load_all(open(ground_truth_path)) if d]
+    edges_doc = next((d["edges"] for d in docs if isinstance(d, dict) and "edges" in d), [])
+    fixture_edge = _find_fixture_edge(edges_doc, "c_placeholder_wh_6de",
+                                       "c_placeholder_wh_6del")
+    if fixture_edge is None:
+        print("FAIL: ground-truth.yaml has no c_placeholder_wh_6de -> "
+              "c_placeholder_wh_6del substitutes edge")
+        return 1
+
+    obs1 = load_observation(obs_db_path, 1)
+    obs2 = load_observation(obs_db_path, 2)
+    comp_6del, ids_6del = component_from_observation(
+        obs1, "c_placeholder_wh_6del", WATER_HEATER_PART_TYPE)
+    comp_6de, ids_6de = component_from_observation(
+        obs2, "c_placeholder_wh_6de", WATER_HEATER_PART_TYPE)
+
+    conn = init_db(":memory:")
+    insert_component(conn, comp_6de)
+    for ident in ids_6de:
+        insert_identifier(conn, ident)
+    insert_component(conn, comp_6del)
+    for ident in ids_6del:
+        insert_identifier(conn, ident)
+
+    edge_de_to_del, edge_del_to_de = resolve_substitution_pair(
+        conn, "c_placeholder_wh_6de", "SW6DE",
+        "c_placeholder_wh_6del", "SW6DEL", "412-0087")
+
+    mismatches = 0
+
+    fixture_group = fixture_edge.get("group")
+    resolved_group = conn.execute(
+        "SELECT group_key FROM edges WHERE id = ?", (edge_de_to_del,)).fetchone()["group_key"]
+    if fixture_group != resolved_group:
+        print(f"MISMATCH group_key: fixture={fixture_group} resolved={resolved_group}")
+        mismatches += 1
+
+    for label, edge_id, fixture_key in (
+        ("a_to_b", edge_de_to_del, "a_to_b"), ("b_to_a", edge_del_to_de, "b_to_a"),
+    ):
+        fixture_verdict = fixture_edge[fixture_key]["verdict"]
+        resolved_verdict = conn.execute(
+            "SELECT verdict FROM edge_substitution_detail WHERE edge_id = ?",
+            (edge_id,)).fetchone()["verdict"]
+        if fixture_verdict != resolved_verdict:
+            print(f"MISMATCH {label} verdict: fixture={fixture_verdict} "
+                  f"resolved={resolved_verdict}")
+            mismatches += 1
+        print(f"  {label}: verdict={resolved_verdict} (fixture={fixture_verdict})")
+
+    fixture_conf = fixture_edge["confidence"]
+    evidence = get_evidence_for_edge(conn, edge_de_to_del)
+    resolved_conf = compute_confidence(evidence)
+    if (resolved_conf["value"], resolved_conf["certainty"]) != \
+            (fixture_conf["value"], fixture_conf["certainty"]):
+        print(f"MISMATCH confidence: fixture={fixture_conf} resolved={resolved_conf}")
+        mismatches += 1
+
+    print(f"\n{mismatches} mismatches against ground-truth.yaml's canonical edge")
+    return 1 if mismatches else 0
+
+
 def main():
     if "--self-test" in sys.argv:
         sys.exit(self_test(verbose="--verbose" in sys.argv))
+    if "--check-fixture" in sys.argv:
+        idx = sys.argv.index("--check-fixture")
+        fixture_path = sys.argv[idx + 1]
+        obs_db = str(Path(__file__).parent / "observations.db")
+        sys.exit(check_fixture(fixture_path, obs_db))
 
 
 if __name__ == "__main__":
