@@ -1,6 +1,6 @@
 # VENDOR — Coleman-Mach / RV Products / Airxcel
 
-**Status:** thermostat adapter research in progress
+**Status:** thermostat fixture resolver complete; broader adapter research in progress
 **Updated:** 2026-08-01
 
 ## 1. Why this adapter
@@ -104,10 +104,16 @@ Still candidate-only:
 - obs #43 — used-parts retailer `AR7815` / `7330F3858` claim
 - obs #44 — in-hand rear-label, terminal, wiring, and circuit-board photographs
 - obs #45 — RV Products/Airxcel service manual `1976-376 (4-02)`
+- obs #46 — structured PCB-position transcription supplement to obs #44
+- obs #47 — structured voltage/stage extraction supplement to obs #45
 
-## 7. Next resolver milestone
+## 7. Resolver status and next milestone
 
-Build the thermostat component from observations #44/#45, then represent the manual's
-family-level interchangeability and the catalog's supersession separately from open
-identifier-equivalence candidates. The resolver must not collapse compatibility,
-supersession, and identity into one generic alias relation.
+The fixture resolver now builds the thermostat component from observations #44-#47,
+persists 26 qualified attributes, and stores the retailer-only `AR7815`/`7330F3858` claim
+as a separate open identifier-equivalence candidate sourced to observation #43.
+
+Next, resolve the exact endpoint components depicted or named by the manual/catalog before
+persisting family compatibility or the `9420-351` supersession relationships. The resolver
+must continue to keep compatibility, supersession, identity, and candidate equivalence
+separate.

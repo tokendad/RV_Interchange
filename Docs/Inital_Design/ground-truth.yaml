@@ -10,7 +10,7 @@
 # Confidence values reflect the honest day-1 state: prior only, no field evidence.
 #
 # Created: 2026-07-29
-# Last evidence update: 2026-08-01 (Coleman thermostat teardown/manual, obs #44/#45)
+# Last evidence update: 2026-08-01 (Coleman thermostat resolver inputs, obs #43-#47)
 
 part_types:
   - id: 412
@@ -310,14 +310,14 @@ components:
           GH: {board_position: W4, function: high_fan_control}
           B:  {board_position: W2, function: 12VDC_negative_ground}
         provenance: in_hand_plus_manufacturer_pdf
-        source: "obs #44/#45"
+        source: "obs #44/#45/#46"
       installed_wire_colors:
         value: {R: red, Y: yellow, W: white, GL: gray, GH: green, B: blue}
         provenance: in_hand
         source: "obs #44"
         note: supporting installation evidence only; the manual warns OEM/installer colors may differ
-      voltage: {value: 12VDC, provenance: manufacturer_pdf, source: "obs #45"}
-      stages: {value: single, provenance: manufacturer_pdf_inferred, source: "obs #45", note: "one compressor-control circuit (Y); no second-stage terminal"}
+      voltage: {value: 12VDC, provenance: manufacturer_pdf, source: "obs #47 (structured supplement to #45)"}
+      stages: {value: single, provenance: manufacturer_pdf_inferred, source: "obs #47 (structured supplement to #45)", note: "one compressor-control circuit (Y); no second-stage terminal"}
       brand_facing: {value: Coleman-Mach, provenance: manufacturer_pdf, source: "obs #45"}
     note: >
       In-hand teardown proves AP7862, 7330G335, PCB1060 and SPCB-2 coexist on

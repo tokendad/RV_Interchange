@@ -28,6 +28,28 @@ class Identifier:
 
 
 @dataclass
+class ComponentAttribute:
+    component_id: str
+    name: str
+    provenance: str
+    source_observation_id: int
+    qualifier: str = ""
+    value_text: Optional[str] = None
+    value_number: Optional[float] = None
+    value_boolean: Optional[bool] = None
+    unit: Optional[str] = None
+    resolver_version: Optional[str] = None
+    id: Optional[int] = None
+
+    def __post_init__(self):
+        values = (self.value_text, self.value_number, self.value_boolean)
+        if sum(value is not None for value in values) != 1:
+            raise ValueError("exactly one typed component attribute value is required")
+        if self.value_boolean is not None and not isinstance(self.value_boolean, bool):
+            raise ValueError("value_boolean must be a bool")
+
+
+@dataclass
 class Edge:
     type: str
     from_component_id: str
@@ -77,6 +99,29 @@ class RelationshipEvidence:
     id: Optional[int] = None
 
 
+@dataclass
+class IdentifierEquivalenceCandidate:
+    ns_a: str
+    value_a: str
+    ns_b: str
+    value_b: str
+    status: str = "open"
+    merged_component_id: Optional[str] = None
+    id: Optional[int] = None
+
+
+@dataclass
+class IdentifierEquivalenceEvidence:
+    candidate_id: Optional[int]
+    event_type: str
+    effect_alpha: float
+    effect_beta: float
+    occurred_at: str
+    source_observation_id: Optional[int] = None
+    actor_id: Optional[str] = None
+    id: Optional[int] = None
+
+
 # ARCHITECTURE-Interchange_Core.md §7, "Prior, from attribute match" table.
 PRIOR_BY_MATCH_QUALITY = {
     "all_critical_exact": (3.0, 1.0),
@@ -116,6 +161,28 @@ def compute_confidence(evidence_rows):
 
 def self_test(verbose=False):
     failures = []
+
+    for kwargs in (
+        {"value_text": "12VDC"},
+        {"value_number": 1.0},
+        {"value_boolean": True},
+    ):
+        attr = ComponentAttribute(
+            component_id="c_test", name="test", provenance="test",
+            source_observation_id=999, **kwargs)
+        if sum(v is not None for v in
+               (attr.value_text, attr.value_number, attr.value_boolean)) != 1:
+            failures.append(f"valid component attribute rejected: {attr}")
+
+    for kwargs in ({}, {"value_text": "x", "value_number": 1.0},
+                   {"value_boolean": 1}):
+        try:
+            ComponentAttribute(
+                component_id="c_test", name="invalid", provenance="test",
+                source_observation_id=999, **kwargs)
+            failures.append(f"invalid component attribute accepted: {kwargs}")
+        except ValueError:
+            pass
 
     if prior_for_basis("attribute_match_exact") != (3.0, 1.0):
         failures.append("attribute_match_exact prior should be (3, 1)")

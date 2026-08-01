@@ -147,9 +147,12 @@ CANONICAL = {
 
     # electrical interface / compatibility
     "terminal_order":            "physical left-to-right terminal order on the component",
+    "terminal_board_position_map": "mapping from terminal labels to PCB position markings",
     "installed_wire_colors":     "wire colors observed at each terminal on one installation",
     "terminal_function_map":     "documented mapping from terminal labels to electrical functions",
     "compatibility_statement":   "a source's explicit family-level compatibility or interchangeability claim",
+    "voltage":                    "documented component control voltage",
+    "stages":                     "documented or evidence-backed control-stage count/classification",
 
     # dimensions — mechanically derived, see _derive_opening / _derive_product
     "opening_h":                 "framed installation opening height, in — 2D only",
@@ -288,9 +291,12 @@ ALIASES = {
 
     # electrical interface / compatibility
     "terminal_order": "terminal_order",
+    "terminal_board_positions": "terminal_board_position_map",
     "wire_colors": "installed_wire_colors",
     "terminal_functions": "terminal_function_map",
     "compatibility_statement": "compatibility_statement",
+    "voltage": "voltage",
+    "stages": "stages",
 
     # dimensions — plain product envelope (opening/cutout handled specially)
     "product_size_in": "product_hwd",
@@ -908,6 +914,10 @@ def self_test():
         ],
         "date_code": "1203",
         "terminal_order": ["R", "Y", "W", "GL", "GH", "B"],
+        "terminal_board_positions": {
+            "R": "W1", "Y": "W5", "W": "W6",
+            "GL": "W3", "GH": "W4", "B": "W2",
+        },
         "wire_colors": {
             "R": "red", "Y": "yellow", "W": "white",
             "GL": "gray", "GH": "green", "B": "blue",
@@ -917,6 +927,8 @@ def self_test():
             "W": "furnace_heat_control", "GL": "low_fan_control",
             "GH": "high_fan_control", "B": "12VDC_negative_ground",
         },
+        "voltage": "12VDC",
+        "stages": "single",
         "compatibility_statement": (
             "Mechanical, electronic, and electronic-digital wall "
             "thermostats shown are completely interchangeable."
@@ -930,8 +942,11 @@ def self_test():
         "physical_identifiers": thermostat_fields["identifiers_observed"],
         "manufacture_date_code": "1203",
         "terminal_order": thermostat_fields["terminal_order"],
+        "terminal_board_position_map": thermostat_fields["terminal_board_positions"],
         "installed_wire_colors": thermostat_fields["wire_colors"],
         "terminal_function_map": thermostat_fields["terminal_functions"],
+        "voltage": "12VDC",
+        "stages": "single",
         "compatibility_statement": thermostat_fields["compatibility_statement"],
     }
     for key, expected in expected_thermostat.items():

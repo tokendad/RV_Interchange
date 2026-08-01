@@ -74,3 +74,5 @@ resurface for that vendor. Check a same-page refetch before trusting dedup on a 
 - #45: RV Products/Airxcel service manual `1976-376 (4-02)`, which supplies the terminal
   functions and manufacturer-level thermostat interchangeability statement. See
   `Docs/Data/Coleman_Mach/VENDOR-Coleman-Mach.md`.
+- #46: append-only structured transcription of the PCB positions photographed in #44.
+- #47: append-only structured extraction of the 12VDC/single-stage facts documented in #45.

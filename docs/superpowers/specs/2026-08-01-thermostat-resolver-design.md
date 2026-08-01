@@ -1,9 +1,9 @@
 # Thermostat Resolver Design
 
-**Status:** approved for implementation
+**Status:** implemented 2026-08-01
 **Date:** 2026-08-01
 **Scope:** persist the in-hand Coleman thermostat, its queryable electrical interface,
-and the retailer-only identifier-equivalence candidate from observations #43-#46.
+and the retailer-only identifier-equivalence candidate from observations #43-#47.
 
 ## 1. Goal
 
@@ -64,13 +64,14 @@ a structured transcription supplement rather than editing #44. It produces:
 |---|---|---|---|
 | `terminal_board_position` | terminal label | `W1`/`W5`/`W6`/`W3`/`W4`/`W2` | obs #46, in hand |
 
-Observation #45 produces:
+Observation #45 produces the terminal functions. Its voltage/stage facts were documented
+but not structured in the extracted blob, so observation #47 supplements it append-only:
 
 | Name | Qualifier | Value | Provenance |
 |---|---|---|---|
 | `terminal_function` | terminal label | documented electrical function | obs #45, manufacturer PDF |
-| `voltage` | empty | `12VDC` | obs #45, manufacturer PDF |
-| `stages` | empty | `single` | obs #45, manufacturer-PDF inference from one compressor-control circuit |
+| `voltage` | empty | `12VDC` | obs #47, structured supplement to manufacturer PDF #45 |
+| `stages` | empty | `single` | obs #47, manufacturer-PDF inference from one compressor-control circuit |
 
 Wire color remains supporting evidence rather than an interchange key because the manual
 warns that installer-provided colors may differ.
@@ -112,11 +113,11 @@ Beta effects `alpha=2`, `beta=1`.
 Add a focused builder in `edge_resolver.py`:
 
 ```python
-thermostat_from_observations(photo_row, manual_row, positions_row, component_id)
+thermostat_from_observations(photo_row, manual_row, positions_row, scalar_row, component_id)
     -> tuple[Component, list[Identifier], list[ComponentAttribute]]
 ```
 
-The builder normalizes all three observations through `resolver.py`, then requires:
+The builder normalizes all four observations through `resolver.py`, then requires:
 
 - physical identifiers exactly containing `icm:AP7862`, `coleman:7330G335`,
   `silkscreen:PCB1060`, and `silkscreen:SPCB-2`;

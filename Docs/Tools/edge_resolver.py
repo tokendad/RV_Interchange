@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
 edge_resolver.py — observations.db -> components/edges, proven against the
-fixture's canonical edge case (SW6DE/SW6DEL). See
-docs/superpowers/plans/2026-07-31-edge-schema-resolver.md for scope: this
-resolves the two best-documented anchor components and the asymmetric
-substitution edge between them, not the full ten-component fixture.
+fixture's canonical edge case (SW6DE/SW6DEL) and the in-hand Coleman thermostat.
+See docs/superpowers/plans/2026-07-31-edge-schema-resolver.md and
+docs/superpowers/plans/2026-08-01-thermostat-resolver.md for scope. Full
+fixture reproduction remains incremental.
 """
 
 import json
@@ -17,16 +17,29 @@ sys.path.insert(0, str(Path(__file__).parent))
 from resolver import normalize_extracted
 from suburban_parser import compare_models
 from interchange_models import (
-    Component, Identifier, Edge, EdgeSubstitutionDetail, EdgeCaveat,
-    RelationshipEvidence, prior_for_basis, compute_confidence,
+    Component, Identifier, ComponentAttribute, Edge, EdgeSubstitutionDetail, EdgeCaveat,
+    RelationshipEvidence, IdentifierEquivalenceCandidate,
+    IdentifierEquivalenceEvidence, prior_for_basis, compute_confidence,
 )
 from interchange_schema import init_db
 from interchange_store import (
     insert_component, insert_identifier, insert_edge, insert_substitution_detail,
     insert_caveat, insert_evidence, now_iso, get_caveats_for_edge, get_evidence_for_edge,
+    insert_component_attribute, get_component_attributes,
+    insert_identifier_equivalence_candidate, insert_identifier_equivalence_evidence,
+    get_identifier_equivalence_candidates, get_identifier_equivalence_evidence,
 )
 
 WATER_HEATER_PART_TYPE = 412
+THERMOSTAT_PART_TYPE = 415
+THERMOSTAT_CODE = "415-0012-A"
+THERMOSTAT_TERMINALS = ("R", "Y", "W", "GL", "GH", "B")
+THERMOSTAT_IDENTIFIERS = {
+    ("icm", "AP7862"),
+    ("coleman", "7330G335"),
+    ("silkscreen", "PCB1060"),
+    ("silkscreen", "SPCB-2"),
+}
 
 
 def component_from_observation(obs_row, component_id, part_type_id):
@@ -68,6 +81,92 @@ def load_observation(obs_db_path, obs_id):
     if row is None:
         raise ValueError(f"no observation #{obs_id} in {obs_db_path}")
     return row
+
+
+def _normalized_attributes(obs_row):
+    extracted = json.loads(obs_row["extracted"])
+    return normalize_extracted(obs_row["id"], extracted, strict=True)["attributes"]
+
+
+def thermostat_from_observations(photo_row, manual_row, positions_row, scalar_row,
+                                 component_id):
+    photo = _normalized_attributes(photo_row)
+    manual = _normalized_attributes(manual_row)
+    positions = _normalized_attributes(positions_row)
+    scalars = _normalized_attributes(scalar_row)
+
+    raw_identifiers = photo.get("physical_identifiers")
+    if not isinstance(raw_identifiers, list):
+        raise ValueError("thermostat photo evidence has no physical identifier list")
+    identifier_pairs = {(item.get("ns"), item.get("value")) for item in raw_identifiers}
+    if len(raw_identifiers) != 4 or identifier_pairs != THERMOSTAT_IDENTIFIERS:
+        raise ValueError(f"unexpected thermostat physical identifiers: {raw_identifiers}")
+
+    terminal_order = photo.get("terminal_order")
+    if terminal_order != list(THERMOSTAT_TERMINALS) or len(set(terminal_order)) != 6:
+        raise ValueError(f"unexpected thermostat terminal order: {terminal_order}")
+
+    colors = photo.get("installed_wire_colors")
+    board_positions = positions.get("terminal_board_position_map")
+    functions = manual.get("terminal_function_map")
+    expected_terminals = set(THERMOSTAT_TERMINALS)
+    for label, mapping in (("wire colors", colors), ("board positions", board_positions),
+                           ("terminal functions", functions)):
+        if not isinstance(mapping, dict) or set(mapping) != expected_terminals:
+            raise ValueError(f"thermostat {label} do not match terminal set: {mapping}")
+
+    if scalars.get("voltage") != "12VDC" or scalars.get("stages") != "single":
+        raise ValueError(f"unexpected thermostat voltage/stages: {scalars}")
+
+    component = Component(component_id, THERMOSTAT_PART_TYPE, THERMOSTAT_CODE)
+    identifiers = [Identifier(
+        component_id, item["ns"], item["value"], item.get("visibility"))
+        for item in raw_identifiers]
+
+    attributes = []
+    for ordinal, terminal in enumerate(THERMOSTAT_TERMINALS, start=1):
+        attributes.extend((
+            ComponentAttribute(component_id, "terminal_order", "in_hand", photo_row["id"],
+                               qualifier=terminal, value_number=float(ordinal)),
+            ComponentAttribute(component_id, "terminal_board_position", "in_hand",
+                               positions_row["id"], qualifier=terminal,
+                               value_text=board_positions[terminal]),
+            ComponentAttribute(component_id, "installed_wire_color", "in_hand",
+                               photo_row["id"], qualifier=terminal,
+                               value_text=colors[terminal]),
+            ComponentAttribute(component_id, "terminal_function", "manufacturer_pdf",
+                               manual_row["id"], qualifier=terminal,
+                               value_text=functions[terminal]),
+        ))
+    attributes.extend((
+        ComponentAttribute(component_id, "voltage", "manufacturer_pdf", scalar_row["id"],
+                           value_text="12VDC"),
+        ComponentAttribute(component_id, "stages", "manufacturer_pdf_inferred",
+                           scalar_row["id"], value_text="single"),
+    ))
+    return component, identifiers, attributes
+
+
+def identifier_candidate_from_observation(obs_row):
+    attrs = _normalized_attributes(obs_row)
+    relation = attrs.get("sku_relationship")
+    models = attrs.get("model_spec_table")
+    if not isinstance(relation, dict) or relation.get("type") != \
+            "retailer_claimed_same_part":
+        raise ValueError(f"observation #{obs_row['id']} has no retailer same-part claim")
+    values = relation.get("identifiers")
+    if values != ["AR7815", "7330F3858"] or not isinstance(models, dict):
+        raise ValueError(f"unexpected identifier-equivalence claim: {relation}")
+    namespaces = {value: models.get(value, {}).get("namespace") for value in values}
+    if namespaces != {"AR7815": "icm", "7330F3858": "coleman"}:
+        raise ValueError(f"unexpected identifier namespaces: {namespaces}")
+    candidate = IdentifierEquivalenceCandidate(
+        ns_a="icm", value_a="AR7815", ns_b="coleman", value_b="7330F3858")
+    evidence = IdentifierEquivalenceEvidence(
+        candidate_id=None, event_type="retailer_cross_reference",
+        effect_alpha=2.0, effect_beta=1.0, occurred_at=now_iso(),
+        source_observation_id=obs_row["id"])
+    return candidate, evidence
 
 
 def resolve_substitution_pair(conn, from_id, from_model, to_id, to_model, group_key):
@@ -115,6 +214,75 @@ def self_test(verbose=False):
 
     obs1 = load_observation(obs_db, 1)  # SW6DEL
     obs2 = load_observation(obs_db, 2)  # SW6DE
+    obs43 = load_observation(obs_db, 43)  # retailer identifier candidate
+    obs44 = load_observation(obs_db, 44)  # in-hand thermostat
+    obs45 = load_observation(obs_db, 45)  # terminal functions
+    obs46 = load_observation(obs_db, 46)  # PCB positions
+    obs47 = load_observation(obs_db, 47)  # voltage/stages supplement
+
+    thermostat, thermostat_ids, thermostat_attrs = thermostat_from_observations(
+        obs44, obs45, obs46, obs47, "c_placeholder_tstat")
+    if (thermostat.component_id, thermostat.part_type_id,
+            thermostat.interchange_code) != ("c_placeholder_tstat", 415, "415-0012-A"):
+        failures.append(f"thermostat component mismatch: {thermostat}")
+    expected_ids = {
+        ("icm", "AP7862"), ("coleman", "7330G335"),
+        ("silkscreen", "PCB1060"), ("silkscreen", "SPCB-2"),
+    }
+    actual_ids = {(i.ns, i.value) for i in thermostat_ids}
+    if actual_ids != expected_ids or any(i.visibility != "behind_faceplate"
+                                          for i in thermostat_ids):
+        failures.append(f"thermostat identifiers mismatch: {thermostat_ids}")
+    if len(thermostat_attrs) != 26:
+        failures.append(f"expected 26 thermostat attributes, got {len(thermostat_attrs)}")
+    expected_attribute_sources = {
+        "terminal_order": (44, "in_hand", 6),
+        "terminal_board_position": (46, "in_hand", 6),
+        "installed_wire_color": (44, "in_hand", 6),
+        "terminal_function": (45, "manufacturer_pdf", 6),
+        "voltage": (47, "manufacturer_pdf", 1),
+        "stages": (47, "manufacturer_pdf_inferred", 1),
+    }
+    for name, (source_id, provenance, count) in expected_attribute_sources.items():
+        selected = [a for a in thermostat_attrs if a.name == name]
+        if len(selected) != count or any(
+                a.source_observation_id != source_id or a.provenance != provenance
+                for a in selected):
+            failures.append(
+                f"{name} must have {count} row(s) from obs #{source_id} / {provenance}: "
+                f"{selected}")
+
+    def changed_row(row, mutate):
+        changed = dict(row)
+        extracted = json.loads(changed["extracted"])
+        mutate(extracted)
+        changed["extracted"] = json.dumps(extracted)
+        return changed
+
+    invalid_inputs = (
+        (changed_row(obs44, lambda e: e["wire_colors"].pop("B")), obs45, obs46, obs47),
+        (obs44, changed_row(obs45, lambda e: e["terminal_functions"].pop("B")), obs46, obs47),
+        (changed_row(obs44, lambda e: e.__setitem__(
+            "terminal_order", ["R", "Y", "W", "GL", "GH", "GH"])), obs45, obs46, obs47),
+        (changed_row(obs44, lambda e: e["identifiers_observed"].append(
+            {"ns": "icm", "value": "AR7815", "visibility": "behind_faceplate"})),
+         obs45, obs46, obs47),
+    )
+    for invalid in invalid_inputs:
+        try:
+            thermostat_from_observations(*invalid, "c_invalid")
+            failures.append("invalid thermostat evidence was accepted")
+        except ValueError:
+            pass
+
+    candidate, candidate_evidence = identifier_candidate_from_observation(obs43)
+    if (candidate.ns_a, candidate.value_a, candidate.ns_b, candidate.value_b,
+            candidate.status) != ("icm", "AR7815", "coleman", "7330F3858", "open"):
+        failures.append(f"identifier candidate mismatch: {candidate}")
+    if (candidate_evidence.event_type, candidate_evidence.effect_alpha,
+            candidate_evidence.effect_beta, candidate_evidence.source_observation_id) != (
+            "retailer_cross_reference", 2.0, 1.0, 43):
+        failures.append(f"identifier candidate evidence mismatch: {candidate_evidence}")
 
     comp_6del, ids_6del = component_from_observation(
         obs1, "c_placeholder_wh_6del", WATER_HEATER_PART_TYPE)
@@ -194,6 +362,8 @@ def check_fixture(ground_truth_path, obs_db_path):
         return 1
 
     docs = [d for d in yaml.safe_load_all(open(ground_truth_path)) if d]
+    components_doc = next(
+        (d["components"] for d in docs if isinstance(d, dict) and "components" in d), [])
     edges_doc = next((d["edges"] for d in docs if isinstance(d, dict) and "edges" in d), [])
     fixture_edge = _find_fixture_edge(edges_doc, "c_placeholder_wh_6de",
                                        "c_placeholder_wh_6del")
@@ -251,7 +421,135 @@ def check_fixture(ground_truth_path, obs_db_path):
         print(f"MISMATCH confidence: fixture={fixture_conf} resolved={resolved_conf}")
         mismatches += 1
 
-    print(f"\n{mismatches} mismatches against ground-truth.yaml's canonical edge")
+    print(f"\nSuburban edge: {mismatches} mismatch(es)")
+
+    fixture_thermostat = next(
+        (c for c in components_doc if c.get("component_id") == "c_placeholder_tstat"),
+        None)
+    if fixture_thermostat is None:
+        print("MISMATCH thermostat: fixture component missing")
+        mismatches += 1
+    else:
+        thermostat_mismatches_before = mismatches
+        obs43 = load_observation(obs_db_path, 43)
+        obs44 = load_observation(obs_db_path, 44)
+        obs45 = load_observation(obs_db_path, 45)
+        obs46 = load_observation(obs_db_path, 46)
+        obs47 = load_observation(obs_db_path, 47)
+        thermostat, thermostat_ids, thermostat_attrs = thermostat_from_observations(
+            obs44, obs45, obs46, obs47, "c_placeholder_tstat")
+        insert_component(conn, thermostat)
+        for identifier in thermostat_ids:
+            insert_identifier(conn, identifier)
+        for attribute in thermostat_attrs:
+            insert_component_attribute(conn, attribute)
+
+        if thermostat.part_type_id != fixture_thermostat.get("part_type_id") or \
+                thermostat.interchange_code != fixture_thermostat.get("interchange_code"):
+            print(f"MISMATCH thermostat component: resolved={thermostat} "
+                  f"fixture={fixture_thermostat}")
+            mismatches += 1
+
+        expected_identifiers = {
+            (i["ns"], str(i["value"]), i["visibility"])
+            for i in fixture_thermostat.get("identifiers", [])
+        }
+        resolved_identifiers = {(i.ns, i.value, i.visibility) for i in thermostat_ids}
+        if resolved_identifiers != expected_identifiers:
+            print(f"MISMATCH thermostat identifiers: resolved={resolved_identifiers} "
+                  f"fixture={expected_identifiers}")
+            mismatches += 1
+
+        resolved_attrs = get_component_attributes(conn, thermostat.component_id)
+        by_name = {}
+        for attr in resolved_attrs:
+            value = attr.value_text if attr.value_text is not None else (
+                attr.value_number if attr.value_number is not None else attr.value_boolean)
+            by_name.setdefault(attr.name, {})[attr.qualifier] = value
+
+        fixture_attrs = fixture_thermostat["attributes"]
+        expected_order = fixture_attrs["terminal_order"]["value"]
+        resolved_order = [label for label, _ in sorted(
+            by_name.get("terminal_order", {}).items(), key=lambda item: item[1])]
+        if resolved_order != expected_order:
+            print(f"MISMATCH thermostat order: resolved={resolved_order} "
+                  f"fixture={expected_order}")
+            mismatches += 1
+
+        expected_map = fixture_attrs["terminal_map"]["value"]
+        for terminal in THERMOSTAT_TERMINALS:
+            expected_position = expected_map[terminal]["board_position"]
+            expected_function = expected_map[terminal]["function"]
+            if by_name.get("terminal_board_position", {}).get(terminal) != expected_position:
+                print(f"MISMATCH {terminal} board position")
+                mismatches += 1
+            if by_name.get("terminal_function", {}).get(terminal) != expected_function:
+                print(f"MISMATCH {terminal} terminal function")
+                mismatches += 1
+
+        expected_colors = fixture_attrs["installed_wire_colors"]["value"]
+        if by_name.get("installed_wire_color") != expected_colors:
+            print(f"MISMATCH installed wire colors: "
+                  f"resolved={by_name.get('installed_wire_color')} fixture={expected_colors}")
+            mismatches += 1
+        for scalar in ("voltage", "stages"):
+            resolved = by_name.get(scalar, {}).get("")
+            expected = fixture_attrs[scalar]["value"]
+            if resolved != expected:
+                print(f"MISMATCH thermostat {scalar}: resolved={resolved} fixture={expected}")
+                mismatches += 1
+
+        candidate, candidate_evidence = identifier_candidate_from_observation(obs43)
+        insert_identifier_equivalence_candidate(conn, candidate)
+        candidate_evidence.candidate_id = candidate.id
+        insert_identifier_equivalence_evidence(conn, candidate_evidence)
+        candidates = get_identifier_equivalence_candidates(conn, status="open")
+        fixture_candidates = next(
+            (d.get("identifier_equivalence_candidates", []) for d in docs
+             if isinstance(d, dict) and "identifier_equivalence_candidates" in d), [])
+        if len(candidates) != 1 or len(fixture_candidates) != 1:
+            print(f"MISMATCH identifier candidate counts: resolved={len(candidates)} "
+                  f"fixture={len(fixture_candidates)}")
+            mismatches += 1
+        else:
+            fixture_candidate = fixture_candidates[0]
+            resolved_pair = (candidates[0].ns_a, candidates[0].value_a,
+                             candidates[0].ns_b, candidates[0].value_b)
+            expected_pair = (fixture_candidate["a"]["ns"],
+                             str(fixture_candidate["a"]["value"]),
+                             fixture_candidate["b"]["ns"],
+                             str(fixture_candidate["b"]["value"]))
+            if resolved_pair != expected_pair:
+                print(f"MISMATCH identifier candidate: resolved={resolved_pair} "
+                      f"fixture={expected_pair}")
+                mismatches += 1
+            evidence = get_identifier_equivalence_evidence(conn, candidates[0].id)
+            expected_confidence = fixture_candidate["confidence"]
+            if len(evidence) != 1 or (evidence[0].effect_alpha,
+                    evidence[0].effect_beta, evidence[0].source_observation_id) != (
+                    float(expected_confidence["alpha"]),
+                    float(expected_confidence["beta"]), 43):
+                print(f"MISMATCH identifier candidate evidence: {evidence}")
+                mismatches += 1
+
+        forbidden = {"AR7815", "AR7816", "AP7862-3", "PCB1060-4A",
+                     "7330G3351", "7330F3858"}
+        attached_forbidden = {i.value for i in thermostat_ids} & forbidden
+        if attached_forbidden:
+            print(f"MISMATCH candidate identifiers attached to thermostat: {attached_forbidden}")
+            mismatches += 1
+        thermostat_edges = conn.execute(
+            "SELECT type FROM edges WHERE (from_component_id = ? OR to_component_id = ?) "
+            "AND type IN ('substitutes', 'supersedes')",
+            (thermostat.component_id, thermostat.component_id)).fetchall()
+        if thermostat_edges:
+            print(f"MISMATCH unsupported thermostat edges: {thermostat_edges}")
+            mismatches += 1
+
+        print(f"Thermostat fixture: "
+              f"{mismatches - thermostat_mismatches_before} mismatch(es)")
+
+    print(f"\n{mismatches} total mismatches against ground-truth.yaml")
     return 1 if mismatches else 0
 
 

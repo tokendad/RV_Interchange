@@ -8,8 +8,9 @@ import sys
 from datetime import datetime, timezone
 
 from interchange_models import (
-    Component, Identifier, Edge, EdgeSubstitutionDetail, EdgeCaveat,
-    EdgeRequiredPart, RelationshipEvidence,
+    Component, Identifier, ComponentAttribute, Edge, EdgeSubstitutionDetail, EdgeCaveat,
+    EdgeRequiredPart, RelationshipEvidence, IdentifierEquivalenceCandidate,
+    IdentifierEquivalenceEvidence,
 )
 from interchange_schema import init_db
 
@@ -33,6 +34,101 @@ def insert_identifier(conn, identifier):
         (identifier.component_id, identifier.ns, identifier.value, identifier.visibility))
     conn.commit()
     return cur.lastrowid
+
+
+def insert_component_attribute(conn, attribute):
+    cur = conn.execute(
+        "INSERT INTO component_attributes "
+        "(component_id, name, qualifier, value_text, value_number, value_boolean, unit, "
+        "provenance, source_observation_id, resolver_version, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (attribute.component_id, attribute.name, attribute.qualifier,
+         attribute.value_text, attribute.value_number,
+         int(attribute.value_boolean) if attribute.value_boolean is not None else None,
+         attribute.unit, attribute.provenance, attribute.source_observation_id,
+         attribute.resolver_version, now_iso()))
+    conn.commit()
+    attribute.id = cur.lastrowid
+    return attribute.id
+
+
+def get_component_attributes(conn, component_id, name=None):
+    if name is None:
+        rows = conn.execute(
+            "SELECT * FROM component_attributes WHERE component_id = ? ORDER BY id",
+            (component_id,)).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM component_attributes WHERE component_id = ? AND name = ? "
+            "ORDER BY id", (component_id, name)).fetchall()
+    return [ComponentAttribute(
+        id=r["id"], component_id=r["component_id"], name=r["name"],
+        qualifier=r["qualifier"], value_text=r["value_text"],
+        value_number=r["value_number"],
+        value_boolean=(bool(r["value_boolean"])
+                       if r["value_boolean"] is not None else None),
+        unit=r["unit"], provenance=r["provenance"],
+        source_observation_id=r["source_observation_id"],
+        resolver_version=r["resolver_version"]) for r in rows]
+
+
+def insert_identifier_equivalence_candidate(conn, candidate):
+    duplicate = conn.execute(
+        "SELECT id FROM identifier_equivalence_candidate WHERE "
+        "(ns_a = ? AND value_a = ? AND ns_b = ? AND value_b = ?) OR "
+        "(ns_a = ? AND value_a = ? AND ns_b = ? AND value_b = ?)",
+        (candidate.ns_a, candidate.value_a, candidate.ns_b, candidate.value_b,
+         candidate.ns_b, candidate.value_b, candidate.ns_a, candidate.value_a),
+    ).fetchone()
+    if duplicate is not None:
+        raise ValueError(f"identifier-equivalence candidate already exists as #{duplicate['id']}")
+    cur = conn.execute(
+        "INSERT INTO identifier_equivalence_candidate "
+        "(ns_a, value_a, ns_b, value_b, status, merged_component_id) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (candidate.ns_a, candidate.value_a, candidate.ns_b, candidate.value_b,
+         candidate.status, candidate.merged_component_id))
+    conn.commit()
+    candidate.id = cur.lastrowid
+    return candidate.id
+
+
+def insert_identifier_equivalence_evidence(conn, evidence):
+    cur = conn.execute(
+        "INSERT INTO identifier_equivalence_evidence "
+        "(candidate_id, event_type, effect_alpha, effect_beta, "
+        "source_observation_id, actor_id, occurred_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (evidence.candidate_id, evidence.event_type, evidence.effect_alpha,
+         evidence.effect_beta, evidence.source_observation_id, evidence.actor_id,
+         evidence.occurred_at))
+    conn.commit()
+    evidence.id = cur.lastrowid
+    return evidence.id
+
+
+def get_identifier_equivalence_candidates(conn, status=None):
+    if status is None:
+        rows = conn.execute(
+            "SELECT * FROM identifier_equivalence_candidate ORDER BY id").fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM identifier_equivalence_candidate WHERE status = ? ORDER BY id",
+            (status,)).fetchall()
+    return [IdentifierEquivalenceCandidate(
+        id=r["id"], ns_a=r["ns_a"], value_a=r["value_a"],
+        ns_b=r["ns_b"], value_b=r["value_b"], status=r["status"],
+        merged_component_id=r["merged_component_id"]) for r in rows]
+
+
+def get_identifier_equivalence_evidence(conn, candidate_id):
+    rows = conn.execute(
+        "SELECT * FROM identifier_equivalence_evidence WHERE candidate_id = ? ORDER BY id",
+        (candidate_id,)).fetchall()
+    return [IdentifierEquivalenceEvidence(
+        id=r["id"], candidate_id=r["candidate_id"], event_type=r["event_type"],
+        effect_alpha=r["effect_alpha"], effect_beta=r["effect_beta"],
+        source_observation_id=r["source_observation_id"], actor_id=r["actor_id"],
+        occurred_at=r["occurred_at"]) for r in rows]
 
 
 def insert_edge(conn, edge):
@@ -116,6 +212,40 @@ def self_test(verbose=False):
     insert_component(conn, Component("c_test_a", 412, "412-0001-A"))
     insert_component(conn, Component("c_test_b", 412, "412-0001-B"))
     insert_identifier(conn, Identifier("c_test_a", "suburban", "SW6DE"))
+
+    for attr in (
+        ComponentAttribute("c_test_a", "voltage", "test", 900,
+                           value_text="12VDC"),
+        ComponentAttribute("c_test_a", "terminal_order", "test", 901,
+                           qualifier="R", value_number=1.0),
+        ComponentAttribute("c_test_a", "enabled", "test", 902,
+                           value_boolean=True),
+    ):
+        insert_component_attribute(conn, attr)
+    attrs = get_component_attributes(conn, "c_test_a")
+    if len(attrs) != 3 or {a.name for a in attrs} != {
+            "voltage", "terminal_order", "enabled"}:
+        failures.append(f"expected 3 typed component attributes, got {attrs}")
+
+    candidate = IdentifierEquivalenceCandidate(
+        ns_a="icm", value_a="AR7815", ns_b="coleman", value_b="7330F3858")
+    insert_identifier_equivalence_candidate(conn, candidate)
+    insert_identifier_equivalence_evidence(conn, IdentifierEquivalenceEvidence(
+        candidate_id=candidate.id, event_type="retailer_cross_reference",
+        effect_alpha=2.0, effect_beta=1.0, occurred_at=now_iso(),
+        source_observation_id=43))
+    candidates = get_identifier_equivalence_candidates(conn, status="open")
+    if len(candidates) != 1 or candidates[0].value_a != "AR7815":
+        failures.append(f"expected open AR7815 candidate, got {candidates}")
+    candidate_evidence = get_identifier_equivalence_evidence(conn, candidate.id)
+    if len(candidate_evidence) != 1 or candidate_evidence[0].effect_alpha != 2.0:
+        failures.append(f"expected candidate alpha=2 evidence, got {candidate_evidence}")
+    try:
+        insert_identifier_equivalence_candidate(conn, IdentifierEquivalenceCandidate(
+            ns_a="coleman", value_a="7330F3858", ns_b="icm", value_b="AR7815"))
+        failures.append("reverse-orientation duplicate candidate was accepted")
+    except ValueError:
+        pass
 
     edge = Edge(type="substitutes", from_component_id="c_test_a",
                 to_component_id="c_test_b", group_key="412-0001")

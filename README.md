@@ -55,7 +55,7 @@ zero supply, and only then add listings.
 
 ## Current Stage 1 status
 
-- `Docs/Tools/observations.db` contains 45 append-only evidence observations.
+- `Docs/Tools/observations.db` contains 47 append-only evidence observations.
 - `Docs/Tools/resolver.py` classifies every captured field into a canonical vocabulary
   and assigns source-trust tiers.
 - `Docs/Tools/suburban_parser.py` decodes SW-series models and resolves their directional
@@ -63,12 +63,12 @@ zero supply, and only then add listings.
 - `Docs/Tools/interchange_*.py` and `edge_resolver.py` persist components, typed edges,
   caveats, required parts, and evidence. The canonical SW6DE/SW6DEL fixture case resolves
   with zero mismatches.
-- Coleman-Mach thermostat teardown evidence now proves the in-hand `AP7862` / `7330G335`
-  identity and its complete `R/Y/W/GL/GH/B` interface.
+- The Coleman-Mach thermostat resolver now persists the in-hand `AP7862` / `7330G335`
+  identity, its queryable `R/Y/W/GL/GH/B` interface, and the separate open
+  `AR7815` / `7330F3858` identifier-equivalence candidate.
 
-The next milestone is extending the observation-to-component resolver through the Coleman
-thermostat fixture while keeping compatibility, supersession, and possible identifier
-equivalence as distinct relationships. The wider Stage 1 roadmap is in
+The next Coleman milestone is resolving the exact endpoint components named by the
+compatibility and supersession evidence before creating those edges. The wider Stage 1 roadmap is in
 `Docs/Inital_Design/PLAN-Staged_Build.md`.
 
 ## Known corrections logged
