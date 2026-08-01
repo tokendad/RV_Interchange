@@ -244,6 +244,7 @@ ALIASES = {
     "aliases_mentioned": "sku",
     "item_number": "vendor_catalog_number",
     "vendor_number": "vendor_catalog_number",
+    "vendor_catalog_number": "vendor_catalog_number",
     "ppl_item": "vendor_catalog_number",
     "ppl_item_old": "vendor_catalog_number_legacy",
     "upc": "upc",
@@ -265,6 +266,7 @@ ALIASES = {
     "grammar_confirmed_in_page_text": "suffix_grammar_table",
     "SW3P_discontinuation": "discontinuation_info",
     "status": "lifecycle_status",
+    "lifecycle_status": "lifecycle_status",
     "new_finding_4gal_lineup": "family_availability_constraint",
 
     # capacity / heat / element
@@ -291,6 +293,7 @@ ALIASES = {
     "liner": "tank_liner",
     "tank": "tank_material",
     "type": "product_type",
+    "product_type": "product_type",
     "product_line": "product_line",
     "material": "material",
     "markings": "markings",
