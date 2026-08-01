@@ -3,7 +3,7 @@
 **Status:** approved for implementation
 **Date:** 2026-08-01
 **Scope:** persist the in-hand Coleman thermostat, its queryable electrical interface,
-and the retailer-only identifier-equivalence candidate from observations #43-#45.
+and the retailer-only identifier-equivalence candidate from observations #43-#46.
 
 ## 1. Goal
 
@@ -54,8 +54,15 @@ For the thermostat, observation #44 produces:
 | Name | Qualifier | Value | Provenance |
 |---|---|---|---|
 | `terminal_order` | terminal label | ordinal 1-6 | obs #44, in hand |
-| `terminal_board_position` | terminal label | `W1`/`W5`/`W6`/`W3`/`W4`/`W2` | obs #44, in hand |
 | `installed_wire_color` | terminal label | observed color | obs #44, in hand |
+
+Observation #44 recorded the board positions in its source statement but not as a
+structured extracted field. Because observations are append-only, add observation #46 as
+a structured transcription supplement rather than editing #44. It produces:
+
+| Name | Qualifier | Value | Provenance |
+|---|---|---|---|
+| `terminal_board_position` | terminal label | `W1`/`W5`/`W6`/`W3`/`W4`/`W2` | obs #46, in hand |
 
 Observation #45 produces:
 
@@ -105,15 +112,16 @@ Beta effects `alpha=2`, `beta=1`.
 Add a focused builder in `edge_resolver.py`:
 
 ```python
-thermostat_from_observations(photo_row, manual_row, component_id)
+thermostat_from_observations(photo_row, manual_row, positions_row, component_id)
     -> tuple[Component, list[Identifier], list[ComponentAttribute]]
 ```
 
-The builder normalizes both observations through `resolver.py`, then requires:
+The builder normalizes all three observations through `resolver.py`, then requires:
 
 - physical identifiers exactly containing `icm:AP7862`, `coleman:7330G335`,
   `silkscreen:PCB1060`, and `silkscreen:SPCB-2`;
 - terminal order exactly `R, Y, W, GL, GH, B`;
+- board positions for every terminal;
 - installed colors for every terminal;
 - documented functions for every terminal.
 
