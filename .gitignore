@@ -48,3 +48,6 @@ Docs/Data/**/https___*_files/
 
 # Oversized source PDFs (exceed GitHub's 100MB limit) — kept on disk, not in git
 Docs/Data/Atwood/ParkPower Catalog.pdf
+
+# Resolver output db — rebuildable from observations.db, not source of truth
+Docs/Tools/components.db
