@@ -3,12 +3,12 @@
 **Status:** exact endpoint and supersession fixture complete; broader adapter research in progress
 **Updated:** 2026-08-01 (obs #58/#59: a manufacturer wildcard-family manual and an
 independent retailer's own replacement chart together unblock the `7330E336`/`7330-336`
-"electronic generation" lead that eBay/manuals.plus previously blocked — see §6.2 — while
-also surfacing a new, unresolved conflict between manufacturer-documented and
-retailer-recommended replacements for the exact `7330G3351`/`7330F3852` endpoints; obs
-#60/#61 add two third-party aftermarket thermostats claiming compatibility with the
-7330 wildcard family, one of which (FARAMZ) confusingly reuses Coleman's own `7330F3852`
-number for a physically different digital product — see §6.4/§6.5)
+"electronic generation" lead that eBay/manuals.plus previously blocked — see §6.2. Obs
+#60/#61 add two third-party aftermarket thermostats claiming compatibility with the 7330
+wildcard family, one of which (FARAMZ) confusingly reuses Coleman's own `7330F3852` number
+for a physically different digital product — see §6.4/§6.5. Obs #62 resolves §6.3's initial
+`9420-351`-vs-`8330-3362` replacement conflict as two coexisting OEM-analog and
+digital-upgrade paths rather than a real contradiction)
 
 ## 1. Why this adapter
 
@@ -227,7 +227,7 @@ unconfirmed — same evidentiary gap as `8330-3362` and `1C26-10` elsewhere in t
 document. They are captured as observation content but not yet promoted to components or
 graph edges.
 
-### 6.3 New conflict: retailer replacement chart vs. manufacturer supersession
+### 6.3 Two coexisting replacement paths, not a real conflict: OEM analog vs. digital upgrade
 
 Observation #59's replacement chart also lists a current replacement for the fixture's own
 exact endpoints and the in-hand unit's own identifier:
@@ -238,14 +238,32 @@ exact endpoints and the in-hand unit's own identifier:
 | `7330G3351` (exact endpoint, §6) | White digital: `8330-3362` / Black digital: `8330-3862` |
 | `7330F3852` (exact endpoint, §6) | White digital: `8330-3362` / Black digital: `8330-3862` |
 
-This directly **conflicts** with the manufacturer-documented supersession already in this
-fixture (`7330G3351 -> 9420-351` and `7330F3852 -> 9420-351`, §6, sourced to obs #40-42 and
-corroborated by obs #48/#49). Both may be true in different senses — an official
-manufacturer catalog supersession versus one retailer's preferred in-stock substitute — or
-the retailer chart may simply be stale relative to the manufacturer's 2025 catalog. Per the
-project's evidence discipline, this conflict is preserved as-is rather than resolved by
-this document; the existing `-> 9420-351` edges are manufacturer-tier and are not
-overridden by a retailer-tier conflicting claim.
+This initially looked like a conflict with the manufacturer-documented supersession already
+in this fixture (`7330G3351 -> 9420-351` and `7330F3852 -> 9420-351`, §6, obs #40-42/48/49).
+Two further sources resolve the framing rather than the tension itself:
+
+- Observation #48's own raw content (already captured, not previously quoted this
+  precisely) includes the retailer's rendered, non-template product text: *"Model
+  7330G3351 is no longer produced. Your order will include the latest OEM replacement (Part
+  9420-351). Function, wiring and compatibility remain the same, but the housing and display
+  style are different."* Combined with the 2025 manufacturer catalog (obs #41), `9420-351`
+  is the manufacturer's own, singular, official supersession target — not one retailer's
+  preference among several.
+- Observation #62 (rvupgradestore.com's `8330-3362` product page) shows Coleman-Mach itself
+  (via this retailer) marketing `8330-3362` as a direct replacement for a *cluster* of older
+  analog models (`7330G335`, `7330E335`, `7330D335`, `7330F3858`, `7330A335`) — and, on the
+  same page, separately offering `7330G3351` itself as a named "Alternative Analog
+  Thermostat" option for customers who don't want to switch to digital.
+
+Read together, these are **two coexisting, non-contradictory replacement paths**, not
+competing claims about one correct answer: `9420-351` is the official OEM analog
+supersession for the exact discontinued analog part, while `8330-3362`/`8330-3862` is a
+widely-marketed digital upgrade path that most customers now choose instead — which is
+almost certainly why MakariosRV's own chart (obs #59) defaults to recommending the digital
+part. This is still retailer/aftermarket-tier reasoning about customer preference, not a
+manufacturer statement that `8330-3362` supersedes `7330G3351`/`7330F3852`, so no additional
+graph edge is added here; the existing `-> 9420-351` edges remain the fixture's only
+supersession claim, and `8330-3362`/`8330-3862` remain observation-only alternatives.
 
 Observation #59 also independently corroborates two previously weaker leads:
 
@@ -339,6 +357,11 @@ a graph edge.
   **third-party** OEM-replacement product (own model number, no identifier overlap) that
   independently corroborates the `7330*335*`/`7330*385*`/`7330*336*` wildcard family
   grouping, the 3-minute compressor short-cycle delay, and the cool-only fuse difference
+- obs #62 — rvupgradestore.com `8330-3362` digital thermostat product page; shows
+  Coleman-Mach's own retailer marketing `8330-3362` as a direct digital-upgrade replacement
+  for a cluster of older analog models while separately offering `7330G3351` itself as a
+  named "Alternative Analog Thermostat" — resolves the §6.3 framing as two coexisting
+  replacement paths, not a conflict
 
 ## 8. Resolver status and next milestone
 
@@ -361,8 +384,10 @@ Ready-to-do next work, in rough priority order:
 
 1. Build `7330F3361`/`7330-3861`/`7330B3441` as exact endpoint components (§6.1) — the
    evidence already exists across obs #40 + #55/#56, same shape as the three §6 components.
-2. Decide how to represent the obs #59 replacement-chart conflict (§6.3) against the
-   existing `-> 9420-351` supersession edges without silently overriding either tier.
-3. Determine whether `7330-E336`/`7330-E385` (obs #59) can be tied to the service manual's
+2. Determine whether `7330-E336`/`7330-E385` (obs #59) can be tied to the service manual's
    unnamed "electronic" generation, or remain observation-only candidates like `8330-3362`
    and `1C26-10`.
+3. Decide whether `8330-3362`/`8330-3862` (digital-upgrade path, §6.3, obs #50/#62) warrant
+   their own exact endpoint components alongside the analog `9420-351` supersession, now
+   that obs #62 shows Coleman-Mach's own retailer channel marketing them as a direct
+   replacement for several older analog models.

@@ -162,6 +162,8 @@ CANONICAL = {
     "short_cycle_protection_delay": "documented minimum off-time delay before a cooling function may re-cycle",
     "replacement_chart_entries":  "a source's own old-model-to-current-replacement table, retailer or manufacturer tier",
     "compatible_system_claim":    "a source's own list of systems/models it claims compatibility with",
+    "alternative_replacement_option": "a source's own named alternate replacement, offered alongside its primary replacement recommendation",
+    "compatible_ceiling_assemblies": "a source's own list of ceiling-assembly model numbers it claims compatibility with",
 
     # dimensions — mechanically derived, see _derive_opening / _derive_product
     "opening_h":                 "framed installation opening height, in — 2D only",
@@ -331,6 +333,8 @@ ALIASES = {
     "compatible_system_claim": "compatible_system_claim",
     "fuse_rating": "fuse_rating",
     "short_cycle_protection_delay": "short_cycle_protection_delay",
+    "alternative_analog_option": "alternative_replacement_option",
+    "compatible_ceiling_assemblies": "compatible_ceiling_assemblies",
 
     # dimensions — plain product envelope (opening/cutout handled specially)
     "product_size_in": "product_hwd",
