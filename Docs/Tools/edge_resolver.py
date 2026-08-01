@@ -570,6 +570,69 @@ def resolve_cross_capacity_edge(conn, review_row, from_id, to_id, group_key):
     return edge_forward.id, edge_backward.id
 
 
+_IW60RL_PANEL_ROLE = "replacement_panel"
+_IW60RL_PANEL_BY_VALUE = {
+    "6276APW": ("Suburban", "6 gallon"),
+    "6277APW": ("Suburban", "10, 12, 16 gallon"),
+    "521147": ("Atwood", "6 gallon"),
+    "521150": ("Atwood", "10 gallon"),
+}
+
+
+def resolve_iw60rl_retrofit_edge(conn, manual_row, from_id, to_id, group_key,
+                                  required_part_value):
+    """
+    One manufacturer-documented IW60RL retrofit edge (obs #14's replacement-
+    panel table): an existing tank unit's cutout is COVERED by a replacement
+    panel rather than resized, plus a new 3.750in vent hole. Called once per
+    source family (SW6DEL, SW12DEL, Atwood 6gal, Atwood 10gal) — see
+    ground-truth.yaml's four iw60_retrofit_* edges.
+    """
+    _validate_observation_source(manual_row, 14, "manufacturer_pdf", 2, "IW60RL manual")
+    manual = json.loads(manual_row["extracted"])
+    if manual.get("vent_cap_ordered_separately") is not True:
+        raise ValueError("IW60RL manual must confirm the vent cap ships separately")
+    panels = manual.get("replacement_panel_part_numbers")
+    if not isinstance(panels, list):
+        raise ValueError("IW60RL manual has no replacement panel table")
+    expected_brand, expected_capacities = _IW60RL_PANEL_BY_VALUE[required_part_value]
+    matches = [p for p in panels if p.get("part_number") == required_part_value
+               and p.get("brand") == expected_brand
+               and p.get("capacities") == expected_capacities]
+    if len(matches) != 1:
+        raise ValueError(
+            f"IW60RL manual is missing the {required_part_value} replacement panel row")
+
+    edge = Edge(type="substitutes", from_component_id=from_id,
+                to_component_id=to_id, group_key=group_key)
+    insert_edge(conn, edge)
+    insert_substitution_detail(conn, EdgeSubstitutionDetail(
+        edge_id=edge.id, basis="manufacturer_documented",
+        verdict="fits_with_modification"))
+    insert_caveat(conn, EdgeCaveat(
+        edge_id=edge.id, blocking=True,
+        text=f"Existing tank cutout is COVERED by replacement panel "
+             f"{required_part_value}, not resized. A new 3.750in vent hole must "
+             f"still be cut."))
+    insert_caveat(conn, EdgeCaveat(
+        edge_id=edge.id, blocking=True,
+        text=f"Replacement panel ({required_part_value}) must be ordered "
+             f"separately from the IW60RL unit itself."))
+    insert_required_part(conn, EdgeRequiredPart(
+        edge_id=edge.id, ns="suburban", value=required_part_value,
+        role=_IW60RL_PANEL_ROLE))
+
+    prior_alpha, prior_beta = prior_for_basis("manufacturer_documented")
+    insert_evidence(conn, RelationshipEvidence(
+        edge_id=edge.id, event_type="attribute_prior", effect_alpha=prior_alpha,
+        effect_beta=prior_beta, occurred_at=now_iso()))
+    insert_evidence(conn, RelationshipEvidence(
+        edge_id=edge.id, event_type="manufacturer_documented", effect_alpha=4.0,
+        effect_beta=0.0, occurred_at=now_iso(), source_observation_id=manual_row["id"]))
+
+    return edge.id
+
+
 def resolve_coleman_supersessions(conn, replacement_row, retailer_rows, component_ids):
     _validate_observation_source(
         replacement_row, 41, "manufacturer_pdf", 2, "replacement")
@@ -1110,6 +1173,57 @@ def self_test(verbose=False):
                 init_db(":memory:"), changed_row(obs11, mutate),
                 "c_placeholder_wh_6del", "c_placeholder_wh_12del", "cross_capacity_upgrade")
             failures.append(f"invalid cross-capacity evidence accepted: {label}")
+        except ValueError:
+            pass
+
+    insert_component(store_conn, comp_iw60rl)
+    for identifier in ids_iw60rl:
+        insert_identifier(store_conn, identifier)
+    for attribute in attrs_iw60rl:
+        insert_component_attribute(store_conn, attribute)
+    for key in ("6gal", "10gal"):
+        component, identifiers, attributes = atwood[key]
+        insert_component(store_conn, component)
+        for attribute in attributes:
+            insert_component_attribute(store_conn, attribute)
+
+    retrofit_specs = (
+        ("c_placeholder_wh_6del", "iw60_retrofit_suburban_6gal", "6276APW"),
+        ("c_placeholder_wh_12del", "iw60_retrofit_suburban_10_12_16gal", "6277APW"),
+        ("c_placeholder_wh_atwood_6gal", "iw60_retrofit_atwood_6gal", "521147"),
+        ("c_placeholder_wh_atwood_10gal", "iw60_retrofit_atwood_10gal", "521150"),
+    )
+    for from_id, group_key, part_value in retrofit_specs:
+        edge_id = resolve_iw60rl_retrofit_edge(
+            store_conn, obs14, from_id, "c_placeholder_wh_iw60rl", group_key, part_value)
+
+        detail = store_conn.execute(
+            "SELECT verdict FROM edge_substitution_detail WHERE edge_id = ?",
+            (edge_id,)).fetchone()
+        if detail["verdict"] != "fits_with_modification":
+            failures.append(f"{group_key} verdict mismatch: {detail}")
+        caveats = get_caveats_for_edge(store_conn, edge_id)
+        if len(caveats) != 2 or not all(c.blocking for c in caveats):
+            failures.append(f"{group_key} should have 2 blocking caveats: {caveats}")
+        parts = get_required_parts_for_edge(store_conn, edge_id)
+        if [(p.ns, p.value, p.role) for p in parts] != [
+                ("suburban", part_value, "replacement_panel")]:
+            failures.append(f"{group_key} required part mismatch: {parts}")
+        confidence = compute_confidence(get_evidence_for_edge(store_conn, edge_id))
+        if round(confidence["value"], 3) != 0.833:
+            failures.append(f"{group_key} confidence value mismatch: {confidence}")
+
+    for mutate, label in (
+        (lambda e: e["replacement_panel_part_numbers"].pop(0), "missing panel row"),
+        (lambda e: e.__setitem__("vent_cap_ordered_separately", False),
+         "wrong vent cap flag"),
+    ):
+        try:
+            resolve_iw60rl_retrofit_edge(
+                init_db(":memory:"), changed_row(obs14, mutate),
+                "c_placeholder_wh_6del", "c_placeholder_wh_iw60rl",
+                "iw60_retrofit_suburban_6gal", "6276APW")
+            failures.append(f"invalid IW60RL retrofit evidence accepted: {label}")
         except ValueError:
             pass
 
