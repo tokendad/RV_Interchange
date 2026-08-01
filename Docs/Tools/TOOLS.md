@@ -76,3 +76,12 @@ resurface for that vendor. Check a same-page refetch before trusting dedup on a 
   `Docs/Data/Coleman_Mach/VENDOR-Coleman-Mach.md`.
 - #46: append-only structured transcription of the PCB positions photographed in #44.
 - #47: append-only structured extraction of the 12VDC/single-stage facts documented in #45.
+- #48: retailer replacement page for white analog `7330G3351` -> `9420-351`, claiming
+  unchanged function, wiring, mounting, and compatibility. The source conflict is retained:
+  the heat/cool title disagrees with the `gas_furnace` specification value.
+- #49: retailer replacement page for black analog `7330F3852` -> `9420-351`, claiming
+  unchanged function, wiring, mounting, and compatibility. The source conflict is retained:
+  the heat/cool title disagrees with the `heat_pump_heat_strip` specification value.
+- #50: retailer page for digital `8330-3362`, captured only as an open visual-match candidate
+  for the manual's electronic-digital thermostat figure; visual similarity does not establish
+  component identity.

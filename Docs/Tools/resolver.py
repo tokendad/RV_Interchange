@@ -153,6 +153,9 @@ CANONICAL = {
     "compatibility_statement":   "a source's explicit family-level compatibility or interchangeability claim",
     "voltage":                    "documented component control voltage",
     "stages":                     "documented or evidence-backed control-stage count/classification",
+    "replacement_claim":          "structured claim that a replacement retains function/interface behavior",
+    "source_conflicts":           "structured internal contradictions preserved from one source",
+    "visual_match_candidate":     "open visual comparison that does not establish component identity",
 
     # dimensions — mechanically derived, see _derive_opening / _derive_product
     "opening_h":                 "framed installation opening height, in — 2D only",
@@ -297,6 +300,9 @@ ALIASES = {
     "compatibility_statement": "compatibility_statement",
     "voltage": "voltage",
     "stages": "stages",
+    "replacement_equivalence_claim": "replacement_claim",
+    "retailer_metadata_conflicts": "source_conflicts",
+    "visual_match_candidate": "visual_match_candidate",
 
     # dimensions — plain product envelope (opening/cutout handled specially)
     "product_size_in": "product_hwd",
@@ -954,6 +960,40 @@ def self_test():
             failures.append(
                 f"thermostat field {key} should normalize to {expected!r}, got "
                 f"{r['attributes'].get(key)!r}")
+
+    endpoint_retailer_fields = {
+        "relation": {
+            "type": "retailer_replacement",
+            "from": "7330G3351",
+            "to": "9420-351",
+        },
+        "replacement_equivalence_claim": {
+            "function": "same",
+            "wiring": "same",
+            "mounting": "same",
+            "compatibility": "same",
+        },
+        "retailer_metadata_conflicts": [{
+            "field": "functions",
+            "title_value": "heat_cool",
+            "specification_value": "gas_furnace",
+        }],
+        "visual_match_candidate": {
+            "candidate": {"ns": "coleman", "value": "8330-3362"},
+            "comparison_source_observation_id": 45,
+            "manual_figure": "electronic_digital_display_thermostat",
+            "status": "open",
+            "basis": ["RVComfort.HC face", "left display", "up/down controls",
+                      "three lower slide controls"],
+            "caveat": "visual similarity does not prove model identity",
+        },
+    }
+    r = normalize_extracted(999, endpoint_retailer_fields, strict=False)
+    if r["unmapped"]:
+        failures.append(f"endpoint retailer fields must classify: {r['unmapped']}")
+    for key in ("replacement_claim", "source_conflicts", "visual_match_candidate"):
+        if key not in r["attributes"]:
+            failures.append(f"missing endpoint retailer canonical field: {key}")
 
     # a genuinely unclassified key must raise in strict mode, and must NOT
     # raise (just get reported) in non-strict mode
