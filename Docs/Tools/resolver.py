@@ -110,6 +110,7 @@ CANONICAL = {
     "model_spec_table":         "dict of {model: {spec fields}} from a multi-model chart",
     "model_spec_table_columns": "column headers paired with a model_spec_table (from 'rows')",
     "suffix_grammar_table":     "dict of {suffix letter: meaning} from a grammar chart",
+    "manufacturer":             "manufacturer name claimed by the source",
     "discontinuation_info":     "lifecycle info (approx. discontinuation year + basis)",
     "lifecycle_status":         "e.g. 'discontinued'",
     "family_availability_constraint": "which suffixes/capacities a source says do NOT exist together",
@@ -137,6 +138,8 @@ CANONICAL = {
     "material":                  "generic component material",
     "markings":                  "physical markings observed on a part",
     "shape":                     "physical shape observed on a part",
+    "color":                     "physical color observed or documented for a part variant",
+    "actuation":                 "physical control or louver actuation behavior",
     "minimum_clearance":         "minimum clearance from combustibles",
     "serial_number_format":      "documented serial-number format (e.g. YYWWNNNNN)",
 
@@ -146,6 +149,9 @@ CANONICAL = {
     "product_hwd":               "unit product envelope {h, w, d}, in — NOT the opening",
     "vent_hole_diameter_in":     "tankless vent hole diameter, in",
     "duct_diameter_in":          "duct diameter, in (accessory-level measurement)",
+    "nominal_diameter_in":       "nominal connection diameter, in",
+    "flange_diameter_in":        "exterior mounting flange diameter, in",
+    "duct_spud_depth_in":        "depth of the duct spud, in",
 
     # weight — mechanically derived, see _derive_weight
     "weight_empty_lb":           "net empty weight, lb",
@@ -175,9 +181,19 @@ CANONICAL = {
     "alt_text_claim":            "an image alt/title-text attribute's claim — LOW trust, see VENDOR-Suburban.md 6.1",
     "customer_review":           "structured field-evidence review {reviewer, date, rating, text}",
     "source_statement":          "a direct quote/paraphrase of what a source said, load-bearing for a finding",
+    "observed_price_usd":        "source-listed USD price at capture time, not an identity attribute",
 
     # document metadata — real, but about the source, not the product
     "source_document_title":     "title of the source document",
+    "source_photos":             "paths or references to source photographs",
+
+    # append-only correction metadata — the replacement value remains tied
+    # to the earlier observation without mutating it.
+    "correction_observation_id": "observation id corrected by this row",
+    "correction_field":          "raw/canonical field name being corrected",
+    "correction_previous_value": "value reported by the earlier observation",
+    "correction_replacement_value": "replacement value asserted by this observation",
+    "correction_reason":         "reason/evidence for the append-only correction",
     "source_document_type":      "e.g. 'spec_sheet_table'",
     "source_document_pages":     "page count",
     "source_document_publisher": "publisher of the source document",
@@ -219,6 +235,8 @@ ALIASES = {
     "models": "model_spec_table",
     "rows": "model_spec_table",
     "columns": "model_spec_table_columns",
+    "models_listed": "models_named_list",
+    "manufacturer": "manufacturer",
     "model_options_full": "suffix_grammar_table",
     "grammar_confirmed_in_page_text": "suffix_grammar_table",
     "SW3P_discontinuation": "discontinuation_info",
@@ -253,6 +271,8 @@ ALIASES = {
     "material": "material",
     "markings": "markings",
     "shape": "shape",
+    "color": "color",
+    "actuation": "actuation",
     "minimum_clearance": "minimum_clearance",
     "serial_breakdown": "serial_number_format",
 
@@ -263,6 +283,11 @@ ALIASES = {
     "dimensions_in": "product_hwd",
     "vent_hole_diameter_in": "vent_hole_diameter_in",
     "duct_diameter_in": "duct_diameter_in",
+    "duct_spud_diameter_in": "duct_diameter_in",
+    "nominal_diameter_in": "nominal_diameter_in",
+    "flange_diameter_in": "flange_diameter_in",
+    "exterior_flange_diameter_in": "flange_diameter_in",
+    "duct_spud_depth_in": "duct_spud_depth_in",
 
     # weight — split fields pass straight through; weight_lb is compound
     "weight_empty_lb": "weight_empty_lb",
@@ -303,6 +328,7 @@ ALIASES = {
     "customer_review": "customer_review",
     "explanation": "source_statement",
     "quoted_text": "source_statement",
+    "price_usd": "observed_price_usd",
 
     # document metadata
     "doc": "source_document_title",
@@ -313,6 +339,14 @@ ALIASES = {
     "_pdf_pages": "source_pdf_page_stats",
     "ocr_method": "source_extraction_method_detail",
     "captured_via": "source_capture_method",
+    "photos": "source_photos",
+
+    # append-only correction record
+    "corrects": "correction_observation_id",
+    "field": "correction_field",
+    "was": "correction_previous_value",
+    "now": "correction_replacement_value",
+    "reason": "correction_reason",
 }
 
 # --------------------------------------------------------------------------
@@ -801,6 +835,51 @@ def self_test():
     r = normalize_extracted(999, {"sku": "5240A", "aliases_mentioned": ["5140A"]})
     if r["attributes"].get("sku") != ["5240A", "5140A"]:
         failures.append(f"list-valued accumulation must flatten, not nest: {r['attributes']}")
+
+    # Register observations preserve geometry, visible features, source media,
+    # manufacturer/model identity, commerce context, and append-only corrections.
+    recent_fields = {
+        "duct_spud_diameter_in": 5.0,
+        "flange_diameter_in": 7.0,
+        "nominal_diameter_in": 5.0,
+        "duct_spud_depth_in": 1.875,
+        "color": "white",
+        "actuation": "rotatable_louvers_always_open",
+        "photos": ["register-front.jpg"],
+        "manufacturer": "D&W International",
+        "models_listed": ["RO-9850"],
+        "price_usd": 9.45,
+        "corrects": 36,
+        "field": "flange_diameter_in",
+        "was": 6.75,
+        "now": 7.0,
+        "reason": "corrected tape reading",
+    }
+    r = normalize_extracted(999, recent_fields, strict=False)
+    if r["unmapped"]:
+        failures.append(f"recent register/correction fields must all be classified: {r['unmapped']}")
+    expected_recent = {
+        "duct_diameter_in": 5.0,
+        "flange_diameter_in": 7.0,
+        "nominal_diameter_in": 5.0,
+        "duct_spud_depth_in": 1.875,
+        "color": "white",
+        "actuation": "rotatable_louvers_always_open",
+        "source_photos": ["register-front.jpg"],
+        "manufacturer": "D&W International",
+        "models_named_list": ["RO-9850"],
+        "observed_price_usd": 9.45,
+        "correction_observation_id": 36,
+        "correction_field": "flange_diameter_in",
+        "correction_previous_value": 6.75,
+        "correction_replacement_value": 7.0,
+        "correction_reason": "corrected tape reading",
+    }
+    for key, expected in expected_recent.items():
+        if r["attributes"].get(key) != expected:
+            failures.append(
+                f"recent field {key} should normalize to {expected!r}, got "
+                f"{r['attributes'].get(key)!r}")
 
     # a genuinely unclassified key must raise in strict mode, and must NOT
     # raise (just get reported) in non-strict mode
