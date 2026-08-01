@@ -183,6 +183,13 @@ def insert_required_part(conn, part):
     return part.id
 
 
+def get_required_parts_for_edge(conn, edge_id):
+    rows = conn.execute(
+        "SELECT * FROM edge_required_part WHERE edge_id = ?", (edge_id,)).fetchall()
+    return [EdgeRequiredPart(id=r["id"], edge_id=r["edge_id"], ns=r["ns"],
+                              value=r["value"], role=r["role"]) for r in rows]
+
+
 def insert_evidence(conn, evidence):
     cur = conn.execute(
         "INSERT INTO relationship_evidence (edge_id, event_type, effect_alpha, effect_beta, "

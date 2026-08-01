@@ -18,8 +18,9 @@ from resolver import normalize_extracted
 from suburban_parser import compare_models
 from interchange_models import (
     Component, Identifier, ComponentAttribute, Edge, EdgeSubstitutionDetail,
-    EdgeSupersessionDetail, EdgeCaveat, RelationshipEvidence, IdentifierEquivalenceCandidate,
-    IdentifierEquivalenceEvidence, prior_for_basis, compute_confidence,
+    EdgeSupersessionDetail, EdgeCaveat, EdgeRequiredPart, RelationshipEvidence,
+    IdentifierEquivalenceCandidate, IdentifierEquivalenceEvidence, prior_for_basis,
+    compute_confidence,
 )
 from interchange_schema import init_db
 from interchange_store import (
@@ -29,7 +30,7 @@ from interchange_store import (
     insert_component_attribute, get_component_attributes,
     insert_identifier_equivalence_candidate, insert_identifier_equivalence_evidence,
     get_identifier_equivalence_candidates, get_identifier_equivalence_evidence,
-    get_supersession_detail,
+    get_supersession_detail, insert_required_part, get_required_parts_for_edge,
 )
 
 WATER_HEATER_PART_TYPE = 412
@@ -508,6 +509,65 @@ def resolve_substitution_pair(conn, from_id, from_model, to_id, to_model, group_
         edge_ids.append(edge.id)
 
     return tuple(edge_ids)
+
+
+def resolve_cross_capacity_edge(conn, review_row, from_id, to_id, group_key):
+    """
+    First fixture edge with real field evidence rather than an attribute
+    prior alone (see ground-truth.yaml's "FIRST EDGE WITH REAL FIELD
+    EVIDENCE" note): a genuine customer review (observation #11's
+    customer_review field) reporting a confirmed SW6DEL -> SW12DEL cutout
+    upgrade install. Not handled by resolve_substitution_pair /
+    suburban_parser.compare_models, since these two components have
+    genuinely different capacities/cutouts — this is an upgrade path, not a
+    same-group interchange match.
+    """
+    extracted = json.loads(review_row["extracted"])
+    review = extracted.get("customer_review")
+    if not isinstance(review, dict):
+        raise ValueError(f"observation #{review_row['id']} has no customer_review")
+    if review.get("evidence_type") != "buyer_confirmed_install":
+        raise ValueError(f"unexpected cross-capacity evidence_type: {review}")
+    if review.get("verdict") != "fits_with_modification":
+        raise ValueError(f"unexpected cross-capacity verdict: {review}")
+    if review.get("modifications_required") != [
+            "enlarge cutout from 12.75x12.75 to 16.38x16.38",
+            "lengthen bypass line"]:
+        raise ValueError(f"unexpected cross-capacity modifications: {review}")
+
+    basis = "buyer_confirmed_install"
+
+    edge_forward = Edge(type="substitutes", from_component_id=from_id,
+                         to_component_id=to_id, group_key=group_key)
+    insert_edge(conn, edge_forward)
+    insert_substitution_detail(conn, EdgeSubstitutionDetail(
+        edge_id=edge_forward.id, basis=basis, verdict="fits_with_modification"))
+    insert_caveat(conn, EdgeCaveat(
+        edge_id=edge_forward.id, blocking=True,
+        text="Cutout must be enlarged from 12.75x12.75 to 16.38x16.38. This is not "
+             "a same-group substitution — capacities and cutouts differ."))
+    insert_caveat(conn, EdgeCaveat(
+        edge_id=edge_forward.id, blocking=False,
+        text="Bypass line needs to be lengthened."))
+    prior_alpha, prior_beta = prior_for_basis(basis)
+    insert_evidence(conn, RelationshipEvidence(
+        edge_id=edge_forward.id, event_type="attribute_prior",
+        effect_alpha=prior_alpha, effect_beta=prior_beta, occurred_at=now_iso()))
+    insert_evidence(conn, RelationshipEvidence(
+        edge_id=edge_forward.id, event_type="buyer_confirmed_install",
+        effect_alpha=3.0, effect_beta=0.0, occurred_at=now_iso(),
+        source_observation_id=review_row["id"]))
+
+    edge_backward = Edge(type="substitutes", from_component_id=to_id,
+                          to_component_id=from_id, group_key=group_key)
+    insert_edge(conn, edge_backward)
+    insert_substitution_detail(conn, EdgeSubstitutionDetail(
+        edge_id=edge_backward.id, basis=basis, verdict="not_observed"))
+    insert_evidence(conn, RelationshipEvidence(
+        edge_id=edge_backward.id, event_type="attribute_prior",
+        effect_alpha=prior_alpha, effect_beta=prior_beta, occurred_at=now_iso()))
+
+    return edge_forward.id, edge_backward.id
 
 
 def resolve_coleman_supersessions(conn, replacement_row, retailer_rows, component_ids):
@@ -1007,6 +1067,51 @@ def self_test(verbose=False):
         failures.append("invalid Atwood evidence accepted")
     except ValueError:
         pass
+
+    insert_component(store_conn, comp_12del)
+    for identifier in ids_12del:
+        insert_identifier(store_conn, identifier)
+    for attribute in attrs_12del:
+        insert_component_attribute(store_conn, attribute)
+
+    edge_6del_to_12del, edge_12del_to_6del = resolve_cross_capacity_edge(
+        store_conn, obs11, "c_placeholder_wh_6del", "c_placeholder_wh_12del",
+        "cross_capacity_upgrade")
+
+    forward_detail = store_conn.execute(
+        "SELECT verdict FROM edge_substitution_detail WHERE edge_id = ?",
+        (edge_6del_to_12del,)).fetchone()
+    if forward_detail["verdict"] != "fits_with_modification":
+        failures.append(f"6DEL->12DEL should be fits_with_modification: {forward_detail}")
+    forward_caveats = get_caveats_for_edge(store_conn, edge_6del_to_12del)
+    if len(forward_caveats) != 2 or sum(c.blocking for c in forward_caveats) != 1:
+        failures.append(f"6DEL->12DEL should have 2 caveats, 1 blocking: {forward_caveats}")
+
+    backward_detail = store_conn.execute(
+        "SELECT verdict FROM edge_substitution_detail WHERE edge_id = ?",
+        (edge_12del_to_6del,)).fetchone()
+    if backward_detail["verdict"] != "not_observed":
+        failures.append(f"12DEL->6DEL should be not_observed: {backward_detail}")
+
+    forward_confidence = compute_confidence(
+        get_evidence_for_edge(store_conn, edge_6del_to_12del))
+    if forward_confidence["value"] != 0.8 or forward_confidence["certainty"] != 5.0:
+        failures.append(f"6DEL->12DEL confidence should be 0.8/n=5: {forward_confidence}")
+
+    for mutate, label in (
+        (lambda e: e["customer_review"].__setitem__("evidence_type", "hearsay"),
+         "wrong evidence_type"),
+        (lambda e: e["customer_review"].__setitem__("verdict", "drop_in"), "wrong verdict"),
+        (lambda e: e["customer_review"]["modifications_required"].pop(),
+         "missing modification"),
+    ):
+        try:
+            resolve_cross_capacity_edge(
+                init_db(":memory:"), changed_row(obs11, mutate),
+                "c_placeholder_wh_6del", "c_placeholder_wh_12del", "cross_capacity_upgrade")
+            failures.append(f"invalid cross-capacity evidence accepted: {label}")
+        except ValueError:
+            pass
 
     def persist_endpoints(conn):
         for component, identifiers, attributes in endpoints:
