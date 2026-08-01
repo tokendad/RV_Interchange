@@ -1,5 +1,7 @@
 # Coleman Thermostat Endpoint Components Implementation Plan
 
+**Status:** implemented and verified 2026-08-01
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Persist the three exact Coleman-Mach thermostat endpoints `7330G3351`, `7330F3852`, and `9420-351`, plus the two manufacturer-supported supersession edges, while retaining the `8330-3362` manual-image match as observation-only research.
@@ -34,7 +36,7 @@
 - Consumes: `normalize_extracted(obs_id, extracted, strict=True)` and the append-only `observations.py fetch` command.
 - Produces: observations #48-#50 and canonical attributes `replacement_claim`, `source_conflicts`, and `visual_match_candidate` for Tasks 3-5.
 
-- [ ] **Step 1: Add failing vocabulary assertions**
+- [x] **Step 1: Add failing vocabulary assertions**
 
 Extend `resolver.py:self_test()` with this exact input and expected normalized fields:
 
@@ -74,7 +76,7 @@ for key in ("replacement_claim", "source_conflicts", "visual_match_candidate"):
         failures.append(f"missing endpoint retailer canonical field: {key}")
 ```
 
-- [ ] **Step 2: Run the vocabulary test to verify RED**
+- [x] **Step 2: Run the vocabulary test to verify RED**
 
 Run:
 
@@ -85,7 +87,7 @@ python3 resolver.py --self-test
 
 Expected: FAIL reporting the three new raw keys as unmapped.
 
-- [ ] **Step 3: Add the canonical fields and aliases**
+- [x] **Step 3: Add the canonical fields and aliases**
 
 Add to `CANONICAL`:
 
@@ -103,13 +105,13 @@ Add to `ALIASES`:
 "visual_match_candidate": "visual_match_candidate",
 ```
 
-- [ ] **Step 4: Run the vocabulary test to verify GREEN**
+- [x] **Step 4: Run the vocabulary test to verify GREEN**
 
 Run `python3 resolver.py --self-test`.
 
 Expected: `ALL PASS`.
 
-- [ ] **Step 5: Fetch the two exact retailer replacement pages**
+- [x] **Step 5: Fetch the two exact retailer replacement pages**
 
 From `Docs/Tools`, run these commands in order so their IDs are #48 and #49:
 
@@ -129,7 +131,7 @@ python3 observations.py fetch \
 
 Expected: `Inserted observation #48` and `Inserted observation #49`. If either URL already exists, stop and inspect instead of forcing a duplicate.
 
-- [ ] **Step 6: Fetch the visual-candidate page as observation #50**
+- [x] **Step 6: Fetch the visual-candidate page as observation #50**
 
 ```bash
 python3 observations.py fetch \
@@ -141,7 +143,7 @@ python3 observations.py fetch \
 
 Expected: `Inserted observation #50`.
 
-- [ ] **Step 7: Assign tiers and validate the evidence store**
+- [x] **Step 7: Assign tiers and validate the evidence store**
 
 Run:
 
@@ -154,11 +156,11 @@ sqlite3 observations.db "PRAGMA integrity_check;"
 
 Expected: 50 observations classify, rows #48-#50 are `retailer_page` Tier 7, URLs have no query string, and integrity is `ok`.
 
-- [ ] **Step 8: Document the new observation IDs**
+- [x] **Step 8: Document the new observation IDs**
 
 Add #48-#50 to `Docs/Tools/TOOLS.md`, including the two replacement-page conflicts and the candidate-only status of the visual comparison.
 
-- [ ] **Step 9: Commit the evidence slice**
+- [x] **Step 9: Commit the evidence slice**
 
 ```bash
 git add Docs/Tools/resolver.py Docs/Tools/observations.db Docs/Tools/TOOLS.md
@@ -177,7 +179,7 @@ git commit -m "Capture Coleman endpoint retailer evidence"
 - Consumes: existing `edge_supersession_detail(edge_id, note)` schema table.
 - Produces: `EdgeSupersessionDetail`, `insert_supersession_detail(conn, detail) -> None`, and `get_supersession_detail(conn, edge_id) -> EdgeSupersessionDetail | None` for Task 4.
 
-- [ ] **Step 1: Add failing model and store assertions**
+- [x] **Step 1: Add failing model and store assertions**
 
 In `interchange_models.py:self_test()`, instantiate:
 
@@ -200,7 +202,7 @@ if stored is None or stored.note != "test replacement chain":
     failures.append(f"supersession detail round trip failed: {stored}")
 ```
 
-- [ ] **Step 2: Run tests to verify RED**
+- [x] **Step 2: Run tests to verify RED**
 
 Run:
 
@@ -212,7 +214,7 @@ python3 interchange_store.py --self-test
 
 Expected: FAIL/exception because the dataclass and functions do not exist.
 
-- [ ] **Step 3: Implement the dataclass**
+- [x] **Step 3: Implement the dataclass**
 
 Add to `interchange_models.py`:
 
@@ -223,7 +225,7 @@ class EdgeSupersessionDetail:
     note: Optional[str] = None
 ```
 
-- [ ] **Step 4: Implement the store functions**
+- [x] **Step 4: Implement the store functions**
 
 Import `EdgeSupersessionDetail` and add:
 
@@ -243,13 +245,13 @@ def get_supersession_detail(conn, edge_id):
     return EdgeSupersessionDetail(edge_id=row["edge_id"], note=row["note"])
 ```
 
-- [ ] **Step 5: Run tests to verify GREEN**
+- [x] **Step 5: Run tests to verify GREEN**
 
 Run both self-tests from Step 2.
 
 Expected: both print `self_test: PASS`.
 
-- [ ] **Step 6: Commit the store slice**
+- [x] **Step 6: Commit the store slice**
 
 ```bash
 git add Docs/Tools/interchange_models.py Docs/Tools/interchange_store.py
@@ -267,7 +269,7 @@ git commit -m "Add supersession detail store support"
 - Consumes: observations #40-#42, `Component`, `Identifier`, and `ComponentAttribute`.
 - Produces: `coleman_endpoint_components(product_row, replacement_row, legacy_row, component_ids) -> list[tuple[Component, list[Identifier], list[ComponentAttribute]]]`.
 
-- [ ] **Step 1: Add failing happy-path assertions**
+- [x] **Step 1: Add failing happy-path assertions**
 
 Load observations #40-#42 in `edge_resolver.py:self_test()` and call:
 
@@ -315,7 +317,7 @@ expected = {
 Also assert no endpoint has `terminal_order`, `terminal_function`, or
 `terminal_board_position` attributes.
 
-- [ ] **Step 2: Add failing rejection assertions**
+- [x] **Step 2: Add failing rejection assertions**
 
 Use the existing `changed_row()` helper to verify all of these raise `ValueError`:
 
@@ -337,13 +339,13 @@ for product, replacement, legacy in invalid_endpoint_inputs:
 
 Pass an ID map containing `7330G335` or `7330F3858` and require rejection.
 
-- [ ] **Step 3: Run the resolver test to verify RED**
+- [x] **Step 3: Run the resolver test to verify RED**
 
 Run `python3 edge_resolver.py --self-test --verbose`.
 
 Expected: FAIL/exception because `coleman_endpoint_components` does not exist.
 
-- [ ] **Step 4: Implement the exact endpoint builder**
+- [x] **Step 4: Implement the exact endpoint builder**
 
 Add constants:
 
@@ -435,14 +437,14 @@ def coleman_endpoint_components(product_row, replacement_row, legacy_row, compon
     return results
 ```
 
-- [ ] **Step 5: Run the resolver test to verify GREEN**
+- [x] **Step 5: Run the resolver test to verify GREEN**
 
 Run `python3 edge_resolver.py --self-test --verbose`.
 
 Expected: the endpoint assertions pass while all existing Suburban and in-hand thermostat
 assertions remain green.
 
-- [ ] **Step 6: Commit the component-builder slice**
+- [x] **Step 6: Commit the component-builder slice**
 
 ```bash
 git add Docs/Tools/edge_resolver.py
@@ -460,7 +462,7 @@ git commit -m "Resolve exact Coleman thermostat endpoints"
 - Consumes: `resolve_coleman_supersessions(conn, replacement_row, retailer_rows, component_ids)`, Task 2 store APIs, and already-persisted Task 3 endpoint components.
 - Produces: two persisted edge IDs ordered as `7330G3351 -> 9420-351`, then `7330F3852 -> 9420-351`.
 
-- [ ] **Step 1: Add failing happy-path edge assertions**
+- [x] **Step 1: Add failing happy-path edge assertions**
 
 Load observations #48 and #49. Persist the three endpoint components and call:
 
@@ -495,7 +497,7 @@ supersession detail, and these evidence tuples, using observation #48 for the
 
 Require `compute_confidence()` to return alpha `4`, beta `1`, value `0.8`, certainty `5`.
 
-- [ ] **Step 2: Add failing edge rejection assertions**
+- [x] **Step 2: Add failing edge rejection assertions**
 
 Verify `ValueError` for:
 
@@ -509,13 +511,13 @@ Verify `ValueError` for:
 After each rejected call, assert validation occurred before writes and left zero Coleman
 supersession edges in the test connection.
 
-- [ ] **Step 3: Run the resolver test to verify RED**
+- [x] **Step 3: Run the resolver test to verify RED**
 
 Run `python3 edge_resolver.py --self-test --verbose`.
 
 Expected: FAIL/exception because `resolve_coleman_supersessions` does not exist.
 
-- [ ] **Step 4: Implement validation before writes**
+- [x] **Step 4: Implement validation before writes**
 
 Start the function with this validation block:
 
@@ -567,7 +569,7 @@ Do not call helper functions that commit until this entire block has succeeded. 
 validation, the existing commit-per-insert store functions are acceptable because no later
 input validation can fail.
 
-- [ ] **Step 5: Implement both edges, details, and evidence**
+- [x] **Step 5: Implement both edges, details, and evidence**
 
 Import `EdgeSupersessionDetail`, `insert_supersession_detail()`, and
 `get_supersession_detail()` into `edge_resolver.py`. For each retired model in
@@ -602,13 +604,13 @@ edge_ids.append(edge.id)
 Initialize `edge_ids = []` before the loop and return `tuple(edge_ids)` after it. The three
 evidence rows must remain in the Step 1 order.
 
-- [ ] **Step 6: Run the resolver test to verify GREEN**
+- [x] **Step 6: Run the resolver test to verify GREEN**
 
 Run `python3 edge_resolver.py --self-test --verbose`.
 
 Expected: all resolver assertions pass, including the negative validation-before-write checks.
 
-- [ ] **Step 7: Commit the edge-resolver slice**
+- [x] **Step 7: Commit the edge-resolver slice**
 
 ```bash
 git add Docs/Tools/edge_resolver.py
@@ -632,13 +634,13 @@ git commit -m "Persist Coleman thermostat supersession edges"
 - Consumes: all builders and store APIs from Tasks 1-4.
 - Produces: a zero-mismatch fixture covering endpoint identity, attributes, direction, detail, evidence, and prohibited graph promotions.
 
-- [ ] **Step 1: Add the three fixture components**
+- [x] **Step 1: Add the three fixture components**
 
 Append the three component records from the approved design table. Each must use part type
 `415`, a null interchange code, one `coleman` identifier, and per-attribute source and
 provenance. Do not include terminal attributes.
 
-- [ ] **Step 2: Add the two fixture edges**
+- [x] **Step 2: Add the two fixture edges**
 
 Add two records with this exact shape, substituting the retired component ID, identifier,
 and retailer observation ID for each row:
@@ -661,7 +663,7 @@ and retailer observation ID for each row:
 The second row is `c_placeholder_tstat_7330f3852 -> c_placeholder_tstat_9420_351` and uses
 observation #49.
 
-- [ ] **Step 3: Add failing fixture comparisons**
+- [x] **Step 3: Add failing fixture comparisons**
 
 Extend `check_fixture()` to load #40-#42 and #48-#50, build/persist the endpoints and edges,
 and compare:
@@ -686,7 +688,7 @@ to equal zero; `8330-3362` to appear in neither `identifiers` nor
 `identifier_equivalence_candidate`; and no `substitutes` edge among the four Coleman fixture
 components.
 
-- [ ] **Step 4: Run fixture validation to verify RED**
+- [x] **Step 4: Run fixture validation to verify RED**
 
 Run:
 
@@ -697,7 +699,7 @@ python3 edge_resolver.py --check-fixture ../Inital_Design/ground-truth.yaml
 
 Expected: endpoint/supersession mismatches until the fixture integration is completed.
 
-- [ ] **Step 5: Complete fixture integration and reporting**
+- [x] **Step 5: Complete fixture integration and reporting**
 
 Finish the persistence/comparison path and add one summary line:
 
@@ -707,7 +709,7 @@ Coleman endpoints: 0 mismatch(es)
 
 Keep the existing Suburban and in-hand thermostat summary lines unchanged.
 
-- [ ] **Step 6: Refresh milestone documents**
+- [x] **Step 6: Refresh milestone documents**
 
 Update:
 
@@ -721,14 +723,14 @@ Update:
 - This plan status: `implemented and verified 2026-08-01`; mark completed checkboxes `[x]`
   immediately before the final implementation commit.
 
-- [ ] **Step 7: Run fixture validation to verify GREEN**
+- [x] **Step 7: Run fixture validation to verify GREEN**
 
 Run the command from Step 4.
 
 Expected: Suburban, thermostat, and Coleman endpoint mismatch counts all equal zero, followed
 by `0 total mismatches against ground-truth.yaml`.
 
-- [ ] **Step 8: Commit fixture and documentation**
+- [x] **Step 8: Commit fixture and documentation**
 
 ```bash
 git add Docs/Inital_Design/ground-truth.yaml Docs/Tools/edge_resolver.py \

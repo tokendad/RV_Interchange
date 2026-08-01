@@ -55,7 +55,7 @@ zero supply, and only then add listings.
 
 ## Current Stage 1 status
 
-- `Docs/Tools/observations.db` contains 47 append-only evidence observations.
+- `Docs/Tools/observations.db` contains 50 append-only evidence observations.
 - `Docs/Tools/resolver.py` classifies every captured field into a canonical vocabulary
   and assigns source-trust tiers.
 - `Docs/Tools/suburban_parser.py` decodes SW-series models and resolves their directional
@@ -66,10 +66,14 @@ zero supply, and only then add listings.
 - The Coleman-Mach thermostat resolver now persists the in-hand `AP7862` / `7330G335`
   identity, its queryable `R/Y/W/GL/GH/B` interface, and the separate open
   `AR7815` / `7330F3858` identifier-equivalence candidate.
+- The Coleman endpoint resolver now persists the exact `7330G3351`, `7330F3852`, and
+  `9420-351` catalog components and the two candidate supersession edges from each retired
+  model to `9420-351`, with manufacturer and retailer evidence kept separate.
 
-The next Coleman milestone is resolving the exact endpoint components named by the
-compatibility and supersession evidence before creating those edges. The wider Stage 1 roadmap is in
-`Docs/Inital_Design/PLAN-Staged_Build.md`.
+The next Coleman task is independently identifying the manual's unnamed mechanical,
+electronic, and electronic-digital generations. The manual's broad compatibility statement
+remains outside the graph until those identities are established. The wider Stage 1 roadmap
+is in `Docs/Inital_Design/PLAN-Staged_Build.md`.
 
 ## Known corrections logged
 

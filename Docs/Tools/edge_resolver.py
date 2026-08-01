@@ -917,6 +917,197 @@ def check_fixture(ground_truth_path, obs_db_path):
         print(f"Thermostat fixture: "
               f"{mismatches - thermostat_mismatches_before} mismatch(es)")
 
+    coleman_mismatches_before = mismatches
+    endpoint_ids = {
+        "7330G3351": "c_placeholder_tstat_7330g3351",
+        "7330F3852": "c_placeholder_tstat_7330f3852",
+        "9420-351": "c_placeholder_tstat_9420_351",
+    }
+    fixture_endpoint_rows = [
+        component for component in components_doc
+        if component.get("component_id") in set(endpoint_ids.values())
+    ]
+    fixture_endpoints = {
+        component["component_id"]: component for component in fixture_endpoint_rows
+    }
+    if len(fixture_endpoint_rows) != 3 or set(fixture_endpoints) != set(endpoint_ids.values()):
+        print(f"MISMATCH Coleman endpoint fixture set: "
+              f"count={len(fixture_endpoint_rows)} ids={set(fixture_endpoints)}")
+        mismatches += 1
+
+    # Load the complete evidence slice, including the observation-only visual
+    # candidate, before deriving the fixture graph.
+    obs40 = load_observation(obs_db_path, 40)
+    obs41 = load_observation(obs_db_path, 41)
+    obs42 = load_observation(obs_db_path, 42)
+    obs48 = load_observation(obs_db_path, 48)
+    obs49 = load_observation(obs_db_path, 49)
+    obs50 = load_observation(obs_db_path, 50)
+
+    endpoints = coleman_endpoint_components(obs40, obs41, obs42, endpoint_ids)
+    for endpoint, identifiers, attributes in endpoints:
+        insert_component(conn, endpoint)
+        for identifier in identifiers:
+            insert_identifier(conn, identifier)
+        for attribute in attributes:
+            insert_component_attribute(conn, attribute)
+    resolve_coleman_supersessions(conn, obs41, [obs48, obs49], endpoint_ids)
+
+    for component_id, fixture_component in fixture_endpoints.items():
+        resolved_component = conn.execute(
+            "SELECT * FROM components WHERE component_id = ?", (component_id,)).fetchone()
+        if resolved_component is None:
+            print(f"MISMATCH Coleman endpoint missing: {component_id}")
+            mismatches += 1
+            continue
+        if (resolved_component["part_type_id"], resolved_component["interchange_code"]) != (
+                fixture_component["part_type_id"], fixture_component["interchange_code"]):
+            print(f"MISMATCH Coleman endpoint component: resolved={dict(resolved_component)} "
+                  f"fixture={fixture_component}")
+            mismatches += 1
+
+        resolved_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (component_id,)).fetchall()
+        }
+        expected_identifiers = {
+            (identifier["ns"], str(identifier["value"]), identifier.get("visibility"))
+            for identifier in fixture_component["identifiers"]
+        }
+        if resolved_identifiers != expected_identifiers:
+            print(f"MISMATCH Coleman endpoint identifiers for {component_id}: "
+                  f"resolved={resolved_identifiers} fixture={expected_identifiers}")
+            mismatches += 1
+
+        resolved_attribute_rows = get_component_attributes(conn, component_id)
+        resolved_attributes = {}
+        for attribute in resolved_attribute_rows:
+            value = attribute.value_text if attribute.value_text is not None else (
+                attribute.value_number if attribute.value_number is not None
+                else attribute.value_boolean)
+            resolved_attributes[attribute.name] = (
+                value, attribute.provenance, attribute.source_observation_id)
+        expected_attributes = {
+            name: (definition["value"], definition["provenance"],
+                   definition["source_observation_id"])
+            for name, definition in fixture_component["attributes"].items()
+        }
+        if (len(resolved_attribute_rows) != len(expected_attributes)
+                or resolved_attributes != expected_attributes):
+            print(f"MISMATCH Coleman endpoint attributes for {component_id}: "
+                  f"resolved={resolved_attributes} fixture={expected_attributes}")
+            mismatches += 1
+
+    fixture_supersession_rows = [
+        edge for edge in edges_doc if edge.get("type") == "supersedes"
+    ]
+    fixture_supersessions = {
+        (edge["from"], edge["to"]): edge for edge in fixture_supersession_rows
+    }
+    expected_pairs = {
+        (endpoint_ids["7330G3351"], endpoint_ids["9420-351"]),
+        (endpoint_ids["7330F3852"], endpoint_ids["9420-351"]),
+    }
+    if len(fixture_supersession_rows) != 2 or set(fixture_supersessions) != expected_pairs:
+        print(f"MISMATCH Coleman fixture supersession pairs: "
+              f"count={len(fixture_supersession_rows)} pairs={set(fixture_supersessions)}")
+        mismatches += 1
+
+    resolved_edges = conn.execute(
+        "SELECT * FROM edges WHERE type = 'supersedes' AND group_key = ? ORDER BY id",
+        ("coleman_analog_heat_cool_12v",)).fetchall()
+    resolved_pairs = {
+        (row["from_component_id"], row["to_component_id"]) for row in resolved_edges
+    }
+    if len(resolved_edges) != 2 or resolved_pairs != expected_pairs:
+        print(f"MISMATCH Coleman resolved supersession pairs: "
+              f"count={len(resolved_edges)} pairs={resolved_pairs}")
+        mismatches += 1
+    for row in resolved_edges:
+        pair = (row["from_component_id"], row["to_component_id"])
+        fixture_supersession = fixture_supersessions.get(pair)
+        if fixture_supersession is None:
+            continue
+        resolved_fields = (
+            row["type"], row["status"], row["group_key"], row["resolver_version"])
+        expected_fields = (
+            fixture_supersession["type"], fixture_supersession["status"],
+            fixture_supersession["group"], COLEMAN_ENDPOINT_RESOLVER_VERSION)
+        if resolved_fields != expected_fields:
+            print(f"MISMATCH Coleman supersession fields for {pair}: "
+                  f"resolved={resolved_fields} fixture={expected_fields}")
+            mismatches += 1
+
+        detail = get_supersession_detail(conn, row["id"])
+        expected_note = fixture_supersession["detail"]["note"]
+        if detail is None or detail.note != expected_note:
+            print(f"MISMATCH Coleman supersession detail for {pair}: "
+                  f"resolved={detail} fixture={expected_note}")
+            mismatches += 1
+
+        evidence = get_evidence_for_edge(conn, row["id"])
+        resolved_evidence = [
+            (item.event_type, item.effect_alpha, item.effect_beta,
+             item.source_observation_id) for item in evidence
+        ]
+        expected_evidence = [
+            (item["event_type"], float(item["alpha"]), float(item["beta"]),
+             item["source_observation_id"])
+            for item in fixture_supersession["evidence"]
+        ]
+        if resolved_evidence != expected_evidence:
+            print(f"MISMATCH Coleman supersession evidence for {pair}: "
+                  f"resolved={resolved_evidence} fixture={expected_evidence}")
+            mismatches += 1
+        resolved_confidence = compute_confidence(evidence)
+        expected_confidence = fixture_supersession["confidence"]
+        if resolved_confidence != {
+                "alpha": float(expected_confidence["alpha"]),
+                "beta": float(expected_confidence["beta"]),
+                "value": float(expected_confidence["value"]),
+                "certainty": float(expected_confidence["certainty"])}:
+            print(f"MISMATCH Coleman supersession confidence for {pair}: "
+                  f"resolved={resolved_confidence} fixture={expected_confidence}")
+            mismatches += 1
+
+    placeholder_promotions = conn.execute(
+        "SELECT COUNT(*) FROM edges WHERE type = 'supersedes' "
+        "AND (from_component_id = 'c_placeholder_tstat' "
+        "OR to_component_id = 'c_placeholder_tstat')").fetchone()[0]
+    if placeholder_promotions != 0:
+        print(f"MISMATCH Coleman in-hand supersession promotions: {placeholder_promotions}")
+        mismatches += 1
+    visual_identifier_promotions = conn.execute(
+        "SELECT COUNT(*) FROM identifiers WHERE value = '8330-3362'").fetchone()[0]
+    visual_candidate_promotions = conn.execute(
+        "SELECT COUNT(*) FROM identifier_equivalence_candidate "
+        "WHERE value_a = '8330-3362' OR value_b = '8330-3362'").fetchone()[0]
+    if visual_identifier_promotions or visual_candidate_promotions:
+        print("MISMATCH 8330-3362 escaped observation-only boundary: "
+              f"identifiers={visual_identifier_promotions} "
+              f"identifier_candidates={visual_candidate_promotions}")
+        mismatches += 1
+    fixture_component_ids = ("c_placeholder_tstat", *endpoint_ids.values())
+    substitutes_placeholders = ", ".join("?" for _ in fixture_component_ids)
+    coleman_substitutes = conn.execute(
+        f"SELECT COUNT(*) FROM edges WHERE type = 'substitutes' "
+        f"AND from_component_id IN ({substitutes_placeholders}) "
+        f"AND to_component_id IN ({substitutes_placeholders})",
+        (*fixture_component_ids, *fixture_component_ids)).fetchone()[0]
+    if coleman_substitutes != 0:
+        print(f"MISMATCH unsupported Coleman substitutes edges: {coleman_substitutes}")
+        mismatches += 1
+
+    # Loading observation #50 is deliberate: its visual candidate must remain
+    # evidence-only and is guarded by the forbidden graph queries above.
+    if obs50["id"] != 50:
+        print(f"MISMATCH Coleman visual candidate observation: {obs50['id']}")
+        mismatches += 1
+
+    print(f"Coleman endpoints: {mismatches - coleman_mismatches_before} mismatch(es)")
+
     print(f"\n{mismatches} total mismatches against ground-truth.yaml")
     return 1 if mismatches else 0
 

@@ -1,6 +1,6 @@
 # VENDOR — Coleman-Mach / RV Products / Airxcel
 
-**Status:** thermostat fixture resolver complete; broader adapter research in progress
+**Status:** exact endpoint and supersession fixture complete; broader adapter research in progress
 **Updated:** 2026-08-01
 
 ## 1. Why this adapter
@@ -93,10 +93,43 @@ Still candidate-only:
 - Observation #40 lists the current manufacturer model `7330G3351`; the extra trailing
   digit must not be normalized away from the photographed legacy `7330G335` without an
   explicit cross-reference.
-- Observation #41 says current `9420-351` replaces `7330G3351` and `7330F3852`. That is a
-  supersession claim, not an alias claim, and still needs resolver representation.
+- Observation #41 says current `9420-351` replaces `7330G3351` and `7330F3852`. These are
+  now represented as supersession edges, not alias claims.
+- Observation #50 presents `8330-3362` as a close visual match for the service manual's
+  unnamed electronic-digital illustration. The face, left display, up/down controls, and
+  three lower slide controls agree, but visual similarity does not establish identity.
+  `8330-3362` therefore remains observation-only: it is not an identifier, equivalence
+  candidate, component, or graph edge.
 
-## 6. Sources
+## 6. Exact catalog endpoints and supersession edges
+
+Manufacturer observations #40-#42 establish three components independently from the
+in-hand `7330G335` thermostat:
+
+| Exact component | Manufacturer-backed attributes |
+|---|---|
+| `7330G3351` | analog, single-stage Heat/Cool, white, 12 VDC |
+| `7330F3852` | analog, single-stage Heat/Cool, black |
+| `9420-351` | analog Heat/Cool, black, 12 VDC |
+
+Each component has a null interchange code. No terminal map is inferred from the in-hand
+unit. The 2025 manufacturer catalog and the two matching retailer replacement narratives
+support exactly these candidate edges:
+
+```text
+7330G3351 -> 9420-351
+7330F3852 -> 9420-351
+```
+
+Observation #48 corroborates the first pair while internally conflicting between its
+Heat/Cool title and `Gas Furnace` specification. Observation #49 corroborates the second
+while conflicting between its Heat/Cool title and `Heat Pump, Heat Strip/Element`
+specification. Those retailer conflicts remain preserved in the evidence store and do not
+override the manufacturer attributes. Each edge carries an incomplete-attribute prior,
+the manufacturer assertion from observation #41, and its corresponding retailer
+cross-reference, producing Beta(4,1), confidence 0.8 with certainty 5.
+
+## 7. Sources
 
 - obs #40 — Coleman-Mach current analog thermostat product page
 - obs #41 — Coleman-Mach 2025 aftermarket catalog
@@ -106,14 +139,26 @@ Still candidate-only:
 - obs #45 — RV Products/Airxcel service manual `1976-376 (4-02)`
 - obs #46 — structured PCB-position transcription supplement to obs #44
 - obs #47 — structured voltage/stage extraction supplement to obs #45
+- obs #48 — RV Products Shop `7330G3351` replacement page; exact `9420-351` pair plus
+  conflicting `Gas Furnace` specification
+- obs #49 — RV Products Shop `7330F3852` replacement page; exact `9420-351` pair plus
+  conflicting `Heat Pump, Heat Strip/Element` specification
+- obs #50 — RV Products Shop `8330-3362` page and photograph; open visual match candidate
+  for the manual's unnamed electronic-digital illustration
 
-## 7. Resolver status and next milestone
+## 8. Resolver status and next milestone
 
 The fixture resolver now builds the thermostat component from observations #44-#47,
 persists 26 qualified attributes, and stores the retailer-only `AR7815`/`7330F3858` claim
 as a separate open identifier-equivalence candidate sourced to observation #43.
 
-Next, resolve the exact endpoint components depicted or named by the manual/catalog before
-persisting family compatibility or the `9420-351` supersession relationships. The resolver
-must continue to keep compatibility, supersession, identity, and candidate equivalence
-separate.
+It also builds the three exact catalog endpoints from manufacturer observations #40-#42
+and persists the two directed, candidate `supersedes` edges above with observation #48/#49
+corroboration. Fixture validation checks identifiers, null interchange codes, attribute
+provenance, direction, detail, evidence, confidence, and the prohibited graph promotions.
+
+Next, independently identify the service manual's unnamed mechanical, electronic, and
+electronic-digital generations. The manual's compatibility statement remains a research
+boundary, not a source of graph edges, until those exact identities are established. The
+resolver must continue to keep compatibility, supersession, identity, and candidate
+equivalence separate.

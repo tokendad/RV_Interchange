@@ -1,6 +1,6 @@
 # Coleman Thermostat Endpoint Components Design
 
-**Status:** approved for implementation
+**Status:** implemented 2026-08-01
 **Date:** 2026-08-01
 **Scope:** resolve the three exact Coleman-Mach thermostat components named by the
 manufacturer's current product page and 2025 aftermarket catalog, persist the two cataloged

@@ -224,7 +224,7 @@ much as opportunity. See §5.
 
 ## 9. Immediate next actions
 
-*Updated 2026-08-01 at 47 observations. The original list is preserved struck-through;
+*Updated 2026-08-01 at 50 observations. The original list is preserved struck-through;
 the work has moved through the scoped Suburban resolver and into Coleman-Mach thermostat
 identity and compatibility evidence.*
 
@@ -279,8 +279,9 @@ identity and compatibility evidence.*
    marking read off the part. **Roof vent:** `opening_size: 14x14 in` was already recorded
    with `in_hand_measured` provenance. Its measurement is complete; only the separate
    teardown capture and hidden molded-identifier classification remain open.
-10. **Second vendor adapter: fixture resolver complete, broader research in progress.**
-    Coleman-Mach / Airxcel now has eight captured sources (obs #40-#47), including the
+10. **Second vendor adapter: endpoint and supersession milestone complete; broader research
+    in progress.** Coleman-Mach / Airxcel now has eleven captured sources (obs #40-#50),
+    including the
     in-hand thermostat teardown and the RV Products
     service manual. Obs #44 proves `AP7862`, `7330G335`, `PCB1060`, and `SPCB-2` coexist on
     the physical unit; obs #45 supplies the complete `R/Y/W/GL/GH/B` function map and a
@@ -288,8 +289,14 @@ identity and compatibility evidence.*
     Obs #46/#47 preserve structured PCB-position and voltage/stage supplements without
     editing earlier evidence. The resolver now persists the component, its 26 queryable
     attributes, and the separate open `AR7815`/`7330F3858` identifier-equivalence candidate.
-    See `Docs/Data/Coleman_Mach/VENDOR-Coleman-Mach.md`. Remaining work is resolving exact
-    endpoint components before creating compatibility or supersession edges.
+    The endpoint resolver now also persists exact, independent `7330G3351`, `7330F3852`, and
+    `9420-351` components plus candidate `7330G3351 -> 9420-351` and
+    `7330F3852 -> 9420-351` supersession edges. Obs #48/#49 corroborate those exact pairs but
+    retain their conflicting retailer specification fields; obs #50 remains an
+    observation-only visual match candidate. See
+    `Docs/Data/Coleman_Mach/VENDOR-Coleman-Mach.md`. Remaining
+    work is independently identifying the manual's unnamed generations before its broader
+    compatibility statement can become graph edges.
 11. **Resolve the SKU channel-split model.** Suburban confirmed 5148A/5248A are the same unit
     sold to different channels (`VENDOR-Suburban.md` §7.2) — that part is done. Identifiers
     still need a channel qualifier in the schema itself, not just a namespace — that's an
@@ -299,8 +306,10 @@ identity and compatibility evidence.*
 > best-documented Suburban anchor observations through the vocabulary into components and
 > the canonical directed substitution edge pair. Coleman-Mach evidence capture has now
 > established and now resolves the thermostat fixture without conflating physical identity,
-> family compatibility, supersession, or open identifier equivalence. The next Coleman
-> milestone is resolving the endpoint components named by compatibility/supersession evidence.
+> family compatibility, supersession, or open identifier equivalence. The three exact catalog
+> endpoints and two directed candidate supersession edges are now fixture-verified. The next
+> Coleman milestone is independently identifying the manual's unnamed generations; no broad
+> compatibility edges are created until that boundary is resolved.
 >
 > The §8 definition-of-done in `VENDOR-Suburban.md` now has 8 of 9 boxes checked. The remaining
 > partial item is full-fixture reproduction; the scoped SW6DE/SW6DEL resolver milestone is done.

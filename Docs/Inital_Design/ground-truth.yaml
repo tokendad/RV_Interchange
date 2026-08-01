@@ -329,6 +329,42 @@ components:
     todo:
       - Confirm which identifiers are supersessions vs pure aliases
 
+  # Exact catalog endpoints. These stay distinct from the photographed
+  # c_placeholder_tstat and intentionally have no interchange code or terminal map.
+  - component_id: c_placeholder_tstat_7330g3351
+    part_type_id: 415
+    interchange_code: null
+    identifiers:
+      - {ns: coleman, value: "7330G3351", visibility: null}
+    attributes:
+      function:       {value: heat_cool, provenance: manufacturer_page, source_observation_id: 40}
+      color:          {value: white, provenance: manufacturer_page, source_observation_id: 40}
+      interface_type: {value: analog, provenance: manufacturer_page, source_observation_id: 40}
+      stages:         {value: single, provenance: manufacturer_pdf, source_observation_id: 42}
+      voltage:        {value: 12VDC, provenance: manufacturer_pdf, source_observation_id: 42}
+
+  - component_id: c_placeholder_tstat_7330f3852
+    part_type_id: 415
+    interchange_code: null
+    identifiers:
+      - {ns: coleman, value: "7330F3852", visibility: null}
+    attributes:
+      function:       {value: heat_cool, provenance: manufacturer_page, source_observation_id: 40}
+      color:          {value: black, provenance: manufacturer_page, source_observation_id: 40}
+      interface_type: {value: analog, provenance: manufacturer_page, source_observation_id: 40}
+      stages:         {value: single, provenance: manufacturer_page_inferred, source_observation_id: 40}
+
+  - component_id: c_placeholder_tstat_9420_351
+    part_type_id: 415
+    interchange_code: null
+    identifiers:
+      - {ns: coleman, value: "9420-351", visibility: null}
+    attributes:
+      function:       {value: heat_cool, provenance: manufacturer_pdf, source_observation_id: 41}
+      color:          {value: black, provenance: manufacturer_pdf, source_observation_id: 41}
+      interface_type: {value: analog, provenance: manufacturer_pdf, source_observation_id: 41}
+      voltage:        {value: 12VDC, provenance: manufacturer_pdf, source_observation_id: 41}
+
   # =========================================================================
   # 3. MONITOR PANEL — system-bound; assembly decomposition case
   # =========================================================================
@@ -424,6 +460,32 @@ components:
 ---
 
 edges:
+
+  - type: supersedes
+    from: c_placeholder_tstat_7330g3351
+    to: c_placeholder_tstat_9420_351
+    group: coleman_analog_heat_cool_12v
+    status: candidate
+    detail:
+      note: "Coleman 2025 catalog names 9420-351 as the replacement for 7330G3351."
+    confidence: {alpha: 4, beta: 1, value: 0.8, certainty: 5}
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 41}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 48}
+
+  - type: supersedes
+    from: c_placeholder_tstat_7330f3852
+    to: c_placeholder_tstat_9420_351
+    group: coleman_analog_heat_cool_12v
+    status: candidate
+    detail:
+      note: "Coleman 2025 catalog names 9420-351 as the replacement for 7330F3852."
+    confidence: {alpha: 4, beta: 1, value: 0.8, certainty: 5}
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 41}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 49}
 
   # THE CANONICAL EDGE TEST. Asymmetric substitution, confirmed real.
   - type: substitutes
