@@ -185,6 +185,14 @@ CANONICAL = {
     "door_style_by_capacity":    "dict of {capacity: [door styles]}",
     "door_style_constraint":     "free-text door-style availability rule",
 
+    # in-scope accessory components that ARE ground-truth.yaml components in
+    # their own right (e.g. c_placeholder_wh_switch) — distinct from the
+    # out-of-scope accessory_data bucket below.
+    "accessory_part_variant_table": "dict of {part_number: {applies_to, color/variant, "
+                                     "function}} for a named accessory component "
+                                     "(e.g. interior switch) that is its own fixture "
+                                     "component, not the main unit's own spec table",
+
     # accessory / cross-sell — real, but out of scope for tank-identity
     # resolution; kept as one bucket so it isn't lost, not expanded into
     # the tank vocabulary above. Revisit when building accessory edges
@@ -334,6 +342,7 @@ ALIASES = {
     "door_style": "door_style",
     "door_types": "door_style_by_capacity",
     "door_constraint": "door_style_constraint",
+    "switch_variants": "accessory_part_variant_table",
 
     # accessory / cross-sell bucket
     "accessories": "accessory_data",
