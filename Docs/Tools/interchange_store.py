@@ -8,9 +8,9 @@ import sys
 from datetime import datetime, timezone
 
 from interchange_models import (
-    Component, Identifier, ComponentAttribute, Edge, EdgeSubstitutionDetail, EdgeCaveat,
-    EdgeRequiredPart, RelationshipEvidence, IdentifierEquivalenceCandidate,
-    IdentifierEquivalenceEvidence,
+    Component, Identifier, ComponentAttribute, Edge, EdgeSubstitutionDetail,
+    EdgeSupersessionDetail, EdgeCaveat, EdgeRequiredPart, RelationshipEvidence,
+    IdentifierEquivalenceCandidate, IdentifierEquivalenceEvidence,
 )
 from interchange_schema import init_db
 
@@ -150,6 +150,21 @@ def insert_substitution_detail(conn, detail):
     conn.commit()
 
 
+def insert_supersession_detail(conn, detail):
+    conn.execute(
+        "INSERT INTO edge_supersession_detail (edge_id, note) VALUES (?, ?)",
+        (detail.edge_id, detail.note))
+    conn.commit()
+
+
+def get_supersession_detail(conn, edge_id):
+    row = conn.execute(
+        "SELECT * FROM edge_supersession_detail WHERE edge_id = ?", (edge_id,)).fetchone()
+    if row is None:
+        return None
+    return EdgeSupersessionDetail(edge_id=row["edge_id"], note=row["note"])
+
+
 def insert_caveat(conn, caveat):
     cur = conn.execute(
         "INSERT INTO edge_caveat (edge_id, blocking, text, becomes_input) VALUES (?, ?, ?, ?)",
@@ -252,6 +267,15 @@ def self_test(verbose=False):
     insert_edge(conn, edge)
     if edge.id is None:
         failures.append("insert_edge did not set edge.id")
+
+    supersession = Edge(type="supersedes", from_component_id="c_test_a",
+                        to_component_id="c_test_b")
+    insert_edge(conn, supersession)
+    insert_supersession_detail(conn, EdgeSupersessionDetail(
+        edge_id=supersession.id, note="test replacement chain"))
+    stored = get_supersession_detail(conn, supersession.id)
+    if stored is None or stored.note != "test replacement chain":
+        failures.append(f"supersession detail round trip failed: {stored}")
 
     insert_substitution_detail(conn, EdgeSubstitutionDetail(
         edge_id=edge.id, basis="attribute_match_exact", verdict="drop_in"))

@@ -70,6 +70,12 @@ class EdgeSubstitutionDetail:
 
 
 @dataclass
+class EdgeSupersessionDetail:
+    edge_id: int
+    note: Optional[str] = None
+
+
+@dataclass
 class EdgeCaveat:
     edge_id: int
     blocking: bool
@@ -161,6 +167,10 @@ def compute_confidence(evidence_rows):
 
 def self_test(verbose=False):
     failures = []
+
+    detail = EdgeSupersessionDetail(edge_id=7, note="7330G3351 replaced by 9420-351")
+    if detail.edge_id != 7 or "9420-351" not in detail.note:
+        failures.append(f"supersession detail mismatch: {detail}")
 
     for kwargs in (
         {"value_text": "12VDC"},
