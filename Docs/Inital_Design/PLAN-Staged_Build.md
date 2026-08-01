@@ -231,7 +231,7 @@ identity and compatibility evidence.*
 ### Done
 
 1. ~~Build the `observations` table.~~ **Done** — `Docs/Tools/observations.py`, append-only,
-   with 47 captured observations across pages, PDFs, direct communication, measurements,
+   with 50 captured observations across pages, PDFs, direct communication, measurements,
    and in-hand teardown photographs.
 2. ~~Hand-pull ~12 Suburban SW-series documents.~~ **Superseded.** The count was set before
    the sources were known. Actual capture spans manufacturer brochures, two service manuals,

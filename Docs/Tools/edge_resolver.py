@@ -380,6 +380,26 @@ def resolve_coleman_supersessions(conn, replacement_row, retailer_rows, componen
     return tuple(edge_ids)
 
 
+def _validate_coleman_endpoint_results(endpoints, component_ids):
+    actual_ids = [component.component_id for component, _, _ in endpoints]
+    expected_ids = set(component_ids.values())
+    if len(actual_ids) != 3 or set(actual_ids) != expected_ids:
+        raise ValueError(
+            f"unexpected Coleman endpoint builder results: {actual_ids}")
+
+
+def _get_coleman_endpoint_supersessions(conn, component_ids):
+    ids = tuple(component_ids)
+    if len(ids) != 3 or len(set(ids)) != 3:
+        raise ValueError(f"expected three distinct Coleman endpoint IDs: {ids}")
+    placeholders = ", ".join("?" for _ in ids)
+    return conn.execute(
+        f"SELECT * FROM edges WHERE type = 'supersedes' "
+        f"AND from_component_id IN ({placeholders}) "
+        f"AND to_component_id IN ({placeholders}) ORDER BY id",
+        (*ids, *ids)).fetchall()
+
+
 def self_test(verbose=False):
     obs_db = str(Path(__file__).parent / "observations.db")
     failures = []
@@ -442,6 +462,13 @@ def self_test(verbose=False):
         "9420-351": "c_placeholder_tstat_9420_351",
     }
     endpoints = coleman_endpoint_components(obs40, obs41, obs42, endpoint_ids)
+    _validate_coleman_endpoint_results(endpoints, endpoint_ids)
+    try:
+        _validate_coleman_endpoint_results(
+            endpoints + [(Component("c_unexpected_endpoint", 415), [], [])], endpoint_ids)
+        failures.append("fourth Coleman endpoint builder result was accepted")
+    except ValueError:
+        pass
     by_model = {
         identifiers[0].value: (component, identifiers, attributes)
         for component, identifiers, attributes in endpoints
@@ -656,6 +683,19 @@ def self_test(verbose=False):
                                "certainty": 5.0}:
             failures.append(
                 f"Coleman supersession confidence mismatch: {edge_confidence}")
+
+    insert_edge(store_conn, Edge(
+        type="supersedes",
+        from_component_id=endpoint_ids["7330G3351"],
+        to_component_id=endpoint_ids["7330F3852"],
+        group_key="unexpected_coleman_group",
+        resolver_version=COLEMAN_ENDPOINT_RESOLVER_VERSION,
+    ))
+    all_endpoint_supersessions = _get_coleman_endpoint_supersessions(
+        store_conn, endpoint_ids.values())
+    if len(all_endpoint_supersessions) != 3:
+        failures.append(
+            "Coleman endpoint edge query missed an alternate-group supersession")
 
     invalid_manufacturer_rows = (
         changed_row(obs41, lambda e: e.__setitem__("relation", {
@@ -945,6 +985,7 @@ def check_fixture(ground_truth_path, obs_db_path):
     obs50 = load_observation(obs_db_path, 50)
 
     endpoints = coleman_endpoint_components(obs40, obs41, obs42, endpoint_ids)
+    _validate_coleman_endpoint_results(endpoints, endpoint_ids)
     for endpoint, identifiers, attributes in endpoints:
         insert_component(conn, endpoint)
         for identifier in identifiers:
@@ -1015,9 +1056,7 @@ def check_fixture(ground_truth_path, obs_db_path):
               f"count={len(fixture_supersession_rows)} pairs={set(fixture_supersessions)}")
         mismatches += 1
 
-    resolved_edges = conn.execute(
-        "SELECT * FROM edges WHERE type = 'supersedes' AND group_key = ? ORDER BY id",
-        ("coleman_analog_heat_cool_12v",)).fetchall()
+    resolved_edges = _get_coleman_endpoint_supersessions(conn, endpoint_ids.values())
     resolved_pairs = {
         (row["from_component_id"], row["to_component_id"]) for row in resolved_edges
     }
