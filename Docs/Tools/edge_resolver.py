@@ -150,6 +150,22 @@ def thermostat_from_observations(photo_row, manual_row, positions_row, scalar_ro
 
 
 def coleman_endpoint_components(product_row, replacement_row, legacy_row, component_ids):
+    expected_sources = (
+        (product_row, 40, "manufacturer_page", "product"),
+        (replacement_row, 41, "manufacturer_pdf", "replacement"),
+        (legacy_row, 42, "manufacturer_pdf", "legacy"),
+    )
+    for row, expected_id, expected_type, label in expected_sources:
+        try:
+            actual_id = row["id"]
+            actual_type = row["source_type"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise ValueError(f"Coleman {label} observation lacks source metadata") from exc
+        if (actual_id, actual_type) != (expected_id, expected_type):
+            raise ValueError(
+                f"unexpected Coleman {label} observation source: "
+                f"{actual_id}/{actual_type}")
+
     product = _normalized_attributes(product_row)
     replacement = _normalized_attributes(replacement_row)
     legacy = _normalized_attributes(legacy_row)
@@ -365,17 +381,27 @@ def self_test(verbose=False):
 
     expected = {
         "7330G3351": {
-            "function": ("heat_cool", 40), "color": ("white", 40),
-            "interface_type": ("analog", 40), "stages": ("single", 42),
-            "voltage": ("12VDC", 42),
+            "function": ("heat_cool", 40, "manufacturer_page", "coleman_endpoint_v1"),
+            "color": ("white", 40, "manufacturer_page", "coleman_endpoint_v1"),
+            "interface_type": (
+                "analog", 40, "manufacturer_page", "coleman_endpoint_v1"),
+            "stages": ("single", 42, "manufacturer_pdf", "coleman_endpoint_v1"),
+            "voltage": ("12VDC", 42, "manufacturer_pdf", "coleman_endpoint_v1"),
         },
         "7330F3852": {
-            "function": ("heat_cool", 40), "color": ("black", 40),
-            "interface_type": ("analog", 40), "stages": ("single", 40),
+            "function": ("heat_cool", 40, "manufacturer_page", "coleman_endpoint_v1"),
+            "color": ("black", 40, "manufacturer_page", "coleman_endpoint_v1"),
+            "interface_type": (
+                "analog", 40, "manufacturer_page", "coleman_endpoint_v1"),
+            "stages": (
+                "single", 40, "manufacturer_page_inferred", "coleman_endpoint_v1"),
         },
         "9420-351": {
-            "function": ("heat_cool", 41), "color": ("black", 41),
-            "interface_type": ("analog", 41), "voltage": ("12VDC", 41),
+            "function": ("heat_cool", 41, "manufacturer_pdf", "coleman_endpoint_v1"),
+            "color": ("black", 41, "manufacturer_pdf", "coleman_endpoint_v1"),
+            "interface_type": (
+                "analog", 41, "manufacturer_pdf", "coleman_endpoint_v1"),
+            "voltage": ("12VDC", 41, "manufacturer_pdf", "coleman_endpoint_v1"),
         },
     }
     forbidden_endpoint_attributes = {
@@ -383,7 +409,9 @@ def self_test(verbose=False):
     }
     for model, (_, _, attributes) in by_model.items():
         actual = {
-            attribute.name: (attribute.value_text, attribute.source_observation_id)
+            attribute.name: (
+                attribute.value_text, attribute.source_observation_id,
+                attribute.provenance, attribute.resolver_version)
             for attribute in attributes
         }
         if actual != expected[model]:
@@ -401,6 +429,12 @@ def self_test(verbose=False):
             "from", ["7330G335", "7330F3852"])), obs42),
         (obs40, changed_row(obs41, lambda e: e["relation"].__setitem__(
             "to", "7330F3858")), obs42),
+        (dict(obs40, id=400), obs41, obs42),
+        (obs40, dict(obs41, id=410), obs42),
+        (obs40, obs41, dict(obs42, id=420)),
+        (dict(obs40, source_type="retailer_page"), obs41, obs42),
+        (obs40, dict(obs41, source_type="retailer_pdf"), obs42),
+        (obs40, obs41, dict(obs42, source_type="retailer_pdf")),
     )
     for product, replacement, legacy in invalid_endpoint_inputs:
         try:
