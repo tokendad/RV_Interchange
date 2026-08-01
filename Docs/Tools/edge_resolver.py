@@ -155,6 +155,71 @@ def resolve_12del_component(retailer_row, channel_split_row, component_id):
     return component, identifiers, attributes
 
 
+_IGNITION_TEXT_TO_TYPE = {"Direct Spark Ignition": "direct_spark"}
+
+
+def resolve_iw60rl_component(retailer_row, manual_row, component_id):
+    """
+    Build the vendor-researched IW60RL (tankless) component from observation
+    #13 (retailer page) plus observation #14 (Nautilus service manual) for the
+    manufacturer-documented vent hole diameter and cross-corroborating product
+    depth. No cutout: this is a tankless platform (see ground-truth.yaml's
+    part_type 412 TODO on the framed-opening/vent-hole split).
+    """
+    _validate_observation_source(retailer_row, 13, "retailer_page", 7, "IW60RL retailer")
+    _validate_observation_source(manual_row, 14, "manufacturer_pdf", 2, "IW60RL manual")
+    retailer = json.loads(retailer_row["extracted"])
+    manual = json.loads(manual_row["extracted"])
+
+    if retailer.get("model") != "IW60RL" or retailer.get("sku") != "5280A":
+        raise ValueError(f"unexpected IW60RL identity: {retailer}")
+    if retailer.get("capacity_gal") != 0.5 or retailer.get("btu") != 60000:
+        raise ValueError("unexpected IW60RL capacity/BTU")
+    ignition_text = retailer.get("ignition_type")
+    if ignition_text not in _IGNITION_TEXT_TO_TYPE:
+        raise ValueError(f"unrecognized IW60RL ignition text: {ignition_text}")
+    product_size = retailer.get("product_size_in")
+    if product_size != {"w": 12.5, "h": 12.5, "d": 20}:
+        raise ValueError(f"unexpected IW60RL product size: {product_size}")
+    if retailer.get("weight_lb") != 36.0:
+        raise ValueError(f"unexpected IW60RL weight: {retailer.get('weight_lb')}")
+
+    if manual.get("vent_hole_diameter_in") != 3.75:
+        raise ValueError(f"unexpected IW60RL vent hole diameter: "
+                          f"{manual.get('vent_hole_diameter_in')}")
+    if manual.get("dimensions_in") != {"h": 12.5, "w": 12.5, "d": 20.0}:
+        raise ValueError(f"unexpected IW60RL manual dimensions: "
+                          f"{manual.get('dimensions_in')}")
+
+    component = Component(component_id, WATER_HEATER_PART_TYPE)
+    identifiers = [
+        Identifier(component_id, "suburban", "IW60RL", "exterior_plate"),
+        Identifier(component_id, "suburban", "5280A", "none_marked"),
+    ]
+    retailer_id, manual_id = retailer_row["id"], manual_row["id"]
+    attributes = [
+        ComponentAttribute(component_id, "tankless", "retailer_spec_block",
+                            retailer_id, value_boolean=True),
+        ComponentAttribute(component_id, "capacity_gal", "retailer_spec_block",
+                            retailer_id, value_number=0.5),
+        ComponentAttribute(component_id, "input_btuh", "retailer_spec_block",
+                            retailer_id, value_number=60000.0),
+        ComponentAttribute(component_id, "ignition_type", "retailer_spec_block",
+                            retailer_id, value_text=_IGNITION_TEXT_TO_TYPE[ignition_text]),
+        ComponentAttribute(component_id, "vent_hole_diameter_in", "manufacturer_pdf",
+                            manual_id, unit="in", value_number=3.750),
+        ComponentAttribute(component_id, "product_size_h", "retailer_spec_block",
+                            retailer_id, unit="in", value_number=12.5),
+        ComponentAttribute(component_id, "product_size_w", "retailer_spec_block",
+                            retailer_id, unit="in", value_number=12.5),
+        ComponentAttribute(component_id, "product_size_d", "manufacturer_pdf",
+                            manual_id, unit="in", value_number=20.0),
+        ComponentAttribute(component_id, "weight_empty", "retailer_spec_block",
+                            retailer_id, unit="lb", value_number=36.0),
+    ]
+    return component, identifiers, attributes
+
+
 def load_observation(obs_db_path, obs_id):
     conn = sqlite3.connect(obs_db_path)
     conn.row_factory = sqlite3.Row
@@ -821,6 +886,59 @@ def self_test(verbose=False):
             failures.append(f"invalid 12DEL evidence accepted: {label}")
         except ValueError:
             pass
+
+    obs13 = load_observation(obs_db, 13)   # IW60RL retailer page
+    obs14 = load_observation(obs_db, 14)   # Nautilus (IW60) service manual
+
+    comp_iw60rl, ids_iw60rl, attrs_iw60rl = resolve_iw60rl_component(
+        obs13, obs14, "c_placeholder_wh_iw60rl")
+    if comp_iw60rl.part_type_id != WATER_HEATER_PART_TYPE:
+        failures.append(f"IW60RL part_type mismatch: {comp_iw60rl}")
+    expected_iw60rl_ids = {
+        ("suburban", "IW60RL", "exterior_plate"),
+        ("suburban", "5280A", "none_marked"),
+    }
+    if {(i.ns, i.value, i.visibility) for i in ids_iw60rl} != expected_iw60rl_ids:
+        failures.append(f"IW60RL identifiers mismatch: {ids_iw60rl}")
+    actual_iw60rl_attrs = {
+        a.name: (a.value_number if a.value_number is not None else a.value_boolean,
+                 a.provenance, a.source_observation_id)
+        for a in attrs_iw60rl if a.name != "ignition_type"
+    }
+    expected_iw60rl_attrs = {
+        "tankless": (True, "retailer_spec_block", 13),
+        "capacity_gal": (0.5, "retailer_spec_block", 13),
+        "input_btuh": (60000.0, "retailer_spec_block", 13),
+        "vent_hole_diameter_in": (3.750, "manufacturer_pdf", 14),
+        "product_size_h": (12.5, "retailer_spec_block", 13),
+        "product_size_w": (12.5, "retailer_spec_block", 13),
+        "product_size_d": (20.0, "manufacturer_pdf", 14),
+        "weight_empty": (36.0, "retailer_spec_block", 13),
+    }
+    if actual_iw60rl_attrs != expected_iw60rl_attrs:
+        failures.append(f"IW60RL attributes mismatch: {actual_iw60rl_attrs}")
+    ignition_attr = next(a for a in attrs_iw60rl if a.name == "ignition_type")
+    if (ignition_attr.value_text, ignition_attr.provenance) != (
+            "direct_spark", "retailer_spec_block"):
+        failures.append(f"IW60RL ignition_type mismatch: {ignition_attr}")
+
+    for mutate, label in (
+        (lambda e: e.__setitem__("capacity_gal", 1.0), "wrong capacity"),
+        (lambda e: e.__setitem__("ignition_type", "Pilot"), "wrong ignition"),
+        (lambda e: e["product_size_in"].__setitem__("d", 21.0), "wrong depth"),
+    ):
+        try:
+            resolve_iw60rl_component(changed_row(obs13, mutate), obs14, "c_invalid")
+            failures.append(f"invalid IW60RL evidence accepted: {label}")
+        except ValueError:
+            pass
+    try:
+        resolve_iw60rl_component(
+            obs13, changed_row(obs14, lambda e: e.__setitem__("vent_hole_diameter_in", 4.0)),
+            "c_invalid")
+        failures.append("invalid IW60RL vent hole evidence accepted")
+    except ValueError:
+        pass
 
     def persist_endpoints(conn):
         for component, identifiers, attributes in endpoints:
