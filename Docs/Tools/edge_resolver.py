@@ -88,6 +88,73 @@ def component_from_observation(obs_row, component_id, part_type_id):
     return component, identifiers
 
 
+def resolve_12del_component(retailer_row, channel_split_row, component_id):
+    """
+    Build the vendor-researched SW12DEL component from observation #11 (retailer
+    spec block + buyer review) and confirm its 5148A/5248A channel-split
+    identifiers against observation #35 (Suburban support's direct reply).
+    Deliberately reads the raw extracted JSON rather than going through
+    resolver.normalize_extracted's compound cutout handler: that handler always
+    collapses cutout_in into opening_h/opening_w and drops depth (see
+    resolver.py's _derive_opening, VENDOR-Suburban.md 6.5), but ground-truth.yaml
+    keeps this component's cutout_h/cutout_w/cutout_d as raw retailer figures —
+    unlike SW6DE/SW6DEL, this pair hasn't been cross-validated against the
+    manufacturer's 2D opening figure (obs #19).
+    """
+    _validate_observation_source(retailer_row, 11, "retailer_page", 7, "12DEL retailer")
+    extracted = json.loads(retailer_row["extracted"])
+    if extracted.get("model") != "SW12DEL":
+        raise ValueError(f"unexpected 12DEL model: {extracted.get('model')}")
+    cutout = extracted.get("cutout_in")
+    weight = extracted.get("weight_lb")
+    element_watts = extracted.get("element_watts")
+    if cutout != {"h": 16.38, "w": 16.38, "d": 22.25}:
+        raise ValueError(f"unexpected 12DEL cutout: {cutout}")
+    if weight != {"empty": 48.0, "full": 148.08}:
+        raise ValueError(f"unexpected 12DEL weight: {weight}")
+    if element_watts != [1400, 1440]:
+        raise ValueError(f"unexpected 12DEL element watts: {element_watts}")
+    if extracted.get("capacity_gal") != 12 or extracted.get("input_btuh") != 12000:
+        raise ValueError("unexpected 12DEL capacity/BTU")
+
+    try:
+        channel_split = json.loads(channel_split_row["extracted"])
+    except (KeyError, TypeError) as exc:
+        raise ValueError("12DEL channel-split observation lacks extracted JSON") from exc
+    if channel_split.get("relation") != "co-current_channel_split" or \
+            set(channel_split.get("skus", [])) != {"5148A", "5248A"}:
+        raise ValueError(f"unexpected 12DEL channel-split evidence: {channel_split}")
+
+    component = Component(component_id, WATER_HEATER_PART_TYPE)
+    identifiers = [
+        Identifier(component_id, "suburban", "SW12DEL", "exterior_plate"),
+        Identifier(component_id, "suburban", "5248A", "none_marked"),
+        Identifier(component_id, "suburban", "5148A", "none_marked"),
+    ]
+    obs_id = retailer_row["id"]
+    attributes = [
+        ComponentAttribute(component_id, "capacity_gal", "retailer_spec_block",
+                            obs_id, value_number=12.0),
+        ComponentAttribute(component_id, "input_btuh", "retailer_spec_block",
+                            obs_id, value_number=12000.0),
+        ComponentAttribute(component_id, "element_watts", "retailer_spec_block",
+                            obs_id, qualifier="1400", value_number=1400.0),
+        ComponentAttribute(component_id, "element_watts", "retailer_spec_block",
+                            obs_id, qualifier="1440", value_number=1440.0),
+        ComponentAttribute(component_id, "cutout_h", "retailer_spec_block",
+                            obs_id, unit="in", value_number=16.38),
+        ComponentAttribute(component_id, "cutout_w", "retailer_spec_block",
+                            obs_id, unit="in", value_number=16.38),
+        ComponentAttribute(component_id, "cutout_d", "retailer_spec_block",
+                            obs_id, unit="in", value_number=22.25),
+        ComponentAttribute(component_id, "weight_empty", "retailer_spec_block",
+                            obs_id, unit="lb", value_number=48.0),
+        ComponentAttribute(component_id, "weight_full", "retailer_spec_block",
+                            obs_id, unit="lb", value_number=148.08),
+    ]
+    return component, identifiers, attributes
+
+
 def load_observation(obs_db_path, obs_id):
     conn = sqlite3.connect(obs_db_path)
     conn.row_factory = sqlite3.Row
@@ -706,6 +773,54 @@ def self_test(verbose=False):
     confidence = compute_confidence(evidence)
     if confidence["value"] != 0.75 or confidence["certainty"] != 4.0:
         failures.append(f"expected prior confidence 0.75/n=4, got {confidence}")
+
+    obs11 = load_observation(obs_db, 11)   # SW12DEL retailer spec + buyer review
+    obs35 = load_observation(obs_db, 35)   # 5148A/5248A channel-split confirmation
+
+    comp_12del, ids_12del, attrs_12del = resolve_12del_component(
+        obs11, obs35, "c_placeholder_wh_12del")
+    if comp_12del.part_type_id != WATER_HEATER_PART_TYPE:
+        failures.append(f"12DEL part_type mismatch: {comp_12del}")
+    expected_12del_ids = {
+        ("suburban", "SW12DEL", "exterior_plate"),
+        ("suburban", "5248A", "none_marked"),
+        ("suburban", "5148A", "none_marked"),
+    }
+    if {(i.ns, i.value, i.visibility) for i in ids_12del} != expected_12del_ids:
+        failures.append(f"12DEL identifiers mismatch: {ids_12del}")
+    expected_12del_attrs = {
+        ("capacity_gal", ""): 12.0,
+        ("input_btuh", ""): 12000.0,
+        ("element_watts", "1400"): 1400.0,
+        ("element_watts", "1440"): 1440.0,
+        ("cutout_h", ""): 16.38,
+        ("cutout_w", ""): 16.38,
+        ("cutout_d", ""): 22.25,
+        ("weight_empty", ""): 48.0,
+        ("weight_full", ""): 148.08,
+    }
+    actual_12del_attrs = {
+        (a.name, a.qualifier): a.value_number for a in attrs_12del
+    }
+    if actual_12del_attrs != expected_12del_attrs:
+        failures.append(f"12DEL attributes mismatch: {actual_12del_attrs}")
+
+    for invalid11, invalid35, label in (
+        (changed_row(obs11, lambda e: e.__setitem__("model", "SW10DEL")), obs35,
+         "wrong model"),
+        (changed_row(obs11, lambda e: e["cutout_in"].__setitem__("h", 16.0)), obs35,
+         "wrong cutout"),
+        (changed_row(obs11, lambda e: e.__setitem__("element_watts", [1440])), obs35,
+         "resolved element_watts"),
+        (dict(obs11, id=110), obs35, "wrong obs id"),
+        (obs11, changed_row(obs35, lambda e: e.__setitem__(
+            "relation", "legacy_current_renumbering")), "wrong channel-split relation"),
+    ):
+        try:
+            resolve_12del_component(invalid11, invalid35, "c_invalid")
+            failures.append(f"invalid 12DEL evidence accepted: {label}")
+        except ValueError:
+            pass
 
     def persist_endpoints(conn):
         for component, identifiers, attributes in endpoints:
