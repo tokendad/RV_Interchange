@@ -18,9 +18,9 @@ from resolver import normalize_extracted
 from suburban_parser import compare_models
 from interchange_models import (
     Component, Identifier, ComponentAttribute, Edge, EdgeSubstitutionDetail,
-    EdgeSupersessionDetail, EdgeCaveat, EdgeRequiredPart, RelationshipEvidence,
-    IdentifierEquivalenceCandidate, IdentifierEquivalenceEvidence, prior_for_basis,
-    compute_confidence,
+    EdgeSupersessionDetail, EdgeControlsDetail, EdgeCaveat, EdgeRequiredPart,
+    RelationshipEvidence, IdentifierEquivalenceCandidate, IdentifierEquivalenceEvidence,
+    prior_for_basis, compute_confidence,
 )
 from interchange_schema import init_db
 from interchange_store import (
@@ -31,6 +31,7 @@ from interchange_store import (
     insert_identifier_equivalence_candidate, insert_identifier_equivalence_evidence,
     get_identifier_equivalence_candidates, get_identifier_equivalence_evidence,
     get_supersession_detail, insert_required_part, get_required_parts_for_edge,
+    insert_controls_detail, get_controls_detail,
 )
 
 WATER_HEATER_PART_TYPE = 412
@@ -258,6 +259,65 @@ def resolve_atwood_family_components(manual_row, component_ids):
         ]
         results[key] = (component, [], attributes)
     return results
+
+
+SWITCH_DEL_MODEL = "SW6DEL"
+SWITCH_CONFIRMED_VARIANTS = {"232882": "white", "233111": "black"}
+
+
+def resolve_switch_component(catalog_row, component_id):
+    """
+    Build the DEL-line interior switch component from observation #51
+    (Suburban 2025 Aftermarket Catalog, interior switch part numbers).
+    Only two of ground-truth.yaml's three claimed identifiers
+    (232882/white, 233111/black) are backed by this observation — the third
+    (232881/cream) does not appear in the captured source and is
+    deliberately NOT attached here. See the catalog observation's
+    coverage_gap_note and VENDOR-Suburban.md.
+    """
+    _validate_observation_source(catalog_row, 51, "manufacturer_pdf", 2, "interior switch catalog")
+    extracted = json.loads(catalog_row["extracted"])
+    variants = extracted.get("switch_variants")
+    if not isinstance(variants, dict):
+        raise ValueError("interior switch catalog observation has no switch_variants table")
+    del_variants = {
+        part_number: variant for part_number, variant in variants.items()
+        if SWITCH_DEL_MODEL in variant.get("applies_to", [])
+    }
+    if set(del_variants) != set(SWITCH_CONFIRMED_VARIANTS):
+        raise ValueError(f"unexpected {SWITCH_DEL_MODEL} switch variant set: {set(del_variants)}")
+    for part_number, expected_color in SWITCH_CONFIRMED_VARIANTS.items():
+        if del_variants[part_number].get("color", "").lower() != expected_color:
+            raise ValueError(
+                f"unexpected {SWITCH_DEL_MODEL} switch color for {part_number}: "
+                f"{del_variants[part_number]}")
+
+    component = Component(component_id, WATER_HEATER_PART_TYPE)
+    obs_id = catalog_row["id"]
+    identifiers = []
+    attributes = []
+    for part_number, color in SWITCH_CONFIRMED_VARIANTS.items():
+        identifiers.append(Identifier(component_id, "suburban", part_number, "exterior_plate"))
+        attributes.append(ComponentAttribute(
+            component_id, "colour", "manufacturer_pdf", obs_id,
+            qualifier=part_number, value_text=color))
+    return component, identifiers, attributes
+
+
+def resolve_switch_controls_edge(conn, switch_id, water_heater_id):
+    """
+    The switch->water-heater `controls` edge: sold separately, surfaces in
+    the PARTS FOR THIS UNIT tier. Structural membership, not a probabilistic
+    match — no confidence/evidence rows, matching ground-truth.yaml's
+    controls edge (no confidence block at all, unlike substitutes/supersedes).
+    """
+    edge = Edge(type="controls", from_component_id=switch_id, to_component_id=water_heater_id)
+    insert_edge(conn, edge)
+    insert_controls_detail(conn, EdgeControlsDetail(
+        edge_id=edge.id,
+        note="Sold separately. Buyer needs it but does not know to ask. Surfaces in "
+             "the PARTS FOR THIS UNIT tier."))
+    return edge.id
 
 
 def load_observation(obs_db_path, obs_id):
@@ -1241,6 +1301,55 @@ def self_test(verbose=False):
         except ValueError:
             pass
 
+    obs51 = load_observation(obs_db, 51)   # Suburban 2025 catalog interior switch table
+
+    comp_switch, ids_switch, attrs_switch = resolve_switch_component(
+        obs51, "c_placeholder_wh_switch")
+    if comp_switch.part_type_id != WATER_HEATER_PART_TYPE:
+        failures.append(f"switch part_type mismatch: {comp_switch}")
+    expected_switch_ids = {
+        ("suburban", "232882", "exterior_plate"),
+        ("suburban", "233111", "exterior_plate"),
+    }
+    if {(i.ns, i.value, i.visibility) for i in ids_switch} != expected_switch_ids:
+        failures.append(f"switch identifiers mismatch: {ids_switch}")
+    if "232881" in {i.value for i in ids_switch}:
+        failures.append("unconfirmed 232881 identifier attached to switch component")
+    actual_switch_colours = {a.qualifier: a.value_text for a in attrs_switch
+                              if a.name == "colour"}
+    if actual_switch_colours != {"232882": "white", "233111": "black"}:
+        failures.append(f"switch colours mismatch: {actual_switch_colours}")
+
+    for mutate, label in (
+        (lambda e: e["switch_variants"]["232882"].__setitem__("color", "Almond"),
+         "wrong color"),
+        (lambda e: e["switch_variants"]["232882"]["applies_to"].remove("SW6DEL"),
+         "missing DEL applicability"),
+        (lambda e: e["switch_variants"].pop("233111"), "missing variant"),
+    ):
+        try:
+            resolve_switch_component(changed_row(obs51, mutate), "c_invalid")
+            failures.append(f"invalid switch evidence accepted: {label}")
+        except ValueError:
+            pass
+
+    insert_component(store_conn, comp_switch)
+    for identifier in ids_switch:
+        insert_identifier(store_conn, identifier)
+    for attribute in attrs_switch:
+        insert_component_attribute(store_conn, attribute)
+
+    edge_switch_controls = resolve_switch_controls_edge(
+        store_conn, "c_placeholder_wh_switch", "c_placeholder_wh_6del")
+    controls_detail = get_controls_detail(store_conn, edge_switch_controls)
+    if controls_detail is None or "PARTS FOR THIS UNIT" not in controls_detail.note:
+        failures.append(f"switch controls detail mismatch: {controls_detail}")
+    controls_row = store_conn.execute(
+        "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
+        (edge_switch_controls,)).fetchone()
+    if tuple(controls_row) != ("controls", "c_placeholder_wh_switch", "c_placeholder_wh_6del"):
+        failures.append(f"switch controls edge mismatch: {tuple(controls_row)}")
+
     def persist_endpoints(conn):
         for component, identifiers, attributes in endpoints:
             insert_component(conn, component)
@@ -1878,11 +1987,68 @@ def check_fixture(ground_truth_path, obs_db_path):
               f"see 'Known fixture inconsistency' in "
               f"docs/superpowers/plans/2026-08-01-suburban-remaining-fixtures.md")
 
+    obs51 = load_observation(obs_db_path, 51)
+    comp_switch, ids_switch, attrs_switch = resolve_switch_component(
+        obs51, "c_placeholder_wh_switch")
+    insert_component(conn, comp_switch)
+    for identifier in ids_switch:
+        insert_identifier(conn, identifier)
+    for attribute in attrs_switch:
+        insert_component_attribute(conn, attribute)
+
+    fixture_switch = next(
+        (c for c in components_doc if c.get("component_id") == "c_placeholder_wh_switch"),
+        None)
+    if fixture_switch is None:
+        print("MISMATCH ground-truth.yaml is missing c_placeholder_wh_switch")
+        mismatches += 1
+    else:
+        resolved_switch_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                ("c_placeholder_wh_switch",)).fetchall()
+        }
+        fixture_switch_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_switch.get("identifiers", [])
+        }
+        # 232881 ("cream") is claimed by the fixture but confirmed by no
+        # observation captured so far (see obs #51's coverage_gap_note) — the
+        # resolver deliberately under-produces here rather than inventing
+        # evidence. A strict subset, not equality, is the correct check.
+        unconfirmed = fixture_switch_identifiers - resolved_switch_identifiers
+        if not resolved_switch_identifiers.issubset(fixture_switch_identifiers):
+            print(f"MISMATCH switch identifiers: resolved has identifiers the fixture "
+                  f"doesn't: {resolved_switch_identifiers - fixture_switch_identifiers}")
+            mismatches += 1
+        if unconfirmed != {("suburban", "232881", "exterior_plate")}:
+            print(f"MISMATCH switch unconfirmed-identifier set changed: {unconfirmed}")
+            mismatches += 1
+        else:
+            print("  switch: 232881 remains unconfirmed by any observation — not "
+                  "attached, not a mismatch (see obs #51 coverage_gap_note)")
+
+    edge_switch_controls = resolve_switch_controls_edge(
+        conn, "c_placeholder_wh_switch", "c_placeholder_wh_6del")
+    fixture_controls_edge = next(
+        (e for e in edges_doc if e.get("type") == "controls"
+         and e.get("a") == "c_placeholder_wh_switch"
+         and e.get("b") == "c_placeholder_wh_6del"), None)
+    if fixture_controls_edge is None:
+        print("MISMATCH ground-truth.yaml has no switch->6del controls edge")
+        mismatches += 1
+    else:
+        controls_row = conn.execute(
+            "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
+            (edge_switch_controls,)).fetchone()
+        if tuple(controls_row) != (
+                "controls", "c_placeholder_wh_switch", "c_placeholder_wh_6del"):
+            print(f"MISMATCH switch controls edge: {tuple(controls_row)}")
+            mismatches += 1
+
     print(f"Suburban remaining fixtures: "
           f"{mismatches - suburban_remainder_mismatches_before} mismatch(es)")
-    print("NOTE: c_placeholder_wh_switch (232882/233111/232881) and its `controls` "
-          "edge remain UNRESOLVED — no observation in observations.db backs those "
-          "identifiers. Not counted as a mismatch; requires new evidence capture.")
 
     print(f"\n{mismatches} total mismatches against ground-truth.yaml")
     return 1 if mismatches else 0

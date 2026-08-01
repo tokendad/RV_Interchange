@@ -76,6 +76,12 @@ class EdgeSupersessionDetail:
 
 
 @dataclass
+class EdgeControlsDetail:
+    edge_id: int
+    note: Optional[str] = None
+
+
+@dataclass
 class EdgeCaveat:
     edge_id: int
     blocking: bool

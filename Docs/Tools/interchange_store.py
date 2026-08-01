@@ -9,8 +9,8 @@ from datetime import datetime, timezone
 
 from interchange_models import (
     Component, Identifier, ComponentAttribute, Edge, EdgeSubstitutionDetail,
-    EdgeSupersessionDetail, EdgeCaveat, EdgeRequiredPart, RelationshipEvidence,
-    IdentifierEquivalenceCandidate, IdentifierEquivalenceEvidence,
+    EdgeSupersessionDetail, EdgeControlsDetail, EdgeCaveat, EdgeRequiredPart,
+    RelationshipEvidence, IdentifierEquivalenceCandidate, IdentifierEquivalenceEvidence,
 )
 from interchange_schema import init_db
 
@@ -163,6 +163,21 @@ def get_supersession_detail(conn, edge_id):
     if row is None:
         return None
     return EdgeSupersessionDetail(edge_id=row["edge_id"], note=row["note"])
+
+
+def insert_controls_detail(conn, detail):
+    conn.execute(
+        "INSERT INTO edge_controls_detail (edge_id, note) VALUES (?, ?)",
+        (detail.edge_id, detail.note))
+    conn.commit()
+
+
+def get_controls_detail(conn, edge_id):
+    row = conn.execute(
+        "SELECT * FROM edge_controls_detail WHERE edge_id = ?", (edge_id,)).fetchone()
+    if row is None:
+        return None
+    return EdgeControlsDetail(edge_id=row["edge_id"], note=row["note"])
 
 
 def insert_caveat(conn, caveat):
