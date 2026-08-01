@@ -310,6 +310,20 @@ contradiction of the OEM spec. Like the FARAMZ manual, this is aftermarket
 compatibility-claim evidence, not manufacturer-documented, and does not by itself justify
 a graph edge.
 
+### 6.5 Reference only: the 8330-33X digital-family manual
+
+Observation #63 is the manufacturer manual `1976-333 (9-04)` for `8330-336`/`337`/`338`/`339`
+— a four-model digital-display wildcard family (heat/cool for `336`/`337`, cool-only for
+`338`/`339`) with the same `R`/`Y`/`W`/`GH`/`GL`/`B` terminal scheme and colors, the same 2A
+fuse, and the same 3-minute anti-short-cycle delay as the analog family (obs #45/#58). The
+retailer links this exact PDF from the Q&A section of their `8330-3362` product page
+(obs #62's page), which is suggestive that it is the closest manual they have for that
+digital product — but the manual's own title and content only name `336`/`337`/`338`/`339`,
+a different digit count than `8330-3362`, and the manual **does not name `8330-3362`
+anywhere**. Captured for reference at the user's request; not built into a component and
+not tied to the fixture's `8330-3362`/`8330-3862` exact endpoints without a more direct
+identity confirmation.
+
 ## 7. Sources
 
 - obs #40 — Coleman-Mach current analog thermostat product page
@@ -362,6 +376,10 @@ a graph edge.
   for a cluster of older analog models while separately offering `7330G3351` itself as a
   named "Alternative Analog Thermostat" — resolves the §6.3 framing as two coexisting
   replacement paths, not a conflict
+- obs #63 — RV Products/Airxcel installation/operating instructions `1976-333 (9-04)` for
+  `8330-336`/`337`/`338`/`339`, via rvupgradestore.com (linked from the obs #62 product
+  page's Q&A section); the digital-family counterpart to obs #45/#58's analog manual,
+  captured for reference only per the user's request — does not itself name `8330-3362`
 
 ## 8. Resolver status and next milestone
 

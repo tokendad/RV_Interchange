@@ -164,6 +164,9 @@ CANONICAL = {
     "compatible_system_claim":    "a source's own list of systems/models it claims compatibility with",
     "alternative_replacement_option": "a source's own named alternate replacement, offered alongside its primary replacement recommendation",
     "compatible_ceiling_assemblies": "a source's own list of ceiling-assembly model numbers it claims compatibility with",
+    "display_features":           "documented digital-display UI behavior (readout modes, buttons, jumpers)",
+    "temperature_range_f":        "documented setpoint/display temperature range in Fahrenheit",
+    "connector_hardware":         "documented wiring connector part numbers/types for a component's electrical interface",
 
     # dimensions — mechanically derived, see _derive_opening / _derive_product
     "opening_h":                 "framed installation opening height, in — 2D only",
@@ -335,6 +338,9 @@ ALIASES = {
     "short_cycle_protection_delay": "short_cycle_protection_delay",
     "alternative_analog_option": "alternative_replacement_option",
     "compatible_ceiling_assemblies": "compatible_ceiling_assemblies",
+    "display_features": "display_features",
+    "temperature_range_f": "temperature_range_f",
+    "connector_hardware": "connector_hardware",
 
     # dimensions — plain product envelope (opening/cutout handled specially)
     "product_size_in": "product_hwd",
