@@ -1,9 +1,14 @@
 # VENDOR — Coleman-Mach / RV Products / Airxcel
 
 **Status:** exact endpoint and supersession fixture complete; broader adapter research in progress
-**Updated:** 2026-08-01 (obs #52/#53: `1C26-10` identified as a real candidate for one of
-the manual's unnamed generations, but its only compatibility evidence is hedged and
-unconfirmed — not yet strong enough for a graph edge)
+**Updated:** 2026-08-01 (obs #58/#59: a manufacturer wildcard-family manual and an
+independent retailer's own replacement chart together unblock the `7330E336`/`7330-336`
+"electronic generation" lead that eBay/manuals.plus previously blocked — see §6.2 — while
+also surfacing a new, unresolved conflict between manufacturer-documented and
+retailer-recommended replacements for the exact `7330G3351`/`7330F3852` endpoints; obs
+#60/#61 add two third-party aftermarket thermostats claiming compatibility with the
+7330 wildcard family, one of which (FARAMZ) confusingly reuses Coleman's own `7330F3852`
+number for a physically different digital product — see §6.4/§6.5)
 
 ## 1. Why this adapter
 
@@ -55,6 +60,17 @@ The installed colors agree with the manual's conventional colors, but color is s
 evidence only. The manual explicitly warns that vehicle-manufacturer or installer wiring
 may not follow those colors. Terminal label and function—not conductor color—form the
 portable compatibility contract.
+
+A second manufacturer document, RV Products/Airxcel installation instructions `1976F190
+(1-04)` (observation #58, covering the `7330*335*`/`7330*385*`/`7330*336*` wildcard
+family), independently corroborates the same six-terminal order and colors via its own
+"Wire Cross Reference Chart," and adds one new fact: the `7330*336*` "Cool Only" variant
+physically omits the `W` (heat) wire entirely, with a wire nut required over any unused
+thermostat wire. That same chart also cross-references Coleman's `R`/`Y`/`W`/`GH`/`GL`/`B`
+labels to unnamed "other manufacturers'" terminal designations (e.g. `RH`/`RC`-style
+names for `R`) — the columns are not attributed to specific manufacturers, so this does
+not on its own confirm or deny the obs #54 White-Rodgers question in §5, but it is worth
+noting that Coleman's own manual acknowledges generic-HVAC terminal equivalents exist.
 
 ## 4. What the service manual proves
 
@@ -181,15 +197,100 @@ in this fixture remains unestablished. Building `7330F3361`/`7330-3861`/`7330B34
 exact endpoint components (same shape as §6's three) is real, ready-to-do next work — the
 evidence already exists across obs #40 + #55/#56.
 
-### 6.2 Unresolved lead: the "electronic" generation candidate
+### 6.2 The "electronic" generation candidate: partially unblocked
 
-An eBay listing for a candidate `7330E336`/`7330-336` electronic-generation model could
-not be independently fetched (eBay blocks automated retrieval; `manuals.plus`'s mirror of
-the closest manual found — for `7330G3351` — also 403s). Until one of those can be read
-directly (or the user supplies the page text/screenshot), this candidate is not captured
-as an observation at all — a bare identification claim with no readable source behind it
-falls below even the `8330-3362`/`1C26-10` visual-candidate tier, which at least ties to a
-real, fetchable page.
+The eBay listing for a candidate `7330E336`/`7330-336` electronic-generation model was
+never independently fetchable (eBay blocks automated retrieval), and an earlier attempt to
+reach a `manuals.plus` mirror of the closest manual (for `7330G3351`) also 403'd. Two new
+`manuals.plus`-hosted documents (fetched directly by the user, obs #58/#59) partially
+unblock this lead from different angles, without fully resolving it:
+
+- Observation #58 is the manufacturer installation manual `1976F190 (1-04)` for
+  `7330*335*`, `7330*385*`, **and `7330*336*`**. It independently establishes `7330*336*`
+  as a real, current, manufacturer-documented wildcard family member — a "Cool Only"
+  physical variant of the same thermostat body, differing only by the omitted `W` wire and
+  disabled heat/furnace switch positions (see §3). It does **not** mention `7330E336` or
+  `7330-336` specifically, and does not confirm that the eBay listing's electronic-display
+  candidate is the same physical device as this manual's mechanical `7330*336*`.
+- Observation #59, an independent retailer's ("MakariosRV.com") own model-lookup and
+  replacement chart, lists `7330-E336` directly (current replacement: `7330F3361`) and
+  `7330-E385` directly (current replacement: `8330-3482`, a model number not otherwise seen
+  in this fixture). This is the first time `7330-E336`/`7330-E385` have been read from a
+  fetchable, citable source — the eBay dead end is no longer the only lead — but it is
+  retailer cross-reference tier, not manufacturer-documented, and it does not itself
+  describe the `7330-E336` unit's physical or electronic-display characteristics.
+
+Net effect: `7330-E336`/`7330-E385` are now real, retailer-corroborated catalog numbers
+with a stated current-replacement path, but their identity as the service manual's
+unnamed "electronic" generation (as opposed to some other historical model) remains
+unconfirmed — same evidentiary gap as `8330-3362` and `1C26-10` elsewhere in this
+document. They are captured as observation content but not yet promoted to components or
+graph edges.
+
+### 6.3 New conflict: retailer replacement chart vs. manufacturer supersession
+
+Observation #59's replacement chart also lists a current replacement for the fixture's own
+exact endpoints and the in-hand unit's own identifier:
+
+| Old model (obs #59) | Retailer's stated current replacement |
+|---|---|
+| `7330G335` (in-hand unit, §2) | White digital: `8330-3362` / Black digital: `8330-3862` |
+| `7330G3351` (exact endpoint, §6) | White digital: `8330-3362` / Black digital: `8330-3862` |
+| `7330F3852` (exact endpoint, §6) | White digital: `8330-3362` / Black digital: `8330-3862` |
+
+This directly **conflicts** with the manufacturer-documented supersession already in this
+fixture (`7330G3351 -> 9420-351` and `7330F3852 -> 9420-351`, §6, sourced to obs #40-42 and
+corroborated by obs #48/#49). Both may be true in different senses — an official
+manufacturer catalog supersession versus one retailer's preferred in-stock substitute — or
+the retailer chart may simply be stale relative to the manufacturer's 2025 catalog. Per the
+project's evidence discipline, this conflict is preserved as-is rather than resolved by
+this document; the existing `-> 9420-351` edges are manufacturer-tier and are not
+overridden by a retailer-tier conflicting claim.
+
+Observation #59 also independently corroborates two previously weaker leads:
+
+- `7330F3858` (obs #43's `AR7815`/`7330F3858` used-parts-retailer claim) appears in the
+  MakariosRV chart as its own old-model row, confirming it is a real Coleman model number
+  from a second, independent retailer — still not enough to confirm the `AR7815` alias
+  itself, which remains an open `identifier_equivalence_candidate`.
+- `8330-3862` (previously seen only in obs #55/#56 cross-sell widgets) appears repeatedly
+  in the chart as the named black-digital sibling of `8330-3362` in an explicit replacement
+  role, not merchandising placement — stronger evidence that it is a real, distinct catalog
+  number, though still not tied to any specific old model in this fixture as a confirmed
+  supersession.
+
+Observation #59 also includes a photograph of a *second*, independently-owned physical
+thermostat with rear label `Part No: AP7862`, `Date Code: C15`, `RVP No: 7330G335` — the
+same `AP7862 = 7330G335` identity pair as the in-hand unit (§2), but a different date code.
+This corroborates that pairing as a stable identity across at least two physical units,
+not a single label fluke.
+
+### 6.4 Third-party product reusing the `7330F3852` name: not the same device
+
+Observation #60 is a FARAMZ-brand instruction manual for a "7330F3852" thermostat.
+**FARAMZ is a third-party aftermarket brand, not Coleman-Mach/RV Products/Airxcel**, and
+this unit is a **touchscreen digital** thermostat (`Controller Type: Touch Control`,
+`Display Type: Touchscreen`) — a fundamentally different device from the
+manufacturer-documented `7330F3852` exact endpoint in §6, which is analog/mechanical
+(obs #40/#41). FARAMZ markets its own product under Coleman's OEM number, presumably
+because it is wired as an electrical drop-in replacement: its terminal labels, functions,
+and wire colors (`R`/`Y`/`W`/`GH`/`GL`/`B`, same colors) exactly match the RV Products
+scheme in §3/obs #58. This is the same treatment already applied to obs #54
+(White-Rodgers): a different manufacturer's product that overlaps an existing identifier
+is evidence about *that manufacturer's marketing*, not about the identifier's own
+referent. `FARAMZ`/its touchscreen unit is not an identifier, equivalence candidate,
+component, or graph edge in this fixture.
+
+A second aftermarket product, observation #61 (Briidea RV Thermostat, model `MK-101`, via
+manuals.plus), avoids that overlap: it markets itself under its own model number, not a
+Coleman number, while explicitly claiming OEM-replacement compatibility with the
+`7330*335*`/`7330*385*`/`7330*336*` wildcard family using the manufacturer's own notation
+from obs #58. It also independently corroborates the 3-minute compressor short-cycle delay
+(obs #45/#47/#58) and the cool-only fuse difference (obs #58), though its own suggested
+fuse rating (1A) differs from the OEM manual's stated 2A — different products, not a
+contradiction of the OEM spec. Like the FARAMZ manual, this is aftermarket
+compatibility-claim evidence, not manufacturer-documented, and does not by itself justify
+a graph edge.
 
 ## 7. Sources
 
@@ -223,6 +324,21 @@ real, fetchable page.
 - obs #57 — rvacguys.com `7330F3852` product page; second independent retailer
   corroborating black/single-stage/heat-cool (obs #40/#41/#49); first note of Coleman-Mach's
   current ownership by Dometic
+- obs #58 — RV Products/Airxcel installation instructions `1976F190 (1-04)` for
+  `7330*335*`/`7330*385*`/`7330*336*`, via manuals.plus mirror; manufacturer confirmation
+  of the `7330*336*` "Cool Only" wildcard family member and its wiring difference
+- obs #59 — MakariosRV.com's Guide to Coleman Thermostats (replacement chart), via
+  manuals.plus mirror (makariosrv.com now 403s); first fetchable source for
+  `7330-E336`/`7330-E385`, a new conflict with the `-> 9420-351` supersession edges, and a
+  second physical-unit corroboration of `AP7862 = 7330G335`
+- obs #60 — FARAMZ 7330F3852 RV Thermostat Instruction Manual, via manuals.plus (exact URL
+  not captured); a **third-party, non-Coleman brand's** digital touchscreen thermostat
+  marketed under Coleman's own `7330F3852` model number — a different physical product, not
+  evidence about Coleman's own `7330F3852`
+- obs #61 — Briidea RV Thermostat User Manual, model `MK-101`, via manuals.plus; a
+  **third-party** OEM-replacement product (own model number, no identifier overlap) that
+  independently corroborates the `7330*335*`/`7330*385*`/`7330*336*` wildcard family
+  grouping, the 3-minute compressor short-cycle delay, and the cool-only fuse difference
 
 ## 8. Resolver status and next milestone
 
@@ -240,3 +356,13 @@ electronic-digital generations. The manual's compatibility statement remains a r
 boundary, not a source of graph edges, until those exact identities are established. The
 resolver must continue to keep compatibility, supersession, identity, and candidate
 equivalence separate.
+
+Ready-to-do next work, in rough priority order:
+
+1. Build `7330F3361`/`7330-3861`/`7330B3441` as exact endpoint components (§6.1) — the
+   evidence already exists across obs #40 + #55/#56, same shape as the three §6 components.
+2. Decide how to represent the obs #59 replacement-chart conflict (§6.3) against the
+   existing `-> 9420-351` supersession edges without silently overriding either tier.
+3. Determine whether `7330-E336`/`7330-E385` (obs #59) can be tied to the service manual's
+   unnamed "electronic" generation, or remain observation-only candidates like `8330-3362`
+   and `1C26-10`.

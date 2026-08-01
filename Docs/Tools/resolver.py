@@ -156,6 +156,12 @@ CANONICAL = {
     "replacement_claim":          "structured claim that a replacement retains function/interface behavior",
     "source_conflicts":           "structured internal contradictions preserved from one source",
     "visual_match_candidate":     "open visual comparison that does not establish component identity",
+    "other_manufacturer_terminal_designations": "a source's own cross-reference from its terminal labels to generic/other-manufacturer terminal names",
+    "cool_only_wiring_difference": "documented physical wiring difference between a cool-only variant and its heat/cool siblings",
+    "fuse_rating":                "documented fuse rating protecting a component's supply wiring",
+    "short_cycle_protection_delay": "documented minimum off-time delay before a cooling function may re-cycle",
+    "replacement_chart_entries":  "a source's own old-model-to-current-replacement table, retailer or manufacturer tier",
+    "compatible_system_claim":    "a source's own list of systems/models it claims compatibility with",
 
     # dimensions — mechanically derived, see _derive_opening / _derive_product
     "opening_h":                 "framed installation opening height, in — 2D only",
@@ -314,6 +320,17 @@ ALIASES = {
     "replacement_equivalence_claim": "replacement_claim",
     "retailer_metadata_conflicts": "source_conflicts",
     "visual_match_candidate": "visual_match_candidate",
+    "terminal_colors": "installed_wire_colors",
+    "family_statement": "compatibility_statement",
+    "other_mfg_terminal_designations": "other_manufacturer_terminal_designations",
+    "cool_only_wiring_note": "cool_only_wiring_difference",
+    "fuse": "fuse_rating",
+    "short_cycle_protection": "short_cycle_protection_delay",
+    "replacement_chart": "replacement_chart_entries",
+    "compatible_ac_series_claim": "compatible_system_claim",
+    "compatible_system_claim": "compatible_system_claim",
+    "fuse_rating": "fuse_rating",
+    "short_cycle_protection_delay": "short_cycle_protection_delay",
 
     # dimensions — plain product envelope (opening/cutout handled specially)
     "product_size_in": "product_hwd",
@@ -468,6 +485,13 @@ IGNORED_KEYS = {
     "dimension_kind": "narrative classification note; superseded by the mechanical cutout/product split",
     "wattage_missing_from_source": "meta flag",
     "weight_cart_field_is_shipping_default_not_net_weight": "meta flag; the value itself is weight_cart_field_lb",
+    "wildcard_note": "narrative note explaining a manufacturer's own wildcard/insignificant-character notation; the notation itself is reflected in the identifiers as written",
+    "relevance": "narrative note connecting an observation to existing fixture identifiers/leads; not itself product data",
+    "relevance_and_conflicts": "narrative note connecting an observation to existing fixture identifiers/leads and flagging conflicts with other observations; not itself product data",
+    "model_number_photo": "narrative description of a corroborating photo; the identifiers it shows are already canonical elsewhere (physical_identifiers/obs #44)",
+    "asterisk_notes": "narrative SKU-specific installation procedure notes; procedure detail preserved in raw_content/quoted_text, not a general product attribute",
+    "identity_conflict_flag": "narrative note flagging a naming/identity overlap between two different sources' products; not itself product data",
+    "terminal_scheme_match": "narrative note comparing one source's terminal scheme to another observation's; the schemes themselves are captured via terminal_order/terminal_functions/wire_colors in each observation",
 
     # out of scope: furnace/cooktop grammar captured incidentally on the
     # same chart image as the water heater grammar. Real data, wrong
