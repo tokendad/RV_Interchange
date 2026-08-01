@@ -1,7 +1,7 @@
 # Staged Build Plan
 
 **Project:** RV Interchange
-**Status:** design, pre-implementation
+**Status:** Stage 1 implementation in progress
 **Date:** 2026-07-29
 
 > **Note:** Stages 1–2 below (the database and the free lookup tool) constitute the
@@ -257,25 +257,26 @@ four of five items are done, and the work has moved past what that list anticipa
    ignore) and makes the `cutout_*` → `opening_h`/`opening_w` correction (§6.5) mechanical
    instead of re-litigated per record. Unclassified keys raise instead of dropping silently.
 
-### Still open — and now the actual blocker
+### Completed since the last update
 
-8. **Design the component/edge schema, then build the observations→components/edges
-   resolver itself.** The model parser and the vocabulary/alias layer it needs are both done;
-   the resolver that walks `observations.db` through that vocabulary into resolved components
-   and edges — the thing `VENDOR-Suburban.md` §8 calls "pipeline reproduces the fixture" — is
-   not. This was always meant to follow the fixture, and the fixture has been ready for some
-   time.
+8. ~~Design the component/edge schema, then build the observations→components/edges
+   resolver itself.~~ **Done 2026-07-31** — `Docs/Tools/interchange_schema.py`,
+   `interchange_models.py`, `interchange_store.py`, and `edge_resolver.py` now build the two
+   anchor components from observations and persist the canonical directed SW6DE/SW6DEL
+   substitution edge pair. The full inline self-test suite passes, and `--check-fixture`
+   reports 0 mismatches against the fixture's canonical edge.
 
 ### Added since
 
-9. **Fill the in-hand measurement gaps.** `fixtures/ground-truth.yaml` still carries
-   `TODO_measure` on the ceiling register and roof vent — the two parts where geometry *is*
-   the identity. No source can supply these; they need a tape measure.
+9. ~~Fill the in-hand measurement gaps.~~ **Done 2026-07-31.** The two parts where geometry
+   *is* the identity are both recorded in `Docs/Inital_Design/ground-truth.yaml`.
    **Ceiling register: done 2026-07-31** — `duct_diameter` (~5in) and `flange_diameter`
    (~7in) measured in-hand (obs #36, corrected by obs #39) and matched to D&W International's
    RO-9850 round plastic grille (obs #37/#38); see `Docs/Data/DWIN/VENDOR-DWIN.md`. Identifier
    is CANDIDATE tier — a geometry/feature match against one retailer's spec block, not a
-   marking read off the part. Roof vent (`c_placeholder_vent`) is still open.
+   marking read off the part. **Roof vent:** `opening_size: 14x14 in` was already recorded
+   with `in_hand_measured` provenance. Its measurement is complete; only the separate
+   teardown capture and hidden molded-identifier classification remain open.
 10. **Second vendor adapter.** Suburban is deep enough to prove the pattern. Coleman-Mach /
     Airxcel is next (§ `VENDOR-Suburban.md` §10) and hits multi-namespace identity early via
     the in-hand thermostat.
@@ -284,12 +285,10 @@ four of five items are done, and the work has moved past what that list anticipa
     still need a channel qualifier in the schema itself, not just a namespace — that's an
     `ARCHITECTURE-Interchange_Core.md` §3 change, not just a vendor note, and it isn't made yet.
 
-> **Updated 2026-07-31.** Research was outrunning implementation as of the last note; that gap
-> has narrowed. The model parser and the vocabulary layer the resolver needs are both built
-> and tested. What's left is the resolver itself — the code that actually walks observations
-> through that vocabulary into components and edges, not just the plumbing it depends on.
+> **Updated 2026-07-31.** The scoped edge resolver is now built and tested: it walks the two
+> best-documented anchor observations through the vocabulary into components and the canonical
+> directed substitution edge pair. The next adapter is Coleman-Mach / Airxcel. Expanding the
+> resolver to the rest of the fixture remains follow-on work.
 >
-> The §8 definition-of-done in `VENDOR-Suburban.md` now has 6 of 9 boxes checked (2 partial,
-> 1 open — the resolver). That is the honest status of Stage 1.
-
-
+> The §8 definition-of-done in `VENDOR-Suburban.md` now has 8 of 9 boxes checked. The remaining
+> partial item is full-fixture reproduction; the scoped SW6DE/SW6DEL resolver milestone is done.

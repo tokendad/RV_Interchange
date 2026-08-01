@@ -1330,10 +1330,13 @@ Concretely:
 - [x] ~12 SW-series documents fetched and cached raw (35 observations logged)
 - [x] Ground-truth fixture hand-written (`Docs/Inital_Design/ground-truth.yaml`)
 - [~] Pipeline reproduces the fixture — `suburban_parser.py --check-fixture` reproduces
-      capacity/opening for every model-number identifier in the fixture (0 mismatches), but
-      there is no full observations→components/edges resolver yet, so this is partial.
+      capacity/opening for every model-number identifier in the fixture (0 mismatches).
+      `edge_resolver.py` now also walks observations #1/#2 through the canonical vocabulary,
+      persists the two anchor components and directed SW6DE/SW6DEL substitution edge pair,
+      and reproduces the fixture's canonical edge with 0 mismatches. This remains partial
+      only because the other fixture components and edges are not resolved yet.
       **Prerequisite now built** (`Docs/Tools/resolver.py`): a canonical vocabulary + alias
-      map for `extracted`'s field names, which the actual resolver has to be written against.
+      map for `extracted`'s field names, which the scoped resolver now uses.
       Measured at 35 observations: 175 distinct top-level keys, 132 appearing exactly once —
       the two-table design (append-only raw layer, no schema on `extracted`) working as
       intended, not failing, but it does mean the resolver can't be written against raw field
@@ -1341,8 +1344,9 @@ Concretely:
       compound keys), `--validate` confirms zero unmapped, and any future observation with a
       genuinely new key fails loudly (`ValueError`) rather than dropping it silently. The
       `cutout_*` → `opening_h`/`opening_w` correction (§6.5) is now mechanical — depth is
-      dropped and logged on every record, not re-litigated per observation. The
-      observations→components/edges resolver itself is still not built.
+      dropped and logged on every record, not re-litigated per observation. The vocabulary
+      prerequisite and scoped canonical-edge resolver are both built; extending
+      that resolver across the rest of the fixture is the remaining work for this checkbox.
 - [x] SW6DE↔SW6DEL asymmetric edge resolves correctly in both directions
       (`compare_models()`, general feature-superset comparison, not hardcoded to this pair —
       verified against capacity/ignition mismatches and the SW6DEM motorhome-only constraint.

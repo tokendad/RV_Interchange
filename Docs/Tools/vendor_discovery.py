@@ -60,20 +60,19 @@ class Candidate:
 
 
 class LinkParser(HTMLParser):
+    CONTEXT_TAGS = {"tr", "li", "article", "section"}
+
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.links: list[tuple[str, str, str]] = []
         self._href: str | None = None
         self._anchor: list[str] = []
-        self._context: list[str] = []
-        self._row_depth = 0
+        self._contexts: list[list[str]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attrs_d = dict(attrs)
-        if tag in {"tr", "li", "article", "section"}:
-            self._row_depth += 1
-            if self._row_depth == 1:
-                self._context = []
+        if tag in self.CONTEXT_TAGS:
+            self._contexts.append([])
         if tag == "a" and attrs_d.get("href"):
             self._href = attrs_d["href"]
             self._anchor = []
@@ -84,18 +83,17 @@ class LinkParser(HTMLParser):
             return
         if self._href is not None:
             self._anchor.append(text)
-        if self._row_depth:
-            self._context.append(text)
+        for context in self._contexts:
+            context.append(text)
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "a" and self._href is not None:
-            self.links.append((self._href, " ".join(self._anchor).strip(), " ".join(self._context).strip()))
+            context = self._contexts[-1] if self._contexts else []
+            self.links.append((self._href, " ".join(self._anchor).strip(), " ".join(context).strip()))
             self._href = None
             self._anchor = []
-        if tag in {"tr", "li", "article", "section"} and self._row_depth:
-            self._row_depth -= 1
-            if self._row_depth == 0:
-                self._context = []
+        if tag in self.CONTEXT_TAGS and self._contexts:
+            self._contexts.pop()
 
 
 def canonicalize(url: str) -> str:
@@ -107,15 +105,15 @@ def canonicalize(url: str) -> str:
         file_id = parse_qs(parsed.query).get("id", [""])[0]
         if file_id:
             return f"https://drive.google.com/file/d/{file_id}"
-    return parsed._replace(query="").geturl()
+    if Path(parsed.path.lower()).suffix in DOC_EXTENSIONS:
+        parsed = parsed._replace(query="")
+    return parsed.geturl()
 
 
 def is_document_link(url: str, label: str, context: str) -> bool:
     parsed = urlparse(url)
     suffix = Path(parsed.path.lower()).suffix
-    return suffix in DOC_EXTENSIONS or parsed.netloc.lower() in DOC_HOSTS or bool(
-        DOC_WORDS.search(f"{label} {context} {parsed.path}")
-    )
+    return suffix in DOC_EXTENSIONS or parsed.netloc.lower() in DOC_HOSTS
 
 
 def classify(label: str, context: str, url: str) -> tuple[str, int]:
@@ -129,6 +127,9 @@ def classify(label: str, context: str, url: str) -> tuple[str, int]:
 def model_hint(label: str, context: str) -> str:
     text = f"{context} {label}"
     tokens = re.findall(r"\b[A-Z]{1,5}[A-Z0-9-]*\d[A-Z0-9-]*\b", text, flags=re.I)
+    tokens += re.findall(r"\b\d{3,5}-\d{2,5}[A-Z0-9-]*\b", text, flags=re.I)
+    tokens += re.findall(r"\b\d{3,5}[A-Z]\d{2,5}[A-Z0-9-]*\b", text, flags=re.I)
+    tokens += re.findall(r"\b(\d{3,5})(?=\s+Series\b)", text, flags=re.I)
     tokens += re.findall(
         r"\b(?:InstaShower|HybridShower|InstaCool|InstaHeat)\s+"
         r"\d+(?:\s*(?:Plus|Pro|Ultra|II))?\b",

@@ -17,6 +17,17 @@ FOGATTI_MANUALS_FIXTURE = """
 </table>
 """
 
+COLEMAN_NESTED_TABLE_FIXTURE = """
+<section id="content">
+<table>
+<tr><td>9420-391_WIFI-THERMOSTAT_IOM_Manual</td><td>Manuals</td>
+<td><a href="/9420-391.pdf">Download</a></td></tr>
+<tr><td>CM-160274.01_WiFi-Thermostat-Compatibility-Guide</td><td>Manuals</td>
+<td><a href="/CM-160274.01.pdf">Download</a></td></tr>
+</table>
+</section>
+"""
+
 
 class VendorDiscoveryTests(unittest.TestCase):
     def test_fogatti_google_drive_rows_keep_model_context(self):
@@ -47,6 +58,39 @@ class VendorDiscoveryTests(unittest.TestCase):
         )
         self.assertEqual("installation_manual", kind)
         self.assertGreaterEqual(score, 9)
+
+    def test_nested_section_keeps_each_table_row_context_isolated(self):
+        parser = MODULE.LinkParser()
+        parser.feed(COLEMAN_NESTED_TABLE_FIXTURE)
+
+        self.assertEqual(2, len(parser.links))
+        self.assertIn("9420-391_WIFI-THERMOSTAT_IOM_Manual", parser.links[0][2])
+        self.assertNotIn("CM-160274", parser.links[0][2])
+        self.assertIn("CM-160274.01_WiFi-Thermostat-Compatibility-Guide", parser.links[1][2])
+        self.assertNotIn("9420-391", parser.links[1][2])
+
+    def test_keyword_bearing_html_category_is_not_a_document(self):
+        url = "https://manuals.example/?man=Troubleshooting%20Guides"
+        self.assertFalse(MODULE.is_document_link(url, "Troubleshooting Guides", ""))
+
+    def test_canonicalize_preserves_query_driven_html_navigation(self):
+        url = "https://manuals.example/?man=Troubleshooting%20Guides"
+        self.assertEqual(url, MODULE.canonicalize(url))
+
+    def test_canonicalize_removes_download_tracking_query(self):
+        self.assertEqual(
+            "https://manuals.example/files/thermostat.pdf",
+            MODULE.canonicalize("https://manuals.example/files/thermostat.pdf?download=1"),
+        )
+
+    def test_coleman_numeric_first_models_are_extracted_as_hints(self):
+        hint = MODULE.model_hint(
+            "Download",
+            "9420-391 WiFi thermostat; 7330D3371 wall thermostat; 7330 Series controls",
+        )
+        self.assertIn("9420-391", hint)
+        self.assertIn("7330D3371", hint)
+        self.assertIn("7330", hint)
 
 
 if __name__ == "__main__":

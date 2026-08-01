@@ -18,6 +18,9 @@ fixture checks.
 **Tech Stack:** Python 3, stdlib `sqlite3`, stdlib `dataclasses`, `pyyaml` (already a
 project dependency per `suburban_parser.py`'s `check_fixture`).
 
+**Status:** Completed 2026-07-31. All tasks below are implemented on `main`; the full
+self-test suite and canonical fixture check pass.
+
 ## Global Constraints
 
 - Follow the spec exactly: shared `edges` core + typed detail tables, one row per
@@ -65,7 +68,7 @@ project dependency per `suburban_parser.py`'s `check_fixture`).
   all tables if they don't exist and returns an open connection with `row_factory =
   sqlite3.Row`.
 
-- [ ] **Step 1: Write `interchange_schema.py` with the full DDL**
+- [x] **Step 1: Write `interchange_schema.py` with the full DDL**
 
 ```python
 #!/usr/bin/env python3
@@ -257,12 +260,12 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 2: Run it to verify the self-test passes**
+- [x] **Step 2: Run it to verify the self-test passes**
 
 Run: `cd Docs/Tools && python3 interchange_schema.py --self-test --verbose`
 Expected: `PASS: 15 tables created` then `self_test: PASS`, exit code 0.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add Docs/Tools/interchange_schema.py
@@ -283,7 +286,7 @@ git commit -m "Add components/edges store schema (interchange_schema.py)"
   `prior_for_basis(basis: str) -> tuple[float, float]`; `compute_confidence(evidence_rows:
   list[RelationshipEvidence]) -> dict` with keys `alpha`, `beta`, `value`, `certainty`.
 
-- [ ] **Step 1: Write `interchange_models.py`**
+- [x] **Step 1: Write `interchange_models.py`**
 
 ```python
 #!/usr/bin/env python3
@@ -441,12 +444,12 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 2: Run the self-test**
+- [x] **Step 2: Run the self-test**
 
 Run: `cd Docs/Tools && python3 interchange_models.py --self-test --verbose`
 Expected: `PASS: prior lookup and confidence math both correct`, `self_test: PASS`, exit 0.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add Docs/Tools/interchange_models.py
@@ -474,7 +477,7 @@ git commit -m "Add interchange dataclasses and confidence math"
   - `get_evidence_for_edge(conn, edge_id: int) -> list[RelationshipEvidence]`
   - `get_caveats_for_edge(conn, edge_id: int) -> list[EdgeCaveat]`
 
-- [ ] **Step 1: Write `interchange_store.py`**
+- [x] **Step 1: Write `interchange_store.py`**
 
 ```python
 #!/usr/bin/env python3
@@ -640,12 +643,12 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 2: Run the self-test**
+- [x] **Step 2: Run the self-test**
 
 Run: `cd Docs/Tools && python3 interchange_store.py --self-test --verbose`
 Expected: `PASS: full round trip through every insert/get function`, `self_test: PASS`, exit 0.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add Docs/Tools/interchange_store.py
@@ -669,7 +672,7 @@ git commit -m "Add interchange_store.py: CRUD for components/edges/evidence"
   returns the objects for the caller to persist (keeps this function unit-testable without
   a live store).
 
-- [ ] **Step 1: Write the observation-loading half of `edge_resolver.py`**
+- [x] **Step 1: Write the observation-loading half of `edge_resolver.py`**
 
 ```python
 #!/usr/bin/env python3
@@ -787,13 +790,13 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 2: Run the self-test**
+- [x] **Step 2: Run the self-test**
 
 Run: `cd Docs/Tools && python3 edge_resolver.py --self-test --verbose`
 Expected: `PASS: both anchor components built from observations #1 and #2`,
 `self_test: PASS`, exit 0.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add Docs/Tools/edge_resolver.py
@@ -816,7 +819,7 @@ git commit -m "Add edge_resolver.py: build anchor components from observations #
   plus their `edge_substitution_detail`, `edge_caveat`, and prior `relationship_evidence`
   rows, returns `(edge_a_to_b_id, edge_b_to_a_id)`.
 
-- [ ] **Step 1: Write the edge-derivation function and its test, appended to `edge_resolver.py`**
+- [x] **Step 1: Write the edge-derivation function and its test, appended to `edge_resolver.py`**
 
 ```python
 def resolve_substitution_pair(conn, from_id, from_model, to_id, to_model, group_key):
@@ -858,7 +861,7 @@ def resolve_substitution_pair(conn, from_id, from_model, to_id, to_model, group_
     return tuple(edge_ids)
 ```
 
-- [ ] **Step 2: Extend `self_test()` to cover the edge derivation**
+- [x] **Step 2: Extend `self_test()` to cover the edge derivation**
 
 Add to `self_test()`, before the final `if failures:` block:
 
@@ -904,7 +907,7 @@ from interchange_models import compute_confidence
 from interchange_store import get_caveats_for_edge, get_evidence_for_edge
 ```
 
-- [ ] **Step 3: Run the self-test**
+- [x] **Step 3: Run the self-test**
 
 Run: `cd Docs/Tools && python3 edge_resolver.py --self-test --verbose`
 Expected: `PASS: both anchor components built from observations #1 and #2`,
@@ -912,7 +915,7 @@ Expected: `PASS: both anchor components built from observations #1 and #2`,
 message for this expanded coverage, update the `if verbose:` print — either is fine as
 long as it stays truthful about what was checked.)
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add Docs/Tools/edge_resolver.py
@@ -933,7 +936,7 @@ git commit -m "Derive the canonical SW6DE/SW6DEL substitution edge pair"
   1 = mismatch, printed diagnostics either way) and wires it into `main()` via
   `--check-fixture <path>`.
 
-- [ ] **Step 1: Write `check_fixture`, appended to `edge_resolver.py`**
+- [x] **Step 1: Write `check_fixture`, appended to `edge_resolver.py`**
 
 ```python
 def _find_fixture_edge(edges_doc, a_id, b_id):
@@ -1008,7 +1011,7 @@ def check_fixture(ground_truth_path, obs_db_path):
     return 1 if mismatches else 0
 ```
 
-- [ ] **Step 2: Wire `--check-fixture` into `main()`**
+- [x] **Step 2: Wire `--check-fixture` into `main()`**
 
 Replace the existing `main()` in `edge_resolver.py`:
 
@@ -1023,18 +1026,18 @@ def main():
         sys.exit(check_fixture(fixture_path, obs_db))
 ```
 
-- [ ] **Step 3: Run it against the real fixture**
+- [x] **Step 3: Run it against the real fixture**
 
 Run: `cd Docs/Tools && python3 edge_resolver.py --check-fixture ../Inital_Design/ground-truth.yaml`
 Expected: two `a_to_b`/`b_to_a` lines printed (verdicts matching fixture), then
 `0 mismatches against ground-truth.yaml's canonical edge`, exit code 0.
 
-- [ ] **Step 4: Run the full self-test suite one more time to confirm nothing regressed**
+- [x] **Step 4: Run the full self-test suite one more time to confirm nothing regressed**
 
 Run: `cd Docs/Tools && python3 edge_resolver.py --self-test --verbose && python3 interchange_store.py --self-test && python3 interchange_models.py --self-test && python3 interchange_schema.py --self-test`
 Expected: all four print `self_test: PASS` with exit code 0.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Docs/Tools/edge_resolver.py
