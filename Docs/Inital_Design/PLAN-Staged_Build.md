@@ -317,8 +317,11 @@ identity and compatibility evidence.*
 > backing evidence in `observations.db`: the vendor-researched SW12DEL component, the tankless
 > IW60RL component, both Atwood 6/10-gallon family placeholders, the SW6DEL→SW12DEL
 > cross-capacity upgrade edge, and all four manufacturer-documented IW60RL retrofit edges.
-> `edge_resolver.py --check-fixture` reports 0 mismatches. The sole remaining open item is
-> `c_placeholder_wh_switch` (the interior wall switch, identifiers 232882/233111/232881) and
-> its `controls` edge — no observation backs those identifiers yet, so nothing was invented for
-> them. Next step there is capturing one new observation (a data-plate photo or manual page)
-> before that component can be resolved honestly.
+> `edge_resolver.py --check-fixture` reports 0 mismatches. The interior wall switch
+> (`c_placeholder_wh_switch`) is now resolved too, from obs #51 (a page of the same 2025
+> Aftermarket Catalog already used for obs #25) plus its `controls` edge to SW6DEL — but only
+> with 2 of the fixture's 3 claimed identifiers (`232882` White, `233111` Black). The third,
+> `232881` (Cream), appears in no captured source and was deliberately not invented; the
+> resolver checks its output is a subset of the fixture rather than forcing equality, and flags
+> the gap instead of silently passing or failing on it. All Suburban water-heater fixture work
+> is now either resolved or explicitly flagged — nothing left is a silent gap.

@@ -1353,12 +1353,16 @@ Concretely:
       genuinely new key fails loudly (`ValueError`) rather than dropping it silently. The
       `cutout_*` → `opening_h`/`opening_w` correction (§6.5) is now mechanical — depth is
       dropped and logged on every record, not re-litigated per observation.
-      **One component remains genuinely unresolved, not a resolver gap:**
-      `c_placeholder_wh_switch` (identifiers `232882`/`233111`/`232881`, the interior
-      wall switch) has **no observation in `observations.db`** — none of those three
-      part numbers appear anywhere in the 50 captured rows. It and its `controls` edge
-      to SW6DEL cannot be honestly resolved without first capturing a new observation
-      (e.g. a data-plate photo or manual page naming one of those part numbers).
+      **Interior switch, resolved with a known partial gap:** obs #51 (the same
+      Suburban 2025 Aftermarket Catalog already used for obs #25, page 3) documents
+      `c_placeholder_wh_switch`'s two DEL-line colours — `232882` White, `233111`
+      Black — and the resolver now persists that component plus its `controls` edge
+      to SW6DEL. The fixture's third claimed identifier, `232881` (Cream), does
+      **not** appear anywhere in this catalog and is deliberately **not** attached —
+      the resolver checks that its own output is a subset of the fixture's
+      identifiers rather than requiring exact equality, and prints an informational
+      note rather than counting the gap as a mismatch. 232881 remains unconfirmed
+      pending a source that actually names it.
 - [x] SW6DE↔SW6DEL asymmetric edge resolves correctly in both directions
       (`compare_models()`, general feature-superset comparison, not hardcoded to this pair —
       verified against capacity/ignition mismatches and the SW6DEM motorhome-only constraint.
