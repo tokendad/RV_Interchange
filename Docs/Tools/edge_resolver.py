@@ -33,6 +33,8 @@ from interchange_store import (
 WATER_HEATER_PART_TYPE = 412
 THERMOSTAT_PART_TYPE = 415
 THERMOSTAT_CODE = "415-0012-A"
+COLEMAN_ENDPOINT_MODELS = ("7330G3351", "7330F3852", "9420-351")
+COLEMAN_ENDPOINT_RESOLVER_VERSION = "coleman_endpoint_v1"
 THERMOSTAT_TERMINALS = ("R", "Y", "W", "GL", "GH", "B")
 THERMOSTAT_IDENTIFIERS = {
     ("icm", "AP7862"),
@@ -147,6 +149,86 @@ def thermostat_from_observations(photo_row, manual_row, positions_row, scalar_ro
     return component, identifiers, attributes
 
 
+def coleman_endpoint_components(product_row, replacement_row, legacy_row, component_ids):
+    product = _normalized_attributes(product_row)
+    replacement = _normalized_attributes(replacement_row)
+    legacy = _normalized_attributes(legacy_row)
+    product_models = product.get("model_spec_table")
+    replacement_models = replacement.get("model_spec_table")
+    legacy_models = legacy.get("model_spec_table")
+    relation = replacement.get("sku_relationship")
+
+    if not all(isinstance(models, dict) for models in
+               (product_models, replacement_models, legacy_models)):
+        raise ValueError("Coleman endpoint observations require model tables")
+    if not {"7330G3351", "7330F3852"}.issubset(product_models):
+        raise ValueError("official product page is missing a retired endpoint")
+    expected_relation = {
+        "type": "manufacturer_supersedes",
+        "from": ["7330G3351", "7330F3852"],
+        "to": "9420-351",
+    }
+    if relation != expected_relation or "9420-351" not in replacement_models:
+        raise ValueError(f"unexpected Coleman replacement relation: {relation}")
+    if "7330G3351" not in legacy_models:
+        raise ValueError("legacy catalog is missing 7330G3351")
+    if set(component_ids) != set(COLEMAN_ENDPOINT_MODELS):
+        raise ValueError(f"unexpected Coleman endpoint ID map: {component_ids}")
+
+    def text_attr(component_id, name, value, provenance, source_row):
+        return ComponentAttribute(
+            component_id, name, provenance, source_row["id"], value_text=value,
+            resolver_version=COLEMAN_ENDPOINT_RESOLVER_VERSION)
+
+    source_checks = (
+        (product_models["7330G3351"].get("function"), "heat_cool", "7330G3351 function"),
+        (product_models["7330G3351"].get("color"), "white", "7330G3351 color"),
+        (product_models["7330F3852"].get("function"), "heat_cool", "7330F3852 function"),
+        (product_models["7330F3852"].get("color"), "black", "7330F3852 color"),
+        (legacy_models["7330G3351"].get("function"), "single_stage_heat_cool",
+         "7330G3351 legacy function"),
+        (legacy_models["7330G3351"].get("voltage"), "12VDC", "7330G3351 voltage"),
+        (replacement_models["9420-351"].get("function"), "heat_cool",
+         "9420-351 function"),
+        (replacement_models["9420-351"].get("color"), "black", "9420-351 color"),
+        (replacement_models["9420-351"].get("voltage"), "12VDC", "9420-351 voltage"),
+    )
+    for actual, expected, label in source_checks:
+        if actual != expected:
+            raise ValueError(f"unexpected {label}: {actual!r}")
+
+    attribute_specs = {
+        "7330G3351": (
+            ("function", "heat_cool", "manufacturer_page", product_row),
+            ("color", "white", "manufacturer_page", product_row),
+            ("interface_type", "analog", "manufacturer_page", product_row),
+            ("stages", "single", "manufacturer_pdf", legacy_row),
+            ("voltage", "12VDC", "manufacturer_pdf", legacy_row),
+        ),
+        "7330F3852": (
+            ("function", "heat_cool", "manufacturer_page", product_row),
+            ("color", "black", "manufacturer_page", product_row),
+            ("interface_type", "analog", "manufacturer_page", product_row),
+            ("stages", "single", "manufacturer_page_inferred", product_row),
+        ),
+        "9420-351": (
+            ("function", "heat_cool", "manufacturer_pdf", replacement_row),
+            ("color", "black", "manufacturer_pdf", replacement_row),
+            ("interface_type", "analog", "manufacturer_pdf", replacement_row),
+            ("voltage", "12VDC", "manufacturer_pdf", replacement_row),
+        ),
+    }
+    results = []
+    for model in COLEMAN_ENDPOINT_MODELS:
+        component_id = component_ids[model]
+        component = Component(component_id, THERMOSTAT_PART_TYPE, None)
+        identifiers = [Identifier(component_id, "coleman", model, None)]
+        attributes = [text_attr(component_id, name, value, provenance, source_row)
+                      for name, value, provenance, source_row in attribute_specs[model]]
+        results.append((component, identifiers, attributes))
+    return results
+
+
 def identifier_candidate_from_observation(obs_row):
     attrs = _normalized_attributes(obs_row)
     relation = attrs.get("sku_relationship")
@@ -214,6 +296,9 @@ def self_test(verbose=False):
 
     obs1 = load_observation(obs_db, 1)  # SW6DEL
     obs2 = load_observation(obs_db, 2)  # SW6DE
+    obs40 = load_observation(obs_db, 40)  # Coleman product page
+    obs41 = load_observation(obs_db, 41)  # Coleman replacement sheet
+    obs42 = load_observation(obs_db, 42)  # Coleman legacy catalog
     obs43 = load_observation(obs_db, 43)  # retailer identifier candidate
     obs44 = load_observation(obs_db, 44)  # in-hand thermostat
     obs45 = load_observation(obs_db, 45)  # terminal functions
@@ -258,6 +343,80 @@ def self_test(verbose=False):
         mutate(extracted)
         changed["extracted"] = json.dumps(extracted)
         return changed
+
+    endpoint_ids = {
+        "7330G3351": "c_placeholder_tstat_7330g3351",
+        "7330F3852": "c_placeholder_tstat_7330f3852",
+        "9420-351": "c_placeholder_tstat_9420_351",
+    }
+    endpoints = coleman_endpoint_components(obs40, obs41, obs42, endpoint_ids)
+    by_model = {
+        identifiers[0].value: (component, identifiers, attributes)
+        for component, identifiers, attributes in endpoints
+    }
+    if set(by_model) != set(endpoint_ids):
+        failures.append(f"Coleman endpoint set mismatch: {set(by_model)}")
+    for model, (component, identifiers, attributes) in by_model.items():
+        if component.part_type_id != 415 or component.interchange_code is not None:
+            failures.append(f"invalid endpoint component: {component}")
+        if [(i.ns, i.value, i.visibility) for i in identifiers] != [
+                ("coleman", model, None)]:
+            failures.append(f"invalid endpoint identifiers for {model}: {identifiers}")
+
+    expected = {
+        "7330G3351": {
+            "function": ("heat_cool", 40), "color": ("white", 40),
+            "interface_type": ("analog", 40), "stages": ("single", 42),
+            "voltage": ("12VDC", 42),
+        },
+        "7330F3852": {
+            "function": ("heat_cool", 40), "color": ("black", 40),
+            "interface_type": ("analog", 40), "stages": ("single", 40),
+        },
+        "9420-351": {
+            "function": ("heat_cool", 41), "color": ("black", 41),
+            "interface_type": ("analog", 41), "voltage": ("12VDC", 41),
+        },
+    }
+    forbidden_endpoint_attributes = {
+        "terminal_order", "terminal_function", "terminal_board_position",
+    }
+    for model, (_, _, attributes) in by_model.items():
+        actual = {
+            attribute.name: (attribute.value_text, attribute.source_observation_id)
+            for attribute in attributes
+        }
+        if actual != expected[model]:
+            failures.append(f"Coleman endpoint attributes mismatch for {model}: {actual}")
+        attached_forbidden = {
+            attribute.name for attribute in attributes
+        } & forbidden_endpoint_attributes
+        if attached_forbidden:
+            failures.append(
+                f"forbidden Coleman endpoint attributes for {model}: {attached_forbidden}")
+
+    invalid_endpoint_inputs = (
+        (changed_row(obs40, lambda e: e["models"].pop("7330F3852")), obs41, obs42),
+        (obs40, changed_row(obs41, lambda e: e["relation"].__setitem__(
+            "from", ["7330G335", "7330F3852"])), obs42),
+        (obs40, changed_row(obs41, lambda e: e["relation"].__setitem__(
+            "to", "7330F3858")), obs42),
+    )
+    for product, replacement, legacy in invalid_endpoint_inputs:
+        try:
+            coleman_endpoint_components(product, replacement, legacy, endpoint_ids)
+            failures.append("invalid Coleman endpoint evidence was accepted")
+        except ValueError:
+            pass
+
+    for forbidden_model in ("7330G335", "7330F3858"):
+        invalid_endpoint_ids = dict(endpoint_ids)
+        invalid_endpoint_ids[forbidden_model] = f"c_forbidden_{forbidden_model.lower()}"
+        try:
+            coleman_endpoint_components(obs40, obs41, obs42, invalid_endpoint_ids)
+            failures.append(f"forbidden Coleman endpoint ID was accepted: {forbidden_model}")
+        except ValueError:
+            pass
 
     invalid_inputs = (
         (changed_row(obs44, lambda e: e["wire_colors"].pop("B")), obs45, obs46, obs47),
