@@ -311,5 +311,14 @@ identity and compatibility evidence.*
 > Coleman milestone is independently identifying the manual's unnamed generations; no broad
 > compatibility edges are created until that boundary is resolved.
 >
-> The §8 definition-of-done in `VENDOR-Suburban.md` now has 8 of 9 boxes checked. The remaining
-> partial item is full-fixture reproduction; the scoped SW6DE/SW6DEL resolver milestone is done.
+> The §8 definition-of-done in `VENDOR-Suburban.md` now has all 9 boxes checked. The scoped
+> SW6DE/SW6DEL resolver milestone is done, and `edge_resolver.py` has been extended to resolve
+> every other Suburban water-heater component and edge in `ground-truth.yaml` that has real
+> backing evidence in `observations.db`: the vendor-researched SW12DEL component, the tankless
+> IW60RL component, both Atwood 6/10-gallon family placeholders, the SW6DEL→SW12DEL
+> cross-capacity upgrade edge, and all four manufacturer-documented IW60RL retrofit edges.
+> `edge_resolver.py --check-fixture` reports 0 mismatches. The sole remaining open item is
+> `c_placeholder_wh_switch` (the interior wall switch, identifiers 232882/233111/232881) and
+> its `controls` edge — no observation backs those identifiers yet, so nothing was invented for
+> them. Next step there is capturing one new observation (a data-plate photo or manual page)
+> before that component can be resolved honestly.

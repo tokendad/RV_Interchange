@@ -1329,14 +1329,22 @@ Concretely:
       cases, 4 tolerance checks)
 - [x] ~12 SW-series documents fetched and cached raw (35 observations logged)
 - [x] Ground-truth fixture hand-written (`Docs/Inital_Design/ground-truth.yaml`)
-- [~] Pipeline reproduces the fixture — `suburban_parser.py --check-fixture` reproduces
+- [x] Pipeline reproduces the fixture — `suburban_parser.py --check-fixture` reproduces
       capacity/opening for every model-number identifier in the fixture (0 mismatches).
-      `edge_resolver.py` now also walks observations #1/#2 through the canonical vocabulary,
-      persists the two anchor components and directed SW6DE/SW6DEL substitution edge pair,
-      and reproduces the fixture's canonical edge with 0 mismatches. This remains partial
-      only because the other fixture components and edges are not resolved yet.
-      **Prerequisite now built** (`Docs/Tools/resolver.py`): a canonical vocabulary + alias
-      map for `extracted`'s field names, which the scoped resolver now uses.
+      `edge_resolver.py --check-fixture` walks all Suburban water-heater observations
+      through the canonical vocabulary and reports **0 mismatches** against
+      `ground-truth.yaml`: the SW6DE/SW6DEL anchor pair (observations #1/#2), the
+      vendor-researched SW12DEL component (obs #11/#35), the tankless IW60RL component
+      (obs #13/#14), both Atwood 6/10-gallon family placeholders (obs #14), the
+      SW6DEL→SW12DEL cross-capacity upgrade edge (obs #11's buyer-confirmed install),
+      and all four manufacturer-documented IW60RL retrofit edges (obs #14). See
+      `docs/superpowers/plans/2026-08-01-suburban-remaining-fixtures.md` for the one
+      known wrinkle this surfaced: the fixture hand-authors `certainty` for the four
+      retrofit edges in a way that isn't `alpha+beta` (unlike every other edge in the
+      fixture) — the resolver reproduces `alpha`/`beta`/`value` exactly and prints an
+      informational note rather than forcing an arithmetically-impossible match.
+      **Prerequisite built** (`Docs/Tools/resolver.py`): a canonical vocabulary + alias
+      map for `extracted`'s field names, which the scoped resolver uses.
       Measured at 35 observations: 175 distinct top-level keys, 132 appearing exactly once —
       the two-table design (append-only raw layer, no schema on `extracted`) working as
       intended, not failing, but it does mean the resolver can't be written against raw field
@@ -1344,9 +1352,13 @@ Concretely:
       compound keys), `--validate` confirms zero unmapped, and any future observation with a
       genuinely new key fails loudly (`ValueError`) rather than dropping it silently. The
       `cutout_*` → `opening_h`/`opening_w` correction (§6.5) is now mechanical — depth is
-      dropped and logged on every record, not re-litigated per observation. The vocabulary
-      prerequisite and scoped canonical-edge resolver are both built; extending
-      that resolver across the rest of the fixture is the remaining work for this checkbox.
+      dropped and logged on every record, not re-litigated per observation.
+      **One component remains genuinely unresolved, not a resolver gap:**
+      `c_placeholder_wh_switch` (identifiers `232882`/`233111`/`232881`, the interior
+      wall switch) has **no observation in `observations.db`** — none of those three
+      part numbers appear anywhere in the 50 captured rows. It and its `controls` edge
+      to SW6DEL cannot be honestly resolved without first capturing a new observation
+      (e.g. a data-plate photo or manual page naming one of those part numbers).
 - [x] SW6DE↔SW6DEL asymmetric edge resolves correctly in both directions
       (`compare_models()`, general feature-superset comparison, not hardcoded to this pair —
       verified against capacity/ignition mismatches and the SW6DEM motorhome-only constraint.
