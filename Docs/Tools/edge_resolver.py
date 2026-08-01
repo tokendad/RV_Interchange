@@ -17,17 +17,19 @@ sys.path.insert(0, str(Path(__file__).parent))
 from resolver import normalize_extracted
 from suburban_parser import compare_models
 from interchange_models import (
-    Component, Identifier, ComponentAttribute, Edge, EdgeSubstitutionDetail, EdgeCaveat,
-    RelationshipEvidence, IdentifierEquivalenceCandidate,
+    Component, Identifier, ComponentAttribute, Edge, EdgeSubstitutionDetail,
+    EdgeSupersessionDetail, EdgeCaveat, RelationshipEvidence, IdentifierEquivalenceCandidate,
     IdentifierEquivalenceEvidence, prior_for_basis, compute_confidence,
 )
 from interchange_schema import init_db
 from interchange_store import (
     insert_component, insert_identifier, insert_edge, insert_substitution_detail,
+    insert_supersession_detail,
     insert_caveat, insert_evidence, now_iso, get_caveats_for_edge, get_evidence_for_edge,
     insert_component_attribute, get_component_attributes,
     insert_identifier_equivalence_candidate, insert_identifier_equivalence_evidence,
     get_identifier_equivalence_candidates, get_identifier_equivalence_evidence,
+    get_supersession_detail,
 )
 
 WATER_HEATER_PART_TYPE = 412
@@ -306,6 +308,78 @@ def resolve_substitution_pair(conn, from_id, from_model, to_id, to_model, group_
     return tuple(edge_ids)
 
 
+def resolve_coleman_supersessions(conn, replacement_row, retailer_rows, component_ids):
+    manufacturer = _normalized_attributes(replacement_row)
+    expected_manufacturer_relation = {
+        "type": "manufacturer_supersedes",
+        "from": ["7330G3351", "7330F3852"],
+        "to": "9420-351",
+    }
+    if manufacturer.get("sku_relationship") != expected_manufacturer_relation:
+        raise ValueError("unexpected manufacturer supersession relation")
+    if set(component_ids) != set(COLEMAN_ENDPOINT_MODELS):
+        raise ValueError(f"unexpected Coleman endpoint ID map: {component_ids}")
+    if "c_placeholder_tstat" in component_ids.values():
+        raise ValueError("in-hand thermostat cannot be a catalog endpoint")
+    if len(set(component_ids.values())) != 3:
+        raise ValueError("Coleman endpoint components must be distinct")
+
+    retailer_by_model = {}
+    for row in retailer_rows:
+        attrs = _normalized_attributes(row)
+        relation = attrs.get("sku_relationship")
+        if not isinstance(relation, dict) or relation.get("type") != "retailer_replacement":
+            raise ValueError(f"observation #{row['id']} lacks a retailer replacement")
+        retired_model = relation.get("from")
+        if retired_model not in ("7330G3351", "7330F3852") or \
+                relation.get("to") != "9420-351":
+            raise ValueError(f"unexpected retailer replacement pair: {relation}")
+        claim = attrs.get("replacement_claim")
+        if claim != {"function": "same", "wiring": "same", "mounting": "same",
+                     "compatibility": "same"}:
+            raise ValueError(f"incomplete retailer replacement claim: {claim}")
+        if retired_model in retailer_by_model:
+            raise ValueError(f"duplicate retailer row for {retired_model}")
+        retailer_by_model[retired_model] = row
+    if set(retailer_by_model) != {"7330G3351", "7330F3852"}:
+        raise ValueError("both retired endpoint retailer rows are required")
+
+    existing = conn.execute(
+        "SELECT component_id FROM components WHERE component_id IN (?, ?, ?)",
+        tuple(component_ids[m] for m in COLEMAN_ENDPOINT_MODELS)).fetchall()
+    if {row["component_id"] for row in existing} != set(component_ids.values()):
+        raise ValueError("all Coleman endpoint components must exist before edge resolution")
+
+    edge_ids = []
+    for retired_model in ("7330G3351", "7330F3852"):
+        edge = Edge(
+            type="supersedes",
+            from_component_id=component_ids[retired_model],
+            to_component_id=component_ids["9420-351"],
+            group_key="coleman_analog_heat_cool_12v",
+            status="candidate",
+            resolver_version=COLEMAN_ENDPOINT_RESOLVER_VERSION,
+            notes="Coleman catalog names 9420-351 as the current replacement",
+        )
+        insert_edge(conn, edge)
+        insert_supersession_detail(conn, EdgeSupersessionDetail(
+            edge_id=edge.id,
+            note=f"Coleman 2025 catalog names 9420-351 as the replacement for "
+                 f"{retired_model}."))
+        for event_type, alpha, beta, source_id in (
+            ("attribute_prior", 1.0, 1.0, None),
+            ("manufacturer_assertion", 2.0, 0.0, replacement_row["id"]),
+            ("retailer_cross_reference", 1.0, 0.0,
+             retailer_by_model[retired_model]["id"]),
+        ):
+            insert_evidence(conn, RelationshipEvidence(
+                edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+                effect_beta=beta, source_observation_id=source_id,
+                occurred_at=now_iso()))
+        edge_ids.append(edge.id)
+    return tuple(edge_ids)
+
+
 def self_test(verbose=False):
     obs_db = str(Path(__file__).parent / "observations.db")
     failures = []
@@ -320,6 +394,8 @@ def self_test(verbose=False):
     obs45 = load_observation(obs_db, 45)  # terminal functions
     obs46 = load_observation(obs_db, 46)  # PCB positions
     obs47 = load_observation(obs_db, 47)  # voltage/stages supplement
+    obs48 = load_observation(obs_db, 48)  # 7330G3351 retailer replacement
+    obs49 = load_observation(obs_db, 49)  # 7330F3852 retailer replacement
 
     thermostat, thermostat_ids, thermostat_attrs = thermostat_from_observations(
         obs44, obs45, obs46, obs47, "c_placeholder_tstat")
@@ -527,6 +603,105 @@ def self_test(verbose=False):
     confidence = compute_confidence(evidence)
     if confidence["value"] != 0.75 or confidence["certainty"] != 4.0:
         failures.append(f"expected prior confidence 0.75/n=4, got {confidence}")
+
+    def persist_endpoints(conn):
+        for component, identifiers, attributes in endpoints:
+            insert_component(conn, component)
+            for identifier in identifiers:
+                insert_identifier(conn, identifier)
+            for attribute in attributes:
+                insert_component_attribute(conn, attribute)
+
+    persist_endpoints(store_conn)
+    edge_ids = resolve_coleman_supersessions(
+        store_conn, obs41, [obs48, obs49], endpoint_ids)
+    if len(edge_ids) != 2:
+        failures.append(f"expected two Coleman supersession edges, got {edge_ids}")
+    rows = store_conn.execute(
+        "SELECT * FROM edges WHERE id IN (?, ?) ORDER BY id", edge_ids).fetchall()
+    expected_pairs = [
+        (endpoint_ids["7330G3351"], endpoint_ids["9420-351"]),
+        (endpoint_ids["7330F3852"], endpoint_ids["9420-351"]),
+    ]
+    actual_pairs = [(r["from_component_id"], r["to_component_id"]) for r in rows]
+    if actual_pairs != expected_pairs:
+        failures.append(f"Coleman supersession direction mismatch: {actual_pairs}")
+    for row, retailer_observation_id in zip(rows, (48, 49)):
+        actual_edge_fields = (
+            row["type"], row["status"], row["group_key"], row["resolver_version"])
+        expected_edge_fields = (
+            "supersedes", "candidate", "coleman_analog_heat_cool_12v",
+            "coleman_endpoint_v1")
+        if actual_edge_fields != expected_edge_fields:
+            failures.append(f"Coleman supersession edge fields mismatch: {actual_edge_fields}")
+        if get_supersession_detail(store_conn, row["id"]) is None:
+            failures.append(f"Coleman supersession detail missing for edge #{row['id']}")
+        edge_evidence = get_evidence_for_edge(store_conn, row["id"])
+        actual_evidence = [
+            (item.event_type, item.effect_alpha, item.effect_beta,
+             item.source_observation_id)
+            for item in edge_evidence
+        ]
+        expected_evidence = [
+            ("attribute_prior", 1.0, 1.0, None),
+            ("manufacturer_assertion", 2.0, 0.0, 41),
+            ("retailer_cross_reference", 1.0, 0.0, retailer_observation_id),
+        ]
+        if actual_evidence != expected_evidence:
+            failures.append(
+                f"Coleman supersession evidence mismatch for edge #{row['id']}: "
+                f"{actual_evidence}")
+        edge_confidence = compute_confidence(edge_evidence)
+        if edge_confidence != {"alpha": 4.0, "beta": 1.0, "value": 0.8,
+                               "certainty": 5.0}:
+            failures.append(
+                f"Coleman supersession confidence mismatch: {edge_confidence}")
+
+    invalid_manufacturer_rows = (
+        changed_row(obs41, lambda e: e.__setitem__("relation", {
+            "type": "manufacturer_supersedes", "from": ["9420-351"],
+            "to": "7330G3351"})),
+        changed_row(obs41, lambda e: e["relation"].__setitem__(
+            "from", ["7330G3351"])),
+        changed_row(obs41, lambda e: e["relation"].pop("to")),
+        changed_row(obs41, lambda e: e["relation"]["from"].append("7330G335")),
+        changed_row(obs41, lambda e: e["relation"]["from"].append("9420-351")),
+    )
+    rejection_inputs = [
+        (row, [obs48, obs49], endpoint_ids, True)
+        for row in invalid_manufacturer_rows
+    ]
+    rejection_inputs.extend((
+        (obs41, [changed_row(obs48, lambda e: e["relation"].__setitem__(
+            "to", "7330F3852")), obs49], endpoint_ids, True),
+        (obs41, [obs48, obs49], dict(endpoint_ids, **{
+            "7330G3351": "c_placeholder_tstat"}), True),
+        (obs41, [obs48, obs49], endpoint_ids, False),
+    ))
+    for replacement, retailers, ids, should_persist_endpoints in rejection_inputs:
+        rejected_conn = init_db(":memory:")
+        if should_persist_endpoints:
+            if ids == endpoint_ids:
+                persist_endpoints(rejected_conn)
+            else:
+                invalid_endpoints = coleman_endpoint_components(obs40, obs41, obs42, ids)
+                for component, identifiers, attributes in invalid_endpoints:
+                    insert_component(rejected_conn, component)
+                    for identifier in identifiers:
+                        insert_identifier(rejected_conn, identifier)
+                    for attribute in attributes:
+                        insert_component_attribute(rejected_conn, attribute)
+        try:
+            resolve_coleman_supersessions(rejected_conn, replacement, retailers, ids)
+            failures.append("invalid Coleman supersession evidence was accepted")
+        except ValueError:
+            pass
+        rejected_edges = rejected_conn.execute(
+            "SELECT id FROM edges WHERE group_key = ?",
+            ("coleman_analog_heat_cool_12v",)).fetchall()
+        if rejected_edges:
+            failures.append(
+                f"Coleman supersession rejection wrote edges: {rejected_edges}")
 
     if failures:
         for f in failures:
