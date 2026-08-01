@@ -1053,7 +1053,8 @@ git commit -m "Add --check-fixture: resolver reproduces the canonical SW6DE/SW6D
   future plan(s).
 - Opaque `component_id` generation (ULID-style, per ARCHITECTURE §2) — this plan hardcodes
   the fixture's placeholder strings; a real ID generator is separate work.
-- `identifier_equivalence_candidate` population (the AP7862-3/AR7815 thermostat case) —
+- `identifier_equivalence_candidate` population (currently the retailer-only
+  AR7815/7330F3858 thermostat case; corrected by obs #43/#44 on 2026-08-01) —
   the table exists (Task 1) but nothing writes to it yet; needs the thermostat component
   first.
 - Tiered search (EXACT/DROP-IN/FITS WITH ONE CHECK/PARTS FOR THIS UNIT) query logic per

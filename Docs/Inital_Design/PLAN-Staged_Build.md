@@ -224,13 +224,15 @@ much as opportunity. See §5.
 
 ## 9. Immediate next actions
 
-*Updated 2026-07-30 at 35 observations. The original list is preserved struck-through —
-four of five items are done, and the work has moved past what that list anticipated.*
+*Updated 2026-08-01 at 45 observations. The original list is preserved struck-through;
+the work has moved through the scoped Suburban resolver and into Coleman-Mach thermostat
+identity and compatibility evidence.*
 
 ### Done
 
-1. ~~Build the `observations` table.~~ **Done** — `tools/observations.py`, append-only,
-   HTML + PDF capture with scan detection, 35 observations live.
+1. ~~Build the `observations` table.~~ **Done** — `Docs/Tools/observations.py`, append-only,
+   with 45 captured observations across pages, PDFs, direct communication, measurements,
+   and in-hand teardown photographs.
 2. ~~Hand-pull ~12 Suburban SW-series documents.~~ **Superseded.** The count was set before
    the sources were known. Actual capture spans manufacturer brochures, two service manuals,
    an OEM parts portal, a 2002 archived spec chart, and a direct reply from Suburban support
@@ -249,7 +251,7 @@ four of five items are done, and the work has moved past what that list anticipa
    aware, not just feature-count), and implements the `full − empty` weight validity rule.
    Self-tested, cross-checked against `ground-truth.yaml` with 0 mismatches.
 6. ~~Enforce source-trust ranking.~~ **Done** — `Docs/Tools/resolver.py` adds a
-   machine-readable `source_tier` column on `observations`, backfilled for all 35 rows.
+   machine-readable `source_tier` column on `observations`, backfilled for all rows.
 7. **Prerequisite for the resolver, found by measuring the input.** 35 observations had
    accumulated 175 distinct `extracted` keys, 132 seen exactly once — the no-schema-on-insert
    design working as intended, but it meant no resolver could be written against raw field
@@ -277,18 +279,24 @@ four of five items are done, and the work has moved past what that list anticipa
    marking read off the part. **Roof vent:** `opening_size: 14x14 in` was already recorded
    with `in_hand_measured` provenance. Its measurement is complete; only the separate
    teardown capture and hidden molded-identifier classification remain open.
-10. **Second vendor adapter.** Suburban is deep enough to prove the pattern. Coleman-Mach /
-    Airxcel is next (§ `VENDOR-Suburban.md` §10) and hits multi-namespace identity early via
-    the in-hand thermostat.
+10. **Second vendor adapter: in progress.** Coleman-Mach / Airxcel now has six captured
+    sources (obs #40-#45), including the in-hand thermostat teardown and the RV Products
+    service manual. Obs #44 proves `AP7862`, `7330G335`, `PCB1060`, and `SPCB-2` coexist on
+    the physical unit; obs #45 supplies the complete `R/Y/W/GL/GH/B` function map and a
+    manufacturer statement that the depicted thermostat generations are interchangeable.
+    See `Docs/Data/Coleman_Mach/VENDOR-Coleman-Mach.md`. Remaining work is resolver support:
+    represent compatibility, supersession, and open identifier-equivalence candidates as
+    distinct relationship types instead of collapsing them into aliases.
 11. **Resolve the SKU channel-split model.** Suburban confirmed 5148A/5248A are the same unit
     sold to different channels (`VENDOR-Suburban.md` §7.2) — that part is done. Identifiers
     still need a channel qualifier in the schema itself, not just a namespace — that's an
     `ARCHITECTURE-Interchange_Core.md` §3 change, not just a vendor note, and it isn't made yet.
 
-> **Updated 2026-07-31.** The scoped edge resolver is now built and tested: it walks the two
-> best-documented anchor observations through the vocabulary into components and the canonical
-> directed substitution edge pair. The next adapter is Coleman-Mach / Airxcel. Expanding the
-> resolver to the rest of the fixture remains follow-on work.
+> **Updated 2026-08-01.** The scoped edge resolver is built and tested: it walks the two
+> best-documented Suburban anchor observations through the vocabulary into components and
+> the canonical directed substitution edge pair. Coleman-Mach evidence capture has now
+> established the next fixture input. The next implementation milestone is resolving that
+> thermostat without conflating physical identity, family compatibility, and supersession.
 >
 > The §8 definition-of-done in `VENDOR-Suburban.md` now has 8 of 9 boxes checked. The remaining
 > partial item is full-fixture reproduction; the scoped SW6DE/SW6DEL resolver milestone is done.

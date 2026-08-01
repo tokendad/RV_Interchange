@@ -1,9 +1,15 @@
 # Interchange Core — Architecture
 
 **Project:** RV Interchange
-**Status:** design, pre-implementation
-**Date:** 2026-07-29
+**Status:** Stage 1 core partially implemented; full-fixture resolution and open design items remain
+**Date:** 2026-08-01
 **Scope:** the cross-brand parts-interchange database for RV components
+
+> **Implementation note (2026-08-01):** the append-only observation store, canonical
+> vocabulary/source tiers, Suburban parser, SQLite component/typed-edge schema, confidence
+> math, and scoped SW6DE/SW6DEL resolver are implemented. The architecture remains the
+> authority for the target model, but clustering, full-fixture resolution, identifier
+> channel qualifiers, and several relationship-detail designs remain open.
 
 > **Naming note:** the project was initially scoped as "rvpartsmarketplace." That name is
 > retired. The database is the product; the marketplace (Stage 3/4 in
@@ -163,9 +169,9 @@ Not a flat alias list. Numbers come from multiple issuing authorities.
 identifiers:
   - {ns: suburban,  value: SW6DEL}
   - {ns: suburban,  value: "5240A"}
-  - {ns: icm,       value: AP7862-3}
+  - {ns: icm,       value: AP7862}
   - {ns: coleman,   value: 7330G335}
-  - {ns: silkscreen, value: PCB1060-4A}
+  - {ns: silkscreen, value: PCB1060}
 ```
 
 Required because:
@@ -173,6 +179,10 @@ Required because:
 - A builder's number (ICM) and a brand's number (Coleman) refer to the same object with
   different authority.
 - Namespacing is what lets you distinguish **supersession** from **revision**.
+
+The thermostat identifiers above are the exact markings captured together on the in-hand
+unit in observation #44; suffix-bearing variants must not be normalized into them without
+separate evidence.
 
 ### `identifier_visibility`
 
@@ -191,13 +201,16 @@ problems, two different query paths.
 | Edge | Direction | Notes |
 |---|---|---|
 | `substitutes` | bidirectional *or* asymmetric | carries confidence, basis, caveats, evidence |
-| `alias` | bidirectional | same object, different issuing authority |
 | `supersedes` | directional | replacement chain |
 | `shares_subassembly` | bidirectional | partial-parts overlap |
 | `contains` | directional | assembly → component |
 | `requires_system` | directional | needs matching harness/sensors |
 | `controls` | directional | switch → appliance |
 | `aftermarket_replaces` | directional | **lower trust weight** |
+
+Confirmed same-object identifiers from different issuing authorities are multiple rows on
+one component, not an `alias` edge. Suspected matches remain outside the edge vocabulary in
+`identifier_equivalence_candidate` until evidence supports merging them into one component.
 
 **Substitution can be asymmetric.** Model the direction explicitly. See the SW6DE/SW6DEL
 case in `VENDOR-Suburban.md` — a confirmed real instance.

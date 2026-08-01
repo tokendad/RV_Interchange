@@ -111,6 +111,8 @@ CANONICAL = {
     "model_spec_table_columns": "column headers paired with a model_spec_table (from 'rows')",
     "suffix_grammar_table":     "dict of {suffix letter: meaning} from a grammar chart",
     "manufacturer":             "manufacturer name claimed by the source",
+    "physical_identifiers":     "namespaced identifiers physically observed on one in-hand unit",
+    "manufacture_date_code":    "date code physically marked on a component",
     "discontinuation_info":     "lifecycle info (approx. discontinuation year + basis)",
     "lifecycle_status":         "e.g. 'discontinued'",
     "family_availability_constraint": "which suffixes/capacities a source says do NOT exist together",
@@ -142,6 +144,12 @@ CANONICAL = {
     "actuation":                 "physical control or louver actuation behavior",
     "minimum_clearance":         "minimum clearance from combustibles",
     "serial_number_format":      "documented serial-number format (e.g. YYWWNNNNN)",
+
+    # electrical interface / compatibility
+    "terminal_order":            "physical left-to-right terminal order on the component",
+    "installed_wire_colors":     "wire colors observed at each terminal on one installation",
+    "terminal_function_map":     "documented mapping from terminal labels to electrical functions",
+    "compatibility_statement":   "a source's explicit family-level compatibility or interchangeability claim",
 
     # dimensions — mechanically derived, see _derive_opening / _derive_product
     "opening_h":                 "framed installation opening height, in — 2D only",
@@ -237,6 +245,8 @@ ALIASES = {
     "columns": "model_spec_table_columns",
     "models_listed": "models_named_list",
     "manufacturer": "manufacturer",
+    "identifiers_observed": "physical_identifiers",
+    "date_code": "manufacture_date_code",
     "model_options_full": "suffix_grammar_table",
     "grammar_confirmed_in_page_text": "suffix_grammar_table",
     "SW3P_discontinuation": "discontinuation_info",
@@ -275,6 +285,12 @@ ALIASES = {
     "actuation": "actuation",
     "minimum_clearance": "minimum_clearance",
     "serial_breakdown": "serial_number_format",
+
+    # electrical interface / compatibility
+    "terminal_order": "terminal_order",
+    "wire_colors": "installed_wire_colors",
+    "terminal_functions": "terminal_function_map",
+    "compatibility_statement": "compatibility_statement",
 
     # dimensions — plain product envelope (opening/cutout handled specially)
     "product_size_in": "product_hwd",
@@ -641,6 +657,7 @@ TIER_DEFAULTS = {
     ("manufacturer_pdf", "hand_typed"): 2,
     ("dealer_call", "hand_typed"): 2,
     ("manual_measurement", "hand_typed"): 2,
+    ("dataplate_photo", "hand_typed"): 2,
     ("other", "script"): 4,
     ("other", "hand_typed"): 4,
     ("manufacturer_page", "ocr"): 5,
@@ -881,6 +898,48 @@ def self_test():
                 f"recent field {key} should normalize to {expected!r}, got "
                 f"{r['attributes'].get(key)!r}")
 
+    # Thermostat teardown/manual evidence must preserve exact physical identity
+    # and electrical-interface facts without requiring thermostat-specific
+    # parsing in downstream resolvers.
+    thermostat_fields = {
+        "identifiers_observed": [
+            {"ns": "icm", "value": "AP7862"},
+            {"ns": "coleman", "value": "7330G335"},
+        ],
+        "date_code": "1203",
+        "terminal_order": ["R", "Y", "W", "GL", "GH", "B"],
+        "wire_colors": {
+            "R": "red", "Y": "yellow", "W": "white",
+            "GL": "gray", "GH": "green", "B": "blue",
+        },
+        "terminal_functions": {
+            "R": "+12VDC_supply", "Y": "compressor_control",
+            "W": "furnace_heat_control", "GL": "low_fan_control",
+            "GH": "high_fan_control", "B": "12VDC_negative_ground",
+        },
+        "compatibility_statement": (
+            "Mechanical, electronic, and electronic-digital wall "
+            "thermostats shown are completely interchangeable."
+        ),
+    }
+    r = normalize_extracted(999, thermostat_fields, strict=False)
+    if r["unmapped"]:
+        failures.append(
+            f"thermostat evidence fields must all be classified: {r['unmapped']}")
+    expected_thermostat = {
+        "physical_identifiers": thermostat_fields["identifiers_observed"],
+        "manufacture_date_code": "1203",
+        "terminal_order": thermostat_fields["terminal_order"],
+        "installed_wire_colors": thermostat_fields["wire_colors"],
+        "terminal_function_map": thermostat_fields["terminal_functions"],
+        "compatibility_statement": thermostat_fields["compatibility_statement"],
+    }
+    for key, expected in expected_thermostat.items():
+        if r["attributes"].get(key) != expected:
+            failures.append(
+                f"thermostat field {key} should normalize to {expected!r}, got "
+                f"{r['attributes'].get(key)!r}")
+
     # a genuinely unclassified key must raise in strict mode, and must NOT
     # raise (just get reported) in non-strict mode
     try:
@@ -906,6 +965,9 @@ def self_test():
         failures.append("obs #6 override should force tier 9 regardless of source_type default")
     if infer_source_tier(1, "retailer_page", "hand_typed", {}) != 7:
         failures.append("retailer_page/hand_typed should default to tier 7")
+    if infer_source_tier(44, "dataplate_photo", "hand_typed", {}) != 2:
+        failures.append(
+            "dataplate_photo/hand_typed should default to tier 2 as first-hand physical evidence")
 
     print(f"{len(ALIASES)} aliases, {len(IGNORED_KEYS)} ignored keys, "
           f"{len(_COMPOUND_KEYS)} compound keys classified")

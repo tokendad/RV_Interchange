@@ -62,9 +62,15 @@ If another vendor's site embeds volatility somewhere other than <script> tags (i
 style timestamps, tracking pixels in the body, etc.), the same false-positive will
 resurface for that vendor. Check a same-page refetch before trusting dedup on a new site.
 
-## What's already seeded in data/observations.db
+## Selected evidence already seeded in `observations.db`
 
 - #1, #2: the real SW6DEL and SW6DE product pages (suburbanrvparts.com), fetched live.
-- #3: the ceiling register teardown measurement (duct_diameter_in still null — TODO
-  per fixtures/ground-truth.yaml, measure the actual part and update with a new `add`
-  call rather than editing this row).
+- #3: the original ceiling-register teardown record. Its missing geometry was completed
+  append-only by #36 and corrected by #39: approximately 5in duct diameter and 7in flange
+  diameter, with four source photographs. See `Docs/Data/DWIN/VENDOR-DWIN.md`.
+- #44: in-hand Coleman-Mach thermostat teardown photographs proving `AP7862`, `7330G335`,
+  `PCB1060`, `SPCB-2`, date code `1203`, and the installed `R/Y/W/GL/GH/B` terminal order
+  and wire colors.
+- #45: RV Products/Airxcel service manual `1976-376 (4-02)`, which supplies the terminal
+  functions and manufacturer-level thermostat interchangeability statement. See
+  `Docs/Data/Coleman_Mach/VENDOR-Coleman-Mach.md`.

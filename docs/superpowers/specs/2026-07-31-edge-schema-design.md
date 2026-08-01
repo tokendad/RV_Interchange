@@ -200,14 +200,19 @@ scoped to this table instead of `edges`.
 `component_id` carry multiple `{ns, value}` rows — that's how `SW6DEL`/`5240A`/`5140A`
 coexist today as confirmed facts about one component. A separate `alias` *edge* only makes
 sense for the case where two identifiers are *suspected* to be the same real part but
-haven't been merged into one `component_id` yet — the thermostat case in the fixture
-(`AP7862-3`/`AR7815`, a retailer selling them as two separate products at different prices).
-That's pre-resolution evidence, not a post-resolution fact, so it belongs in its own
+haven't been merged into one `component_id` yet — currently the retailer-only thermostat
+claim connecting `AR7815` and `7330F3858` (obs #43). That's pre-resolution evidence, not a
+post-resolution fact, so it belongs in its own
 small table rather than the edge system: it starts as an open candidate with
 retailer-cross-reference evidence, and only becomes plain rows in `identifiers` once (or
 if) it's promoted to `merged`. This also directly answers "is a two-endpoint model enough
 for every edge type" (§3) — once `alias` is out, nothing left needs more than two named
 endpoint roles.
+
+> **Evidence correction, 2026-08-01:** the in-hand teardown (obs #44) proved `AP7862` /
+> `7330G335` / `PCB1060` / `SPCB-2` on one unit and disproved the fixture's assumed suffixed
+> markings. The live candidate example is now the separate retailer-only `AR7815` /
+> `7330F3858` claim from obs #43; see `VENDOR-Coleman-Mach.md`.
 
 ## 9. Reproducing the fixture's acceptance test
 

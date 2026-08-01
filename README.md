@@ -3,15 +3,18 @@
 **Project name:** RV Interchange (retired name: "rvpartsmarketplace" — see naming note
 below).
 
-Captured 2026-07-29 from a design session, plus two external design reviews incorporated
-the same day. Pre-implementation. No code written yet.
+Started 2026-07-29 from a design session, with two external design reviews incorporated
+the same day. **Stage 1 implementation is now in progress:** the append-only evidence
+store, canonical observation vocabulary, Suburban model parser, SQLite component/edge
+store, and the first observation-derived interchange edge are implemented and tested.
 
 | Document | What's in it |
 |---|---|
-| `ARCHITECTURE-Interchange_Core.md` | The schema. Three-layer identity, namespaced identifiers, edge vocabulary, compat modes, part-type taxonomy, confidence model, tiered search, persistence, number stability rules. |
-| `PLAN-Staged_Build.md` | Four-stage build order, v0 scope and bet, roles architecture, the retention problem, legal position, next actions. |
-| `VENDOR-Suburban.md` | First vendor adapter research. Model grammar, captured specs, first real interchange edge, four data-quality findings, definition of done. |
-| `fixtures/ground-truth.yaml` | Hand-written expected records for the five in-hand parts. Write this before the schema. |
+| `Docs/Inital_Design/ARCHITECTURE-Interchange_Core.md` | The schema. Three-layer identity, namespaced identifiers, edge vocabulary, compat modes, part-type taxonomy, confidence model, tiered search, persistence, number stability rules. |
+| `Docs/Inital_Design/PLAN-Staged_Build.md` | Four-stage build order, v0 scope and bet, roles architecture, the retention problem, legal position, next actions. |
+| `Docs/Data/Suburban/VENDOR-Suburban.md` | First vendor adapter research. Model grammar, captured specs, first real interchange edge, data-quality findings, definition of done. |
+| `Docs/Data/Coleman_Mach/VENDOR-Coleman-Mach.md` | Second adapter research. In-hand thermostat identity, terminal map, manufacturer compatibility evidence, and candidate crosswalk boundaries. |
+| `Docs/Inital_Design/ground-truth.yaml` | Hand-written expected records for the in-hand parts and the acceptance fixture for the resolver. |
 
 ## Naming
 
@@ -50,13 +53,23 @@ accumulates from field evidence over an attribute-derived prior, climbing slowly
 hard. Build the interchange core first with no users, ship a free lookup tool that works with
 zero supply, and only then add listings.
 
-## Where to start
+## Current Stage 1 status
 
-1. `observations` table — append-only, source-agnostic. Before fetching anything.
-2. Transcribe the three grammar charts (they're images) at
-   `suburbanrvparts.com/model-number-breakdown/`.
-3. Fill in the `TODO` measurements in `fixtures/ground-truth.yaml`.
-4. Then design the component/edge schema as "what shape holds these records."
+- `Docs/Tools/observations.db` contains 45 append-only evidence observations.
+- `Docs/Tools/resolver.py` classifies every captured field into a canonical vocabulary
+  and assigns source-trust tiers.
+- `Docs/Tools/suburban_parser.py` decodes SW-series models and resolves their directional
+  compatibility constraints.
+- `Docs/Tools/interchange_*.py` and `edge_resolver.py` persist components, typed edges,
+  caveats, required parts, and evidence. The canonical SW6DE/SW6DEL fixture case resolves
+  with zero mismatches.
+- Coleman-Mach thermostat teardown evidence now proves the in-hand `AP7862` / `7330G335`
+  identity and its complete `R/Y/W/GL/GH/B` interface.
+
+The next milestone is extending the observation-to-component resolver through the Coleman
+thermostat fixture while keeping compatibility, supersession, and possible identifier
+equivalence as distinct relationships. The wider Stage 1 roadmap is in
+`Docs/Inital_Design/PLAN-Staged_Build.md`.
 
 ## Known corrections logged
 

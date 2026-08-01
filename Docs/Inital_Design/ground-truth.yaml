@@ -9,7 +9,8 @@
 #
 # Confidence values reflect the honest day-1 state: prior only, no field evidence.
 #
-# Date: 2026-07-29
+# Created: 2026-07-29
+# Last evidence update: 2026-08-01 (Coleman thermostat teardown/manual, obs #44/#45)
 
 part_types:
   - id: 412
@@ -291,22 +292,42 @@ components:
     part_type_id: 415
     interchange_code: 415-0012-A
     identifiers:
-      - {ns: icm,        value: AP7862-3,   visibility: behind_faceplate}
-      - {ns: icm,        value: AR7815,     visibility: behind_faceplate}
-      - {ns: icm,        value: AR7816,     visibility: behind_faceplate}
-      - {ns: silkscreen, value: PCB1060-4A, visibility: behind_faceplate}
-      - {ns: silkscreen, value: SPCB-2,     visibility: behind_faceplate}
-      - {ns: coleman,    value: "7330G335", visibility: none_marked}
+      - {ns: icm,        value: AP7862,     visibility: behind_faceplate, provenance: in_hand, source: "obs #44"}
+      - {ns: silkscreen, value: PCB1060,    visibility: behind_faceplate, provenance: in_hand, source: "obs #44"}
+      - {ns: silkscreen, value: SPCB-2,     visibility: behind_faceplate, provenance: in_hand, source: "obs #44"}
+      - {ns: coleman,    value: "7330G335", visibility: behind_faceplate, provenance: in_hand, source: "obs #44"}
     attributes:
-      terminal_map: {value: [W1, W5, W6, W3, W4, W2], provenance: in_hand}
-      brand_facing: {value: Coleman-Mach, provenance: retailer_prose}
+      terminal_order:
+        value: [R, Y, W, GL, GH, B]
+        provenance: in_hand
+        source: "obs #44"
+      terminal_map:
+        value:
+          R:  {board_position: W1, function: +12VDC_supply}
+          Y:  {board_position: W5, function: compressor_control}
+          W:  {board_position: W6, function: furnace_heat_control}
+          GL: {board_position: W3, function: low_fan_control}
+          GH: {board_position: W4, function: high_fan_control}
+          B:  {board_position: W2, function: 12VDC_negative_ground}
+        provenance: in_hand_plus_manufacturer_pdf
+        source: "obs #44/#45"
+      installed_wire_colors:
+        value: {R: red, Y: yellow, W: white, GL: gray, GH: green, B: blue}
+        provenance: in_hand
+        source: "obs #44"
+        note: supporting installation evidence only; the manual warns OEM/installer colors may differ
+      voltage: {value: 12VDC, provenance: manufacturer_pdf, source: "obs #45"}
+      stages: {value: single, provenance: manufacturer_pdf_inferred, source: "obs #45", note: "one compressor-control circuit (Y); no second-stage terminal"}
+      brand_facing: {value: Coleman-Mach, provenance: manufacturer_pdf, source: "obs #45"}
     note: >
-      THE MISSING-CROSSWALK PROOF. A retailer lists AP7862 and AR7815 as two
-      separate products at different prices (~$57 vs ~$77). They are the same
-      part. Compat key here is the terminal map, NOT dimensions.
+      In-hand teardown proves AP7862, 7330G335, PCB1060 and SPCB-2 coexist on
+      this physical thermostat. The service manual supplies the electrical
+      functions for its photographed R/Y/W/GL/GH/B interface. Compat key here
+      is the terminal map, NOT dimensions. AR7815, AR7816, AP7862-3 and
+      PCB1060-4A remain unconfirmed candidate identifiers and are not members
+      of this component.
     todo:
       - Confirm which identifiers are supersessions vs pure aliases
-      - Capture full terminal-to-function mapping
 
   # =========================================================================
   # 3. MONITOR PANEL — system-bound; assembly decomposition case
@@ -436,19 +457,6 @@ edges:
     note: >
       Sold separately. Buyer needs it but does not know to ask.
       Surfaces in the PARTS FOR THIS UNIT tier.
-
-  - type: alias
-    members:
-      - {ns: icm, value: AP7862-3}
-      - {ns: icm, value: AR7815}
-    basis: retailer_cross_reference
-    confidence:
-      alpha: 2
-      beta: 1
-      note: >
-        Retailer sells these as separate products at different prices.
-        Cross-reference is the only evidence. Needs a teardown or a
-        buyer confirmation before it can leave CANDIDATE.
 
   # FIRST EDGE WITH REAL FIELD EVIDENCE — not prior-only. A genuine customer
   # review, found by accident while checking a different fact, is exactly the
@@ -662,6 +670,23 @@ edges:
       verdict: not_observed
       caveats: []
       note: "Reverse direction not documented, same reasoning as the Suburban edges."
+
+
+identifier_equivalence_candidates:
+
+  - a: {ns: icm, value: AR7815}
+    b: {ns: coleman, value: 7330F3858}
+    status: open
+    basis: retailer_cross_reference
+    source: "obs #43"
+    confidence:
+      alpha: 2
+      beta: 1
+      note: >
+        One used-parts retailer presents AR7815 and 7330F3858 as the same
+        thermostat. Neither identifier appears on the in-hand AP7862 /
+        7330G335 unit, so this remains a separate open candidate rather than
+        a confirmed alias or component identifier.
 
 
 ---
