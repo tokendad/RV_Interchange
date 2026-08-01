@@ -220,6 +220,45 @@ def resolve_iw60rl_component(retailer_row, manual_row, component_id):
     return component, identifiers, attributes
 
 
+def resolve_atwood_family_components(manual_row, component_ids):
+    """
+    Build the two Atwood family-placeholder components (6-gallon, 10-gallon)
+    from the Nautilus service manual's replacement-panel table (observation
+    #14) — the only source in this project naming these families at all.
+    Manufacturer-asserted family placeholders, not verified Atwood models: no
+    identifiers, matching ground-truth.yaml.
+    """
+    _validate_observation_source(manual_row, 14, "manufacturer_pdf", 2, "IW60RL manual")
+    manual = json.loads(manual_row["extracted"])
+    panels = manual.get("replacement_panel_part_numbers")
+    if not isinstance(panels, list):
+        raise ValueError("IW60RL manual has no replacement panel table")
+    by_capacity = {
+        (panel.get("brand"), panel.get("capacities")): panel.get("part_number")
+        for panel in panels
+    }
+    if by_capacity.get(("Atwood", "6 gallon")) != "521147":
+        raise ValueError("manual is missing the Atwood 6-gallon replacement panel")
+    if by_capacity.get(("Atwood", "10 gallon")) != "521150":
+        raise ValueError("manual is missing the Atwood 10-gallon replacement panel")
+    if set(component_ids) != {"6gal", "10gal"}:
+        raise ValueError(f"unexpected Atwood component id map: {component_ids}")
+
+    obs_id = manual_row["id"]
+    results = {}
+    for key, gallons in (("6gal", 6.0), ("10gal", 10.0)):
+        component_id = component_ids[key]
+        component = Component(component_id, WATER_HEATER_PART_TYPE)
+        attributes = [
+            ComponentAttribute(component_id, "capacity_gal", "manufacturer_pdf",
+                                obs_id, value_number=gallons),
+            ComponentAttribute(component_id, "brand", "manufacturer_pdf",
+                                obs_id, value_text="Atwood"),
+        ]
+        results[key] = (component, [], attributes)
+    return results
+
+
 def load_observation(obs_db_path, obs_id):
     conn = sqlite3.connect(obs_db_path)
     conn.row_factory = sqlite3.Row
@@ -937,6 +976,35 @@ def self_test(verbose=False):
             obs13, changed_row(obs14, lambda e: e.__setitem__("vent_hole_diameter_in", 4.0)),
             "c_invalid")
         failures.append("invalid IW60RL vent hole evidence accepted")
+    except ValueError:
+        pass
+
+    atwood_ids = {"6gal": "c_placeholder_wh_atwood_6gal",
+                  "10gal": "c_placeholder_wh_atwood_10gal"}
+    atwood = resolve_atwood_family_components(obs14, atwood_ids)
+    if set(atwood) != {"6gal", "10gal"}:
+        failures.append(f"Atwood family set mismatch: {set(atwood)}")
+    for key, gallons in (("6gal", 6.0), ("10gal", 10.0)):
+        component, identifiers, attributes = atwood[key]
+        if component.component_id != atwood_ids[key] or \
+                component.part_type_id != WATER_HEATER_PART_TYPE:
+            failures.append(f"Atwood {key} component mismatch: {component}")
+        if identifiers != []:
+            failures.append(f"Atwood {key} should have no identifiers: {identifiers}")
+        actual = {a.name: (a.value_text if a.value_text is not None else a.value_number,
+                           a.provenance, a.source_observation_id) for a in attributes}
+        expected = {
+            "capacity_gal": (gallons, "manufacturer_pdf", 14),
+            "brand": ("Atwood", "manufacturer_pdf", 14),
+        }
+        if actual != expected:
+            failures.append(f"Atwood {key} attributes mismatch: {actual}")
+
+    try:
+        resolve_atwood_family_components(
+            changed_row(obs14, lambda e: e["replacement_panel_part_numbers"].pop()),
+            atwood_ids)
+        failures.append("invalid Atwood evidence accepted")
     except ValueError:
         pass
 
