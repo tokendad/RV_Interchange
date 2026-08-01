@@ -752,7 +752,7 @@ git commit -m "Verify Coleman thermostat endpoint graph"
 - Consumes: the complete endpoint implementation.
 - Produces: fresh evidence that the observation, resolver, schema, store, and fixture contracts all pass together.
 
-- [ ] **Step 1: Run the complete test matrix**
+- [x] **Step 1: Run the complete test matrix**
 
 ```bash
 cd Docs/Tools
@@ -769,7 +769,7 @@ python3 edge_resolver.py --check-fixture ../Inital_Design/ground-truth.yaml
 
 Expected: all tests pass, 50 observations classify, and every fixture mismatch count is zero.
 
-- [ ] **Step 2: Audit database integrity and append-only history**
+- [x] **Step 2: Audit database integrity and append-only history**
 
 ```bash
 sqlite3 observations.db "PRAGMA integrity_check;"
@@ -780,7 +780,7 @@ sqlite3 observations.db "SELECT id, source_type, source_tier, url FROM observati
 
 Expected: `ok`, count `50`, null-tier count `0`, and exactly the three Tier 7 clean URLs.
 
-- [ ] **Step 3: Audit repository scope**
+- [x] **Step 3: Audit repository scope**
 
 From the repository root:
 
@@ -793,7 +793,7 @@ git diff --stat
 Expected: only planned endpoint files are modified during implementation; untracked
 `Docs/Data/JR-Products/` and `Docs/Tools/components.db` remain untouched and unstaged.
 
-- [ ] **Step 4: Commit any final plan-status-only change**
+- [x] **Step 4: Commit any final plan-status-only change**
 
 If marking the final Task 6 boxes created a plan-only diff after Task 5's commit:
 
