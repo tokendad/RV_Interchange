@@ -205,7 +205,8 @@ def get_edges_from(conn, component_id, type=None):
 
 def get_evidence_for_edge(conn, edge_id):
     rows = conn.execute(
-        "SELECT * FROM relationship_evidence WHERE edge_id = ?", (edge_id,)).fetchall()
+        "SELECT * FROM relationship_evidence WHERE edge_id = ? ORDER BY id",
+        (edge_id,)).fetchall()
     return [RelationshipEvidence(
         id=r["id"], edge_id=r["edge_id"], event_type=r["event_type"],
         effect_alpha=r["effect_alpha"], effect_beta=r["effect_beta"],
@@ -283,14 +284,21 @@ def self_test(verbose=False):
     insert_evidence(conn, RelationshipEvidence(
         edge_id=edge.id, event_type="attribute_prior", effect_alpha=3.0, effect_beta=1.0,
         occurred_at=now_iso()))
+    insert_evidence(conn, RelationshipEvidence(
+        edge_id=edge.id, event_type="manufacturer_assertion", effect_alpha=2.0,
+        effect_beta=0.0, occurred_at=now_iso()))
+    conn.execute(
+        "CREATE INDEX test_relationship_evidence_desc "
+        "ON relationship_evidence(edge_id, id DESC)")
 
     fetched = get_edges_from(conn, "c_test_a", type="substitutes")
     if len(fetched) != 1:
         failures.append(f"expected 1 edge from c_test_a, got {len(fetched)}")
 
     ev = get_evidence_for_edge(conn, edge.id)
-    if len(ev) != 1 or ev[0].effect_alpha != 3.0:
-        failures.append(f"expected 1 evidence row with alpha=3.0, got {ev}")
+    if [item.event_type for item in ev] != [
+            "attribute_prior", "manufacturer_assertion"]:
+        failures.append(f"expected evidence in insertion order, got {ev}")
 
     caveats = get_caveats_for_edge(conn, edge.id)
     if len(caveats) != 1 or caveats[0].text != "test caveat":

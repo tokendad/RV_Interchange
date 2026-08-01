@@ -37,6 +37,17 @@ THERMOSTAT_PART_TYPE = 415
 THERMOSTAT_CODE = "415-0012-A"
 COLEMAN_ENDPOINT_MODELS = ("7330G3351", "7330F3852", "9420-351")
 COLEMAN_ENDPOINT_RESOLVER_VERSION = "coleman_endpoint_v1"
+COLEMAN_VISUAL_MATCH_CANDIDATE = {
+    "candidate": {"ns": "coleman", "value": "8330-3362"},
+    "comparison_source_observation_id": 45,
+    "manual_figure": "electronic_digital_display_thermostat",
+    "status": "open",
+    "basis": [
+        "RVComfort.HC face", "left display", "up/down controls",
+        "three lower slide controls",
+    ],
+    "caveat": "visual similarity does not prove model identity",
+}
 THERMOSTAT_TERMINALS = ("R", "Y", "W", "GL", "GH", "B")
 THERMOSTAT_IDENTIFIERS = {
     ("icm", "AP7862"),
@@ -90,6 +101,26 @@ def load_observation(obs_db_path, obs_id):
 def _normalized_attributes(obs_row):
     extracted = json.loads(obs_row["extracted"])
     return normalize_extracted(obs_row["id"], extracted, strict=True)["attributes"]
+
+
+def _validate_observation_source(row, expected_id, expected_type, expected_tier, label):
+    try:
+        actual = (row["id"], row["source_type"], row["source_tier"])
+    except (KeyError, IndexError, TypeError) as exc:
+        raise ValueError(f"Coleman {label} observation lacks source metadata") from exc
+    expected = (expected_id, expected_type, expected_tier)
+    if actual != expected:
+        raise ValueError(
+            f"unexpected Coleman {label} observation source: "
+            f"{actual[0]}/{actual[1]}/Tier {actual[2]}")
+
+
+def validate_coleman_visual_candidate(obs_row):
+    _validate_observation_source(obs_row, 50, "retailer_page", 7, "visual candidate")
+    candidate = _normalized_attributes(obs_row).get("visual_match_candidate")
+    if candidate != COLEMAN_VISUAL_MATCH_CANDIDATE:
+        raise ValueError(f"unexpected Coleman visual match candidate: {candidate}")
+    return candidate
 
 
 def thermostat_from_observations(photo_row, manual_row, positions_row, scalar_row,
@@ -309,6 +340,8 @@ def resolve_substitution_pair(conn, from_id, from_model, to_id, to_model, group_
 
 
 def resolve_coleman_supersessions(conn, replacement_row, retailer_rows, component_ids):
+    _validate_observation_source(
+        replacement_row, 41, "manufacturer_pdf", 2, "replacement")
     manufacturer = _normalized_attributes(replacement_row)
     expected_manufacturer_relation = {
         "type": "manufacturer_supersedes",
@@ -325,13 +358,24 @@ def resolve_coleman_supersessions(conn, replacement_row, retailer_rows, componen
         raise ValueError("Coleman endpoint components must be distinct")
 
     retailer_by_model = {}
+    expected_retailer_model_by_id = {48: "7330G3351", 49: "7330F3852"}
     for row in retailer_rows:
+        try:
+            retailer_id = row["id"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise ValueError("Coleman retailer observation lacks source metadata") from exc
+        if retailer_id not in expected_retailer_model_by_id:
+            raise ValueError(f"unexpected Coleman retailer observation #{retailer_id}")
+        expected_retired_model = expected_retailer_model_by_id[retailer_id]
+        _validate_observation_source(
+            row, retailer_id, "retailer_page", 7,
+            f"{expected_retired_model} retailer")
         attrs = _normalized_attributes(row)
         relation = attrs.get("sku_relationship")
         if not isinstance(relation, dict) or relation.get("type") != "retailer_replacement":
             raise ValueError(f"observation #{row['id']} lacks a retailer replacement")
         retired_model = relation.get("from")
-        if retired_model not in ("7330G3351", "7330F3852") or \
+        if retired_model != expected_retired_model or \
                 relation.get("to") != "9420-351":
             raise ValueError(f"unexpected retailer replacement pair: {relation}")
         claim = attrs.get("replacement_claim")
@@ -416,6 +460,7 @@ def self_test(verbose=False):
     obs47 = load_observation(obs_db, 47)  # voltage/stages supplement
     obs48 = load_observation(obs_db, 48)  # 7330G3351 retailer replacement
     obs49 = load_observation(obs_db, 49)  # 7330F3852 retailer replacement
+    obs50 = load_observation(obs_db, 50)  # observation-only visual candidate
 
     thermostat, thermostat_ids, thermostat_attrs = thermostat_from_observations(
         obs44, obs45, obs46, obs47, "c_placeholder_tstat")
@@ -455,6 +500,37 @@ def self_test(verbose=False):
         mutate(extracted)
         changed["extracted"] = json.dumps(extracted)
         return changed
+
+    try:
+        actual_visual_candidate = validate_coleman_visual_candidate(obs50)
+        if actual_visual_candidate != COLEMAN_VISUAL_MATCH_CANDIDATE:
+            failures.append(
+                f"Coleman visual candidate mismatch: {actual_visual_candidate}")
+    except (NameError, ValueError) as exc:
+        failures.append(f"valid Coleman visual candidate was rejected: {exc}")
+    malformed_visual_rows = (
+        changed_row(obs50, lambda e: e["visual_match_candidate"]["candidate"].__setitem__(
+            "ns", "rv_products_shop")),
+        changed_row(obs50, lambda e: e["visual_match_candidate"]["candidate"].__setitem__(
+            "value", "8330-3361")),
+        changed_row(obs50, lambda e: e["visual_match_candidate"].__setitem__(
+            "comparison_source_observation_id", 44)),
+        changed_row(obs50, lambda e: e["visual_match_candidate"].__setitem__(
+            "manual_figure", "mechanical_thermostat")),
+        changed_row(obs50, lambda e: e["visual_match_candidate"].__setitem__(
+            "status", "resolved")),
+        changed_row(obs50, lambda e: e["visual_match_candidate"]["basis"].pop()),
+        changed_row(obs50, lambda e: e["visual_match_candidate"]["basis"].__setitem__(
+            0, "similar face")),
+        changed_row(obs50, lambda e: e["visual_match_candidate"].__setitem__(
+            "caveat", "looks identical")),
+    )
+    for malformed in malformed_visual_rows:
+        try:
+            validate_coleman_visual_candidate(malformed)
+            failures.append("malformed Coleman visual candidate was accepted")
+        except (NameError, ValueError):
+            pass
 
     endpoint_ids = {
         "7330G3351": "c_placeholder_tstat_7330g3351",
@@ -712,6 +788,18 @@ def self_test(verbose=False):
         for row in invalid_manufacturer_rows
     ]
     rejection_inputs.extend((
+        (dict(obs41, id=410), [obs48, obs49], endpoint_ids, True),
+        (dict(obs41, source_type="manufacturer_page"),
+         [obs48, obs49], endpoint_ids, True),
+        (dict(obs41, source_tier=7), [obs48, obs49], endpoint_ids, True),
+        (obs41, [dict(obs48, id=480), obs49], endpoint_ids, True),
+        (obs41, [obs48, dict(obs49, id=490)], endpoint_ids, True),
+        (obs41, [dict(obs48, source_type="manufacturer_pdf"), obs49],
+         endpoint_ids, True),
+        (obs41, [obs48, dict(obs49, source_type="manufacturer_pdf")],
+         endpoint_ids, True),
+        (obs41, [dict(obs48, source_tier=2), obs49], endpoint_ids, True),
+        (obs41, [obs48, dict(obs49, source_tier=2)], endpoint_ids, True),
         (obs41, [changed_row(obs48, lambda e: e["relation"].__setitem__(
             "to", "7330F3852")), obs49], endpoint_ids, True),
         (obs41, [obs48, obs49], dict(endpoint_ids, **{
@@ -1139,10 +1227,10 @@ def check_fixture(ground_truth_path, obs_db_path):
         print(f"MISMATCH unsupported Coleman substitutes edges: {coleman_substitutes}")
         mismatches += 1
 
-    # Loading observation #50 is deliberate: its visual candidate must remain
-    # evidence-only and is guarded by the forbidden graph queries above.
-    if obs50["id"] != 50:
-        print(f"MISMATCH Coleman visual candidate observation: {obs50['id']}")
+    try:
+        validate_coleman_visual_candidate(obs50)
+    except ValueError as exc:
+        print(f"MISMATCH Coleman visual candidate observation: {exc}")
         mismatches += 1
 
     print(f"Coleman endpoints: {mismatches - coleman_mismatches_before} mismatch(es)")
