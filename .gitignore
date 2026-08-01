@@ -37,6 +37,9 @@ google-services.json
 __pycache__/
 *.pyc
 
+# Isolated implementation worktrees
+.worktrees/
+
 # Raw web-archive page captures (evidence lives in observations.db, not git —
 # see Docs/Data/PARKED-myrvworks_manual_library.md convention: sources get
 # hand-transcribed into observations.db, not committed as raw fetched files)
