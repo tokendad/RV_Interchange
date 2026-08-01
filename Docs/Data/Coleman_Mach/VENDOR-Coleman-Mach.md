@@ -117,6 +117,19 @@ Still candidate-only:
   so far — not a manufacturer-documented or retailer-cross-reference claim, and not
   strong enough to justify a `substitutes`/`supersedes` edge. `1C26-10` therefore remains
   observation-only, same treatment as `8330-3362`.
+- Observation #54 is an installation manual for **White-Rodgers (Emerson Electric)**
+  models `1C20`/`1C26` — a mechanical, snap-action heat/cool thermostat with an adjustable
+  heat anticipator, PN `37-6335B`. This is a **different manufacturer than Coleman-Mach /
+  RV Products / Airxcel entirely**. The "1C26" number match with the retailer's "1C26-10"
+  (obs #52) is suggestive of an OEM/private-label relationship — RV suppliers commonly
+  rebadge generic HVAC hardware — but the document itself does not name "Coleman" or
+  "1C26-10" anywhere, and its terminal scheme (`RH`/`RC`/`G`/`W`/`Y`/`O`/`B`/`A`, standard
+  residential HVAC) is unrelated to the RV wall thermostat's terminal scheme documented in
+  §3 (`R`/`Y`/`W`/`GL`/`GH`/`B`). **This does not confirm that `1C26-10` is the unit
+  depicted in the service manual's unnamed "mechanical/bimetal" illustration** — that
+  remains a visual/contextual hypothesis, not an established identity, and is tracked the
+  same way as the `8330-3362` candidate: not an identifier, equivalence candidate,
+  component, or graph edge.
 
 ## 6. Exact catalog endpoints and supersession edges
 
@@ -166,6 +179,9 @@ cross-reference, producing Beta(4,1), confidence 0.8 with certainty 5.
   compatibility claim
 - obs #53 — answers.rvupgradestore.com Q&A; manufacturer could not identify `1C26-10`,
   hedged unconfirmed third-party suggestion of `7330G3351` as a possible alternative
+- obs #54 — White-Rodgers (Emerson) `1C20`/`1C26` installation manual, PN `37-6335B`; a
+  **different, residential-HVAC manufacturer** — the "1C26" number match with obs #52's
+  "1C26-10" is suggestive but unconfirmed, not established identity
 
 ## 8. Resolver status and next milestone
 
