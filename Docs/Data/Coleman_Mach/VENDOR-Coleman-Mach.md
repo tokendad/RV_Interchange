@@ -159,6 +159,38 @@ override the manufacturer attributes. Each edge carries an incomplete-attribute 
 the manufacturer assertion from observation #41, and its corresponding retailer
 cross-reference, producing Beta(4,1), confidence 0.8 with certainty 5.
 
+### 6.1 Wider 7330-family: real numbers, not yet built into components
+
+Observation #40's own manufacturer model table already lists `7330F3361` and `7330-3861`
+(and `7330B3441`) as real analog single-stage thermostats alongside `7330G3351`/`7330F3852`
+— they were simply never built into their own components by the resolver yet.
+Observations #55-#57 (rvacguys.com) now independently corroborate all three:
+
+| Model | Function | Color | Stages | Readout |
+|---|---|---|---|---|
+| `7330F3361` | cool_only | white (obs #40) | single | mechanical |
+| `7330-3861` | cool_only | black | single | mechanical |
+| `7330F3852` | heat_cool | black | single | mechanical (2nd retailer, corroborates obs #48/#49) |
+
+Obs #55/#56 also cross-sell `7330B3441`, `8330-3362`, `8330-3862`, `9430A3543`, and
+`9630A3351` on the same pages — a merchandising widget, **not a stated compatibility or
+replacement claim**. This is the first independent-retailer confirmation that `8330-3862`
+and `9430A3543` are real catalog numbers (as opposed to only appearing in a single visual
+candidate or a user's own reverse-image search), but their relationship to anything else
+in this fixture remains unestablished. Building `7330F3361`/`7330-3861`/`7330B3441` as
+exact endpoint components (same shape as §6's three) is real, ready-to-do next work — the
+evidence already exists across obs #40 + #55/#56.
+
+### 6.2 Unresolved lead: the "electronic" generation candidate
+
+An eBay listing for a candidate `7330E336`/`7330-336` electronic-generation model could
+not be independently fetched (eBay blocks automated retrieval; `manuals.plus`'s mirror of
+the closest manual found — for `7330G3351` — also 403s). Until one of those can be read
+directly (or the user supplies the page text/screenshot), this candidate is not captured
+as an observation at all — a bare identification claim with no readable source behind it
+falls below even the `8330-3362`/`1C26-10` visual-candidate tier, which at least ties to a
+real, fetchable page.
+
 ## 7. Sources
 
 - obs #40 — Coleman-Mach current analog thermostat product page
@@ -182,6 +214,15 @@ cross-reference, producing Beta(4,1), confidence 0.8 with certainty 5.
 - obs #54 — White-Rodgers (Emerson) `1C20`/`1C26` installation manual, PN `37-6335B`; a
   **different, residential-HVAC manufacturer** — the "1C26" number match with obs #52's
   "1C26-10" is suggestive but unconfirmed, not established identity
+- obs #55 — rvacguys.com `7330F3361` product page (cool_only, single, mechanical, 12VDC,
+  white); cross-sells `7330B3441`/`8330-3362`/`8330-3862`/`9430A3543` (not a compatibility
+  claim)
+- obs #56 — rvacguys.com `7330-3861` product page (cool_only, single, mechanical, 12VDC,
+  black); cross-sells `9630A3351`/`7330G3351`/`7330F3361`/`7330B3441`/`7330F3852` (not a
+  compatibility claim)
+- obs #57 — rvacguys.com `7330F3852` product page; second independent retailer
+  corroborating black/single-stage/heat-cool (obs #40/#41/#49); first note of Coleman-Mach's
+  current ownership by Dometic
 
 ## 8. Resolver status and next milestone
 
