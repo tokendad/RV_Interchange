@@ -1,7 +1,9 @@
 # VENDOR — Coleman-Mach / RV Products / Airxcel
 
 **Status:** exact endpoint and supersession fixture complete; broader adapter research in progress
-**Updated:** 2026-08-01
+**Updated:** 2026-08-01 (obs #52/#53: `1C26-10` identified as a real candidate for one of
+the manual's unnamed generations, but its only compatibility evidence is hedged and
+unconfirmed — not yet strong enough for a graph edge)
 
 ## 1. Why this adapter
 
@@ -100,6 +102,21 @@ Still candidate-only:
   three lower slide controls agree, but visual similarity does not establish identity.
   `8330-3362` therefore remains observation-only: it is not an identifier, equivalence
   candidate, component, or graph edge.
+- Observation #52 identifies `1C26-10` / `153-6616` as a real, distinct Coleman analog
+  thermostat model (retailer listing, dimensions 3.1 x 3.75 x 1.75in, condition/pricing
+  only — no compatibility claim on that page). It is a real candidate for one of the
+  service manual's three unnamed generations (the manual's own "mechanical," "electronic,"
+  and "electronic-digital" categories are broader than "analog" vs "digital," so which
+  generation `1C26-10` maps to is still unconfirmed).
+- Observation #53 (a forum Q&A on a separate `8330-3362` listing) asked whether `8330-3362`
+  is compatible with `1C26-10`. Manufacturer support "could not pull up thermostat type
+  1C26-10" at all; a later staff reply calls `1C26-10` "obsolete with no direct
+  replacements," and relays an HVAC technician's **hedged, unconfirmed** suggestion of
+  `7330G3351` as a "possible alternative," explicitly recommending the buyer verify
+  connections with a dealer first. This is the weakest evidence tier captured for Coleman
+  so far — not a manufacturer-documented or retailer-cross-reference claim, and not
+  strong enough to justify a `substitutes`/`supersedes` edge. `1C26-10` therefore remains
+  observation-only, same treatment as `8330-3362`.
 
 ## 6. Exact catalog endpoints and supersession edges
 
@@ -145,6 +162,10 @@ cross-reference, producing Beta(4,1), confidence 0.8 with certainty 5.
   conflicting `Heat Pump, Heat Strip/Element` specification
 - obs #50 — RV Products Shop `8330-3362` page and photograph; open visual match candidate
   for the manual's unnamed electronic-digital illustration
+- obs #52 — rvpartshop.ca used `1C26-10`/`153-6616` listing; identity only, no
+  compatibility claim
+- obs #53 — answers.rvupgradestore.com Q&A; manufacturer could not identify `1C26-10`,
+  hedged unconfirmed third-party suggestion of `7330G3351` as a possible alternative
 
 ## 8. Resolver status and next milestone
 
