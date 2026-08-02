@@ -506,6 +506,8 @@ IGNORED_KEYS = {
     "figure_2_description": "narrative description of a manual figure's physical control layout, used for a cross-observation visual comparison; not itself product data attached to any one component",
     "visual_comparison": "narrative note comparing two observations' manual illustrations; the comparison's conclusion is captured in 'finding', not itself product data",
     "finding": "narrative conclusion of a cross-observation visual comparison; observation-only per project discipline (same treatment as 8330-3362/1C26-10) until a manufacturer document names the compared identifiers explicitly",
+    "digital_thermostat_documents_listed": "narrative inventory of a source library's own document titles, used to support a negative-evidence finding; not itself product data attached to any one component",
+    "search_target_absent": "meta flag listing which identifiers were searched for and not found in a source; the negative finding itself is captured in 'finding'",
 
     # out of scope: furnace/cooktop grammar captured incidentally on the
     # same chart image as the water heater grammar. Real data, wrong

@@ -13,7 +13,10 @@ digital-upgrade paths rather than a real contradiction. **2026-08-02:** built
 narrow the `7330-E336`/`7330-E385` "electronic generation" question — image evidence now
 identifies the manual's "Electronic Thermostats" generation as the `7330*335*/*385*/*336*`
 family itself, though `7330-E336`/`7330-E385`'s own exact identity stays observation-only
-(§6.2))
+(§6.2). Decided `8330-3362`/`8330-3862` will not be built as components — the
+manufacturer's own current document library names its digital line only `9420-*` and has
+no entry for either, and a retailer independently reports `8330-3362` itself discontinued
+(§6.6, obs #66/#67))
 
 ## 1. Why this adapter
 
@@ -362,6 +365,40 @@ anywhere**. Captured for reference at the user's request; not built into a compo
 not tied to the fixture's `8330-3362`/`8330-3862` exact endpoints without a more direct
 identity confirmation.
 
+### 6.6 Decision, 2026-08-02: `8330-3362`/`8330-3862` stay observation-only
+
+Closing §8's former item 2. Two new checks this session tip the evidence from "not yet
+confirmed" to "actively against":
+
+- Observation #66 (rvproductsshop.com, the same RVPS retailer chain already trusted for
+  the obs #48/#49 "no longer produced" quotes) states `8330-3362` **is itself now
+  discontinued**, replaced by `9420A382` — a *third* distinct `9420-*` SKU alongside
+  `9420-351` (§6, the analog supersession target) and `9420-391` (see next bullet).
+- Observation #67, a direct check of Coleman-Mach's own current official document library
+  (`library.coleman-mach.com`) — the highest-trust source available, distinct from every
+  retailer mirror used elsewhere in this document — names its digital wall-thermostat line
+  exclusively by `9420-*` numbers (`9420-381`, `9420-382`, `9420-391`) and lists **no
+  document for `8330-3362` or `8330-3862` anywhere**.
+
+Four retailers (obs #50/#55/#62/#66) independently describe `8330-3362` with consistent
+attributes, and it is a real, purchasable product — this is not a case of doubting the
+part exists. But the project's bar for an *exact endpoint component* has consistently been
+a manufacturer-primary or -secondary source naming the specific SKU (every §6/§6.1
+component has one), and `1C26-10`/`7330-E336`/`7330-E385` already established that retailer
+volume alone doesn't clear that bar. Here the negative check goes further: the
+manufacturer's own current library confirms its digital line under a *different* numbering
+scheme and omits `8330-3362`/`8330-3862` entirely, and a retailer independently says
+`8330-3362` is itself discontinued. The likeliest explanation is that `8330-3362`/`8330-3862`
+were never Coleman-Mach's own catalog numbers with independent manufacturer documentation —
+possibly a reseller/private designation, or an older SKU retired before the current library
+was assembled.
+
+**Decision: do not build `8330-3362`/`8330-3862` as exact endpoint components or add a
+`supersedes` edge from them.** They stay observation-only, same treatment as `1C26-10` and
+`7330-E336`/`7330-E385`. Revisit only if a manufacturer-primary source (a catalog page, a
+model-specific install manual, a manufacturer email) surfaces that names `8330-3362`/
+`8330-3862` directly.
+
 ## 7. Sources
 
 - obs #40 — Coleman-Mach current analog thermostat product page
@@ -424,6 +461,11 @@ identity confirmation.
   mirror (rvupgradestore.com) specifically to render Figure 2 to an image; visually
   identical to obs #45's unlabeled "Electronic Thermostats" generation illustration,
   identifying the `7330*335*/*385*/*336*` family as that generation (see §6.2)
+- obs #66 — rvproductsshop.com `8330-3362` product page; states `8330-3362` is itself
+  discontinued, replaced by `9420A382` (see §6.6)
+- obs #67 — `library.coleman-mach.com`, the manufacturer's own current document library;
+  negative check confirming it names its digital thermostat line only by `9420-*` numbers
+  and lists no `8330-3362`/`8330-3862` document (see §6.6)
 
 ## 8. Resolver status and next milestone
 
@@ -457,10 +499,12 @@ Ready-to-do next work, in rough priority order:
    turned up). Revisit only if a new fetchable source surfaces (a manual, a forum post with
    a rear-label photo, or a retailer page that itself shows the unit rather than only
    naming it in a replacement chart).
-2. Decide whether `8330-3362`/`8330-3862` (digital-upgrade path, §6.3, obs #50/#62) warrant
-   their own exact endpoint components alongside the analog `9420-351` supersession, now
-   that obs #62 shows Coleman-Mach's own retailer channel marketing them as a direct
-   replacement for several older analog models.
-3. If item 1 gets a confirming source, or item 2 lands, revisit whether `7330F3361`
-   (already built, see §6.1) should get a `supersedes` edge from `7330D337`/`7330-E336`/
-   `8330-339(2)` once one of those legacy identifiers is itself promoted to a component.
+2. **Resolved 2026-08-02 (§6.6, obs #66/#67):** `8330-3362`/`8330-3862` will **not** be
+   built as exact endpoint components. A direct check of Coleman-Mach's own current
+   document library shows its digital line is named exclusively `9420-*`, with no
+   `8330-3362`/`8330-3862` document anywhere, and a retailer independently reports
+   `8330-3362` itself discontinued (replaced by `9420A382`). No further action unless a
+   manufacturer-primary source naming these SKUs directly turns up.
+3. If item 1 gets a confirming source, revisit whether `7330F3361` (already built, see
+   §6.1) should get a `supersedes` edge from `7330D337`/`7330-E336`/`8330-339(2)` once one
+   of those legacy identifiers is itself promoted to a component.
