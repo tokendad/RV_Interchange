@@ -260,6 +260,7 @@ ALIASES = {
     "ppl_item_old": "vendor_catalog_number_legacy",
     "upc": "upc",
     "relation": "sku_relationship",
+    "sku_relationship": "sku_relationship",
     "renumbering_pattern": "sku_renumbering_pattern",
     "models_sku_only": "model_sku_table",
     "new_skus_found": "model_sku_table",
@@ -502,6 +503,9 @@ IGNORED_KEYS = {
     "asterisk_notes": "narrative SKU-specific installation procedure notes; procedure detail preserved in raw_content/quoted_text, not a general product attribute",
     "identity_conflict_flag": "narrative note flagging a naming/identity overlap between two different sources' products; not itself product data",
     "terminal_scheme_match": "narrative note comparing one source's terminal scheme to another observation's; the schemes themselves are captured via terminal_order/terminal_functions/wire_colors in each observation",
+    "figure_2_description": "narrative description of a manual figure's physical control layout, used for a cross-observation visual comparison; not itself product data attached to any one component",
+    "visual_comparison": "narrative note comparing two observations' manual illustrations; the comparison's conclusion is captured in 'finding', not itself product data",
+    "finding": "narrative conclusion of a cross-observation visual comparison; observation-only per project discipline (same treatment as 8330-3362/1C26-10) until a manufacturer document names the compared identifiers explicitly",
 
     # out of scope: furnace/cooktop grammar captured incidentally on the
     # same chart image as the water heater grammar. Real data, wrong

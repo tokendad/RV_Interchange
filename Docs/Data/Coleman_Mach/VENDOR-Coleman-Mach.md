@@ -8,7 +8,12 @@ independent retailer's own replacement chart together unblock the `7330E336`/`73
 wildcard family, one of which (FARAMZ) confusingly reuses Coleman's own `7330F3852` number
 for a physically different digital product — see §6.4/§6.5. Obs #62 resolves §6.3's initial
 `9420-351`-vs-`8330-3362` replacement conflict as two coexisting OEM-analog and
-digital-upgrade paths rather than a real contradiction)
+digital-upgrade paths rather than a real contradiction. **2026-08-02:** built
+`7330F3361`/`7330-3861`/`7330B3441` as exact endpoint components (§6.1); obs #64/#65
+narrow the `7330-E336`/`7330-E385` "electronic generation" question — image evidence now
+identifies the manual's "Electronic Thermostats" generation as the `7330*335*/*385*/*336*`
+family itself, though `7330-E336`/`7330-E385`'s own exact identity stays observation-only
+(§6.2))
 
 ## 1. Why this adapter
 
@@ -208,35 +213,57 @@ obs #55/#56 respectively); `7330B3441` stays single-source (obs #40 only, proven
 only cross-sell it without stating attributes. `edge_resolver.py --check-fixture`
 confirms 0 mismatches for all three.
 
-### 6.2 The "electronic" generation candidate: partially unblocked
+### 6.2 The "electronic" generation candidate: narrowed, still not fully resolved
 
 The eBay listing for a candidate `7330E336`/`7330-336` electronic-generation model was
 never independently fetchable (eBay blocks automated retrieval), and an earlier attempt to
-reach a `manuals.plus` mirror of the closest manual (for `7330G3351`) also 403'd. Two new
-`manuals.plus`-hosted documents (fetched directly by the user, obs #58/#59) partially
-unblock this lead from different angles, without fully resolving it:
+reach a `manuals.plus` mirror of the closest manual (for `7330G3351`) also 403'd. Several
+new sources (obs #58/#59, and #64/#65 this session) progressively unblock this lead
+without fully resolving unit-level identity:
 
 - Observation #58 is the manufacturer installation manual `1976F190 (1-04)` for
   `7330*335*`, `7330*385*`, **and `7330*336*`**. It independently establishes `7330*336*`
   as a real, current, manufacturer-documented wildcard family member — a "Cool Only"
   physical variant of the same thermostat body, differing only by the omitted `W` wire and
   disabled heat/furnace switch positions (see §3). It does **not** mention `7330E336` or
-  `7330-336` specifically, and does not confirm that the eBay listing's electronic-display
-  candidate is the same physical device as this manual's mechanical `7330*336*`.
+  `7330-336` specifically.
 - Observation #59, an independent retailer's ("MakariosRV.com") own model-lookup and
   replacement chart, lists `7330-E336` directly (current replacement: `7330F3361`) and
   `7330-E385` directly (current replacement: `8330-3482`, a model number not otherwise seen
   in this fixture). This is the first time `7330-E336`/`7330-E385` have been read from a
   fetchable, citable source — the eBay dead end is no longer the only lead — but it is
   retailer cross-reference tier, not manufacturer-documented, and it does not itself
-  describe the `7330-E336` unit's physical or electronic-display characteristics.
+  describe the `7330-E336` unit's physical characteristics.
+- Observation #64 (trvparts.com) independently names `7330F3361` as the replacement for
+  `7330-E336` — a third, independent corroboration of that specific replacement pairing
+  (after obs #40's implicit family membership and obs #59's chart).
+- **Observation #65, this session:** obs #58's own installation-manual PDF (`1976F190`,
+  fetched a second time via a different mirror — rvupgradestore.com — specifically to
+  render its Figure 2 to an image, since the manuals.plus text-only capture couldn't) shows
+  the physical control layout for the `7330*335*/*385*/*336*` family: a `COOL/FAN/OFF/HEAT`
+  slide switch, an `AUTO/HIGH/LOW`+`LOW/HIGH/ON` fan-speed switch, and a vertical
+  thermometer-style gauge (55–90°) with a slider. This is **visually identical** to obs
+  #45's Coleman-Wall-Thermostat.pdf page 3, which depicts (unlabeled by part number) three
+  chronological generations — "1. Mechanical/By-Metal" (a round dial with a heating
+  anticipator), "2. Electronic Thermostats" (this same switch-and-gauge layout), and
+  "3. Electronic Digital Display Thermostats" (the `RVComfort.HC` LED-readout unit already
+  linked to `8330-3362` as a visual candidate, obs #50). Two independent manufacturer
+  documents showing the identical control layout is direct evidence, not part-number
+  pattern-matching: **the service manual's "Electronic Thermostats" generation is the
+  `7330*335*/*385*/*336*` family** — already built as fixture components
+  (`7330G3351`/`7330F3852`/`7330F3361`/`7330-3861`/`7330B3441`, superseded-to `9420-351`).
 
-Net effect: `7330-E336`/`7330-E385` are now real, retailer-corroborated catalog numbers
-with a stated current-replacement path, but their identity as the service manual's
-unnamed "electronic" generation (as opposed to some other historical model) remains
-unconfirmed — same evidentiary gap as `8330-3362` and `1C26-10` elsewhere in this
-document. They are captured as observation content but not yet promoted to components or
-graph edges.
+Net effect: the "which of the three manual generations" question is now answered for the
+*family* — `7330*335*/*385*/*336*` (and therefore `7330F3361`, its already-built current
+member) is the "Electronic" generation, not "Mechanical/By-Metal" or "Electronic Digital
+Display." This makes it a reasonable hypothesis that `7330-E336`/`7330-E385` were earlier
+product codes within this same "Electronic" generation lineage (the `E` plausibly standing
+for "Electronic") — but this remains a hypothesis, not a manufacturer-confirmed identity:
+no source shows a photo or manufacturer statement of `7330-E336`/`7330-E385` themselves, so
+their exact relationship to `7330F3361`/`7330-3861` (same physical unit under an older SKU
+scheme, vs. a genuinely distinct predecessor unit later replaced by it) is still open — same
+evidentiary gap as `8330-3362` and `1C26-10` elsewhere in this document. They remain
+observation-only, not promoted to components or graph edges.
 
 ### 6.3 Two coexisting replacement paths, not a real conflict: OEM analog vs. digital upgrade
 
@@ -391,6 +418,12 @@ identity confirmation.
   `8330-336`/`337`/`338`/`339`, via rvupgradestore.com (linked from the obs #62 product
   page's Q&A section); the digital-family counterpart to obs #45/#58's analog manual,
   captured for reference only per the user's request — does not itself name `8330-3362`
+- obs #64 — trvparts.com `7330F3361` product page; third independent retailer naming
+  `7330F3361` as the replacement for `7330-E336` (see §6.2)
+- obs #65 — obs #58's own installation-manual PDF (`1976F190`), refetched via a second
+  mirror (rvupgradestore.com) specifically to render Figure 2 to an image; visually
+  identical to obs #45's unlabeled "Electronic Thermostats" generation illustration,
+  identifying the `7330*335*/*385*/*336*` family as that generation (see §6.2)
 
 ## 8. Resolver status and next milestone
 
@@ -416,13 +449,18 @@ equivalence separate.
 
 Ready-to-do next work, in rough priority order:
 
-1. Determine whether `7330-E336`/`7330-E385` (obs #59) can be tied to the service manual's
-   unnamed "electronic" generation, or remain observation-only candidates like `8330-3362`
-   and `1C26-10`.
+1. **Partially resolved 2026-08-02 (§6.2, obs #64/#65):** which manual generation
+   `7330-E336`/`7330-E385` belong to is now narrowed to "Electronic" (image-matched to the
+   already-built `7330*335*/*385*/*336*` family), but their own exact unit-level identity
+   is still unconfirmed — no photo or manufacturer statement of `7330-E336`/`7330-E385`
+   themselves exists in any source found so far (eBay remains unfetchable; no forum photo
+   turned up). Revisit only if a new fetchable source surfaces (a manual, a forum post with
+   a rear-label photo, or a retailer page that itself shows the unit rather than only
+   naming it in a replacement chart).
 2. Decide whether `8330-3362`/`8330-3862` (digital-upgrade path, §6.3, obs #50/#62) warrant
    their own exact endpoint components alongside the analog `9420-351` supersession, now
    that obs #62 shows Coleman-Mach's own retailer channel marketing them as a direct
    replacement for several older analog models.
-3. If either of the above lands, revisit whether `7330F3361` (already built, see §6.1)
-   should get a `supersedes` edge from `7330D337`/`7330-E336`/`8330-339(2)` once one of
-   those legacy identifiers is itself promoted to a component.
+3. If item 1 gets a confirming source, or item 2 lands, revisit whether `7330F3361`
+   (already built, see §6.1) should get a `supersedes` edge from `7330D337`/`7330-E336`/
+   `8330-339(2)` once one of those legacy identifiers is itself promoted to a component.
