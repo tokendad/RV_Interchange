@@ -215,6 +215,7 @@ CANONICAL = {
     "customer_review":           "structured field-evidence review {reviewer, date, rating, text}",
     "source_statement":          "a direct quote/paraphrase of what a source said, load-bearing for a finding",
     "observed_price_usd":        "source-listed USD price at capture time, not an identity attribute",
+    "observed_msrp_usd":         "source-listed MSRP/list price at capture time, distinct from any sale price also observed, not an identity attribute",
 
     # document metadata — real, but about the source, not the product
     "source_document_title":     "title of the source document",
@@ -397,6 +398,7 @@ ALIASES = {
     "explanation": "source_statement",
     "quoted_text": "source_statement",
     "price_usd": "observed_price_usd",
+    "msrp_usd": "observed_msrp_usd",
 
     # document metadata
     "doc": "source_document_title",
@@ -508,6 +510,10 @@ IGNORED_KEYS = {
     "finding": "narrative conclusion of a cross-observation visual comparison; observation-only per project discipline (same treatment as 8330-3362/1C26-10) until a manufacturer document names the compared identifiers explicitly",
     "digital_thermostat_documents_listed": "narrative inventory of a source library's own document titles, used to support a negative-evidence finding; not itself product data attached to any one component",
     "search_target_absent": "meta flag listing which identifiers were searched for and not found in a source; the negative finding itself is captured in 'finding'",
+    "review_text": "narrative customer review quote, not itself product/identity data",
+    "corroborates": "narrative note naming which existing fixture claim this observation independently corroborates; not itself product data",
+    "search_targets": "meta list of identifiers searched for in a negative-result observation; the result itself is captured in 'finding'",
+    "thermostat_urls_found": "narrative inventory of a source's own product-page URLs, used to support a negative-evidence finding; not itself product data attached to any one component",
 
     # out of scope: furnace/cooktop grammar captured incidentally on the
     # same chart image as the water heater grammar. Real data, wrong

@@ -16,7 +16,10 @@ family itself, though `7330-E336`/`7330-E385`'s own exact identity stays observa
 (§6.2). Decided `8330-3362`/`8330-3862` will not be built as components — the
 manufacturer's own current document library names its digital line only `9420-*` and has
 no entry for either, and a retailer independently reports `8330-3362` itself discontinued
-(§6.6, obs #66/#67))
+(§6.6, obs #66/#67). Wayback Machine snapshots of a sixth retailer (obs #68/#69) confirmed
+`8330-3862` as an independently-listed product too, correcting an earlier evidentiary gap
+without changing the decision; a full-history search of that same site (obs #70) found no
+trace of `7330-E336`/`7330-E385`, logged as a negative result)
 
 ## 1. Why this adapter
 
@@ -399,6 +402,35 @@ was assembled.
 model-specific install manual, a manufacturer email) surfaces that names `8330-3362`/
 `8330-3862` directly.
 
+**Correction, same day:** the paragraph above originally treated `8330-3862`'s evidentiary
+tier as roughly equal to `8330-3362`'s. On re-checking every observation that mentions
+`8330-3862` specifically (prompted by the user), that wasn't accurate — before obs #68,
+`8330-3862` had **no dedicated product listing anywhere**, only a merchandising cross-sell
+mention (obs #55) and a named-but-undescribed "black digital" sibling role in obs #59's
+chart. Obs #68 (`colemanmachac.com`, via the Wayback Machine, a source the user supplied)
+closes that specific gap: a dedicated, independently-priced listing (MSRP $99.99, sale
+$85.22) with its own attributes, stating it too is discontinued and "superseded to part
+number `9420-381`." Obs #69, the same retailer's `8330-3362` page, adds a fifth retailer
+source for that SKU and independently corroborates the fixture's existing
+`7330G3351 -> 9420-351` edge — but also states `8330-3362`'s replacement as `9420-381`,
+a *third* distinct successor number after `9420-351` and obs #66's `9420A382`. This
+retailer disagreement across sources on the exact 9420-series successor is itself
+consistent with the §6.6 read (`8330-3362`/`8330-3862` predate a numbering-scheme change
+and were never given one stable, manufacturer-documented replacement) rather than
+undermining it. `colemanmachac.com`'s own footer identifies it as "an independent retailer
+of Coleman®-Mach® by Airxcel, ... Seek Adventure LLC, Operating out of Florida, USA" — a
+sixth retailer, not a manufacturer, despite the manufacturer-suggestive domain name. **The
+decision above is unchanged**, but `8330-3862` should now be read as an independently
+confirmed, once-current retail product (same as `8330-3362`), not a merely-inferred sibling.
+
+Obs #70 additionally records a negative search: `colemanmachac.com`'s full recorded
+history (695 unique URLs, Wayback captures 2017-06-30 through 2025-05-13, including a
+direct check of its earliest known inventory listing) never lists `7330-E336`, `7330-E385`,
+or any product described as an "electronic" (as opposed to analog/digital) generation
+thermostat — this domain doesn't help resolve §6.2's open item, but is logged so a future
+session doesn't repeat the search. It does independently confirm `9420-381` as a real,
+current Coleman-Mach digital SKU (a third `9420-*` number now seen in this document).
+
 ## 7. Sources
 
 - obs #40 — Coleman-Mach current analog thermostat product page
@@ -466,6 +498,13 @@ model-specific install manual, a manufacturer email) surfaces that names `8330-3
 - obs #67 — `library.coleman-mach.com`, the manufacturer's own current document library;
   negative check confirming it names its digital thermostat line only by `9420-*` numbers
   and lists no `8330-3362`/`8330-3862` document (see §6.6)
+- obs #68/#69 — `colemanmachac.com` (Seek Adventure LLC), via the Wayback Machine
+  (user-supplied snapshot URLs); dedicated retailer listings for `8330-3862`/`8330-3362`,
+  correcting `8330-3862`'s prior evidentiary gap and adding a fifth/sixth retailer source
+  overall (see §6.6 correction)
+- obs #70 — `colemanmachac.com`'s full site history (695 URLs, Wayback captures
+  2017-2025), searched for `7330-E336`/`7330-E385`/"electronic" — negative result, logged
+  for future reference (see §6.2/§6.6)
 
 ## 8. Resolver status and next milestone
 
