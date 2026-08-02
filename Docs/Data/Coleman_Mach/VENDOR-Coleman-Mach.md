@@ -1,25 +1,28 @@
 # VENDOR — Coleman-Mach / RV Products / Airxcel
 
 **Status:** exact endpoint and supersession fixture complete; broader adapter research in progress
-**Updated:** 2026-08-01 (obs #58/#59: a manufacturer wildcard-family manual and an
-independent retailer's own replacement chart together unblock the `7330E336`/`7330-336`
-"electronic generation" lead that eBay/manuals.plus previously blocked — see §6.2. Obs
-#60/#61 add two third-party aftermarket thermostats claiming compatibility with the 7330
-wildcard family, one of which (FARAMZ) confusingly reuses Coleman's own `7330F3852` number
-for a physically different digital product — see §6.4/§6.5. Obs #62 resolves §6.3's initial
-`9420-351`-vs-`8330-3362` replacement conflict as two coexisting OEM-analog and
-digital-upgrade paths rather than a real contradiction. **2026-08-02:** built
-`7330F3361`/`7330-3861`/`7330B3441` as exact endpoint components (§6.1); obs #64/#65
-narrow the `7330-E336`/`7330-E385` "electronic generation" question — image evidence now
-identifies the manual's "Electronic Thermostats" generation as the `7330*335*/*385*/*336*`
-family itself, though `7330-E336`/`7330-E385`'s own exact identity stays observation-only
-(§6.2). Decided `8330-3362`/`8330-3862` will not be built as components — the
-manufacturer's own current document library names its digital line only `9420-*` and has
-no entry for either, and a retailer independently reports `8330-3362` itself discontinued
-(§6.6, obs #66/#67). Wayback Machine snapshots of a sixth retailer (obs #68/#69) confirmed
-`8330-3862` as an independently-listed product too, correcting an earlier evidentiary gap
-without changing the decision; a full-history search of that same site (obs #70) found no
-trace of `7330-E336`/`7330-E385`, logged as a negative result)
+**Updated:** 2026-08-02 — `7330E335`/`7330E385`/`7330E336` confirmed as real,
+manufacturer-catalogued RV Products SKUs via `rvcomfort.com` (RVP/Airxcel's own historical
+site, found by the user on the Wayback Machine): the site's own catalog page names them
+verbatim, linking to the same "Electronic"-generation document already in this fixture
+(obs #71–#75, §6.7). Production window bounded to roughly Dec 2005–Jul 2008, between a
+`D`-suffix family (named through Aug 2003) and the `G`/`F`-suffix family already built as
+components. This resolves the identity question that had been open since the original,
+never-fetchable eBay listing; whether to build the `E`-suffix trio as components is now
+the open decision (§8 item 1). Along the way, a sixth retailer (`colemanmachac.com`, also
+via Wayback) corrected an earlier evidentiary gap for `8330-3862` without changing the
+decision to keep it observation-only (§6.6, obs #68–#70).
+
+**2026-08-01/02, earlier this arc:** obs #58/#59 first unblocked the `7330E336`/`7330-336`
+lead that eBay/manuals.plus had blocked (§6.2). Obs #60/#61 documented two third-party
+aftermarket thermostats claiming compatibility with the 7330 wildcard family, one of which
+(FARAMZ) confusingly reuses Coleman's own `7330F3852` number for a physically different
+digital product (§6.4/§6.5). Obs #62 resolved §6.3's initial `9420-351`-vs-`8330-3362`
+replacement conflict as two coexisting OEM-analog and digital-upgrade paths, not a
+contradiction. Built `7330F3361`/`7330-3861`/`7330B3441` as exact endpoint components
+(§6.1). Decided `8330-3362`/`8330-3862` will not be built as components — Coleman-Mach's
+own current document library names its digital line only `9420-*` and has no entry for
+either, and a retailer independently reports `8330-3362` itself discontinued (§6.6).
 
 ## 1. Why this adapter
 
@@ -262,14 +265,67 @@ without fully resolving unit-level identity:
 Net effect: the "which of the three manual generations" question is now answered for the
 *family* — `7330*335*/*385*/*336*` (and therefore `7330F3361`, its already-built current
 member) is the "Electronic" generation, not "Mechanical/By-Metal" or "Electronic Digital
-Display." This makes it a reasonable hypothesis that `7330-E336`/`7330-E385` were earlier
-product codes within this same "Electronic" generation lineage (the `E` plausibly standing
-for "Electronic") — but this remains a hypothesis, not a manufacturer-confirmed identity:
-no source shows a photo or manufacturer statement of `7330-E336`/`7330-E385` themselves, so
-their exact relationship to `7330F3361`/`7330-3861` (same physical unit under an older SKU
-scheme, vs. a genuinely distinct predecessor unit later replaced by it) is still open — same
-evidentiary gap as `8330-3362` and `1C26-10` elsewhere in this document. They remain
-observation-only, not promoted to components or graph edges.
+Display." At the time this section was first written, whether `7330-E336`/`7330-E385`
+were themselves genuine predecessor codes within that lineage was still a hypothesis, not
+a confirmed identity — **see §6.7, which resolves it** using a newly-found manufacturer
+source (`rvcomfort.com`, RV Products/Airxcel's own historical site, via the Wayback
+Machine).
+
+### 6.7 Resolved, 2026-08-02: `7330E335`/`7330E385`/`7330E336` confirmed as real RVP SKUs
+
+The user found `rvcomfort.com` archived on the Wayback Machine — RV Products/Airxcel's own
+official site from the 2000s (footer: *"Copyright 2003 RV Products a Division of Airxcel,
+Inc.,"* `webmaster@airxcel.com`), distinct from every retailer source used elsewhere in
+this document. Digging through its archived catalog pages and PDFs (obs #71–#75) resolves
+the identity question directly, using manufacturer-primary evidence rather than inference:
+
+- **Obs #71/#72:** as of January 2003 (page's own "last modified" date, confirmed live
+  through at least August 2003), RVP's own wall-thermostat catalog page names the family
+  as `7330D3351` (Heat/Cool) and `7330D3361` (Cool Only) — a `D`-suffix generation, not yet
+  the `G`/`F`-suffix family already built as components. The linked installation PDF
+  (`1976-190.pdf`, internal title `1976B190.PDF`, created 2001-05-09) is the same document
+  template, same physical control layout (Figure 2: `COOL/FAN/OFF/HEAT` slide,
+  `AUTO/HIGH/LOW`+`LOW/HIGH/ON` fan switch, 55–90° vertical gauge, "Coleman-Mach" wordmark)
+  already identified as the "Electronic" generation — just two revision letters earlier.
+- **Obs #75:** by April and August 2005, the same catalog page lists **no** 7330-series
+  wall thermostat entry at all — neither `D` nor anything else. A gap.
+- **Obs #74, the key finding:** by December 2005 (confirmed unchanged through at least
+  July 2008), the catalog page lists *"Installation Instructions For `7330E335*`,
+  `7330E385*`, `7330E336*` Wall Thermostat"* — naming all three verbatim — linking to
+  `pdf_documents/1976190.pdf`, the **same document number**, now at internal revision
+  `1976F190` (created 2004-01-13, already in the fixture as obs #58/#65's wildcard-notation
+  document). The PDF itself uses wildcard notation (`7330*335*/*385*/*336*`) to cover
+  multiple suffix letters generically, but the manufacturer's own catalog link text names
+  the specific letter in production at that time. Per obs #58's family statement
+  (`*335*`/`*385*` = Heat/Cool, `*336*` = Cool Only): `7330E335` = Heat/Cool, `7330E385` =
+  Heat/Cool (a second color/trim variant, unconfirmed which), `7330E336` = Cool Only — the
+  same functional split as the already-built `7330G3351`/`7330F3852`/`7330F3361` family.
+
+**This directly confirms `7330E335`/`7330E385`/`7330E336` as real, manufacturer-catalogued
+RV Products SKUs** — not a retailer inference, not a coincidental part-number pattern
+match — sold as the "Electronic"-generation family's current instantiation for a bounded
+window, sitting between the `D`-suffix family (named through Aug 2003) and the `G`/`F`-suffix
+family already built as components (current by the 2013 catalog, obs #42, still current
+through 2025). The production timeline for this one physical body design is now:
+
+| Suffix letter | Confirmed window |
+|---|---|
+| `D` (`7330D3351`/`7330D3361`) | Named Jan–Aug 2003 |
+| *(gap in the catalog)* | Apr–Aug 2005 |
+| `E` (`7330E335`/`7330E385`/`7330E336`) | Named Dec 2005 – Jul 2008 |
+| `G`/`F` (`7330G3351`/`7330F3852`/`7330F3361`/`7330-3861`/`7330B3441`) | Current by 2013, still current 2025 |
+
+Not yet confirmed: exact color for `7330E335` vs. `7330E385` individually (both are
+Heat/Cool per the shared document, but which is white vs. black is not stated on this
+catalog page), and the precise D→E and E→G/F transition dates (no `rvcomfort.com` capture
+was found covering 2004 or 2009–2012 specifically). The user has separately emailed
+Coleman-Mach directly requesting datasheets on the `E` variant — a parallel, possibly
+faster path to the remaining color/date detail than further Wayback searching.
+
+**This resolves the identity question that has been open since the original,
+never-fetchable eBay listing.** Whether to now build `7330E335`/`7330E385`/`7330E336` as
+exact endpoint components (the evidentiary bar that blocked `8330-3362`/`8330-3862` in
+§6.6 is now met here) is a separate decision, tracked in §8.
 
 ### 6.3 Two coexisting replacement paths, not a real conflict: OEM analog vs. digital upgrade
 
@@ -505,6 +561,16 @@ current Coleman-Mach digital SKU (a third `9420-*` number now seen in this docum
 - obs #70 — `colemanmachac.com`'s full site history (695 URLs, Wayback captures
   2017-2025), searched for `7330-E336`/`7330-E385`/"electronic" — negative result, logged
   for future reference (see §6.2/§6.6)
+- obs #71/#72 — `rvcomfort.com` (RV Products/Airxcel's own site, via Wayback Machine,
+  user-supplied lead): Jan–Aug 2003 catalog page and installation PDF naming
+  `7330D3351`/`7330D3361` (see §6.7)
+- obs #73 — `rvcomfort.com`, Dec 2005 capture of the same installation PDF (by then
+  revision `1976F190`, the wildcard-notation document already in the fixture) (see §6.7)
+- obs #74 — `rvcomfort.com`, Dec 2005–Jul 2008 catalog page naming `7330E335`/`7330E385`/
+  `7330E336` verbatim — the key finding resolving the electronic-generation identity
+  question (see §6.7)
+- obs #75 — `rvcomfort.com`, Apr/Aug 2005 catalog page showing no 7330-series listing at
+  all, narrowing the D→E transition window (see §6.7)
 
 ## 8. Resolver status and next milestone
 
@@ -530,20 +596,25 @@ equivalence separate.
 
 Ready-to-do next work, in rough priority order:
 
-1. **Partially resolved 2026-08-02 (§6.2, obs #64/#65):** which manual generation
-   `7330-E336`/`7330-E385` belong to is now narrowed to "Electronic" (image-matched to the
-   already-built `7330*335*/*385*/*336*` family), but their own exact unit-level identity
-   is still unconfirmed — no photo or manufacturer statement of `7330-E336`/`7330-E385`
-   themselves exists in any source found so far (eBay remains unfetchable; no forum photo
-   turned up). Revisit only if a new fetchable source surfaces (a manual, a forum post with
-   a rear-label photo, or a retailer page that itself shows the unit rather than only
-   naming it in a replacement chart).
+1. **Resolved 2026-08-02 (§6.7, obs #71–#75):** `7330E335`/`7330E385`/`7330E336` are
+   confirmed real, manufacturer-catalogued RV Products SKUs — RVP's own historical site
+   (`rvcomfort.com`, via Wayback Machine) names them verbatim, linking to the same
+   "Electronic"-generation document already in the fixture. Production window bounded to
+   roughly Dec 2005–Jul 2008, between the `D`-suffix family (named through Aug 2003) and
+   the `G`/`F`-suffix family already built as components. **Next decision, not yet made:**
+   whether to build `7330E335`/`7330E385`/`7330E336` as exact endpoint components — the
+   evidentiary bar that blocked `8330-3362`/`8330-3862` (§6.6) is now met. Open sub-items:
+   exact color for `7330E335` vs. `7330E385` (both Heat/Cool, color unstated on the catalog
+   page) and the precise D→E/E→G transition dates. The user has separately emailed
+   Coleman-Mach for datasheets on the `E` variant — worth waiting to see if that reply
+   supplies the missing color/date detail before or alongside building.
 2. **Resolved 2026-08-02 (§6.6, obs #66/#67):** `8330-3362`/`8330-3862` will **not** be
    built as exact endpoint components. A direct check of Coleman-Mach's own current
    document library shows its digital line is named exclusively `9420-*`, with no
    `8330-3362`/`8330-3862` document anywhere, and a retailer independently reports
    `8330-3362` itself discontinued (replaced by `9420A382`). No further action unless a
    manufacturer-primary source naming these SKUs directly turns up.
-3. If item 1 gets a confirming source, revisit whether `7330F3361` (already built, see
-   §6.1) should get a `supersedes` edge from `7330D337`/`7330-E336`/`8330-339(2)` once one
-   of those legacy identifiers is itself promoted to a component.
+3. Once item 1's build decision is made, revisit whether `7330F3361` (already built, see
+   §6.1) should get a `supersedes` edge from `7330D337`/`7330E336`/`8330-339(2)` — obs #59's
+   replacement chart already names `7330F3361` as `7330-E336`'s replacement, so this edge
+   becomes buildable as soon as `7330E336` itself is a component.

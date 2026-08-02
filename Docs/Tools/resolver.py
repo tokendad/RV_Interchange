@@ -514,6 +514,10 @@ IGNORED_KEYS = {
     "corroborates": "narrative note naming which existing fixture claim this observation independently corroborates; not itself product data",
     "search_targets": "meta list of identifiers searched for in a negative-result observation; the result itself is captured in 'finding'",
     "thermostat_urls_found": "narrative inventory of a source's own product-page URLs, used to support a negative-evidence finding; not itself product data attached to any one component",
+    "page_last_modified": "meta date the source page itself states it was last modified; about the source, not the product",
+    "capture_date": "meta date this observation's specific web-archive capture was taken; about the source, not the product",
+    "pdf_internal_title": "meta internal filename/title embedded in a PDF's own metadata; about the source, not the product",
+    "pdf_creation_date": "meta creation date embedded in a PDF's own metadata; about the source, not the product",
 
     # out of scope: furnace/cooktop grammar captured incidentally on the
     # same chart image as the water heater grammar. Real data, wrong
