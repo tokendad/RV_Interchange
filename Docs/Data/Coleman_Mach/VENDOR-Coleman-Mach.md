@@ -193,9 +193,20 @@ Obs #55/#56 also cross-sell `7330B3441`, `8330-3362`, `8330-3862`, `9430A3543`, 
 replacement claim**. This is the first independent-retailer confirmation that `8330-3862`
 and `9430A3543` are real catalog numbers (as opposed to only appearing in a single visual
 candidate or a user's own reverse-image search), but their relationship to anything else
-in this fixture remains unestablished. Building `7330F3361`/`7330-3861`/`7330B3441` as
-exact endpoint components (same shape as §6's three) is real, ready-to-do next work — the
-evidence already exists across obs #40 + #55/#56.
+in this fixture remains unestablished.
+
+**Built 2026-08-02:** `7330F3361`/`7330-3861`/`7330B3441` are now exact endpoint
+components (`coleman_second_wave_endpoint_components()` in `edge_resolver.py`, resolver
+version `coleman_endpoint_v2`), same shape as §6's three, no supersession edges (no
+replacement target is stated in evidence for any of the three — a targeted evidence pass
+through obs #59's MakariosRV replacement chart found `7330F3361` named as the *current
+replacement* for legacy identifiers `7330D337`/`7330-E336`/`8330-339(2)`, but none of
+those are built as components, and promoting them is separate, larger-scope work — see
+§6.2/§8 item 2). `7330F3361` and `7330-3861` carry two-source evidence (obs #40 +
+obs #55/#56 respectively); `7330B3441` stays single-source (obs #40 only, provenance
+`manufacturer_page_single_source` on its `interface_type` attribute) since obs #55/#56
+only cross-sell it without stating attributes. `edge_resolver.py --check-fixture`
+confirms 0 mismatches for all three.
 
 ### 6.2 The "electronic" generation candidate: partially unblocked
 
@@ -392,6 +403,11 @@ and persists the two directed, candidate `supersedes` edges above with observati
 corroboration. Fixture validation checks identifiers, null interchange codes, attribute
 provenance, direction, detail, evidence, confidence, and the prohibited graph promotions.
 
+**2026-08-02:** a second wave of three exact endpoint components —
+`7330F3361`/`7330-3861`/`7330B3441` — is now built from observations #40/#55/#56, with no
+supersession edges (see §6.1). Same validation coverage as the first three, minus edge
+checks (none apply).
+
 Next, independently identify the service manual's unnamed mechanical, electronic, and
 electronic-digital generations. The manual's compatibility statement remains a research
 boundary, not a source of graph edges, until those exact identities are established. The
@@ -400,12 +416,13 @@ equivalence separate.
 
 Ready-to-do next work, in rough priority order:
 
-1. Build `7330F3361`/`7330-3861`/`7330B3441` as exact endpoint components (§6.1) — the
-   evidence already exists across obs #40 + #55/#56, same shape as the three §6 components.
-2. Determine whether `7330-E336`/`7330-E385` (obs #59) can be tied to the service manual's
+1. Determine whether `7330-E336`/`7330-E385` (obs #59) can be tied to the service manual's
    unnamed "electronic" generation, or remain observation-only candidates like `8330-3362`
    and `1C26-10`.
-3. Decide whether `8330-3362`/`8330-3862` (digital-upgrade path, §6.3, obs #50/#62) warrant
+2. Decide whether `8330-3362`/`8330-3862` (digital-upgrade path, §6.3, obs #50/#62) warrant
    their own exact endpoint components alongside the analog `9420-351` supersession, now
    that obs #62 shows Coleman-Mach's own retailer channel marketing them as a direct
    replacement for several older analog models.
+3. If either of the above lands, revisit whether `7330F3361` (already built, see §6.1)
+   should get a `supersedes` edge from `7330D337`/`7330-E336`/`8330-339(2)` once one of
+   those legacy identifiers is itself promoted to a component.
