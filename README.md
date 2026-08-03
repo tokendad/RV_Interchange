@@ -75,6 +75,22 @@ electronic, and electronic-digital generations. The manual's broad compatibility
 remains outside the graph until those identities are established. The wider Stage 1 roadmap
 is in `Docs/Inital_Design/PLAN-Staged_Build.md`.
 
+## Running the Public API (Stage 2, Phase 1)
+
+```bash
+pip install -r api/requirements.txt
+uvicorn api.main:app --reload
+```
+
+Then:
+
+```bash
+curl "http://127.0.0.1:8000/public/v1/replacements?ns=suburban&identifier=SW6DE"
+```
+
+See `docs/superpowers/plans/2026-08-03-stage2-public-api.md` for scope and the phased plan
+beyond this first slice.
+
 ## Known corrections logged
 
 - **`L` in SW6DEL means 12-volt relay, not "longer."** SW6DE and SW6DEL share an identical
