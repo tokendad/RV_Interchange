@@ -36,6 +36,32 @@ def insert_identifier(conn, identifier):
     return cur.lastrowid
 
 
+def get_component(conn, component_id):
+    row = conn.execute(
+        "SELECT * FROM components WHERE component_id = ?", (component_id,)).fetchone()
+    if row is None:
+        return None
+    return Component(component_id=row["component_id"], part_type_id=row["part_type_id"],
+                      interchange_code=row["interchange_code"])
+
+
+def get_component_by_identifier(conn, ns, value):
+    row = conn.execute(
+        "SELECT component_id FROM identifiers WHERE ns = ? AND value = ?",
+        (ns, value)).fetchone()
+    if row is None:
+        return None
+    return get_component(conn, row["component_id"])
+
+
+def get_identifiers_for_component(conn, component_id):
+    rows = conn.execute(
+        "SELECT * FROM identifiers WHERE component_id = ? ORDER BY id",
+        (component_id,)).fetchall()
+    return [Identifier(component_id=r["component_id"], ns=r["ns"], value=r["value"],
+                        visibility=r["visibility"]) for r in rows]
+
+
 def insert_component_attribute(conn, attribute):
     cur = conn.execute(
         "INSERT INTO component_attributes "
@@ -250,6 +276,22 @@ def self_test(verbose=False):
     insert_component(conn, Component("c_test_a", 412, "412-0001-A"))
     insert_component(conn, Component("c_test_b", 412, "412-0001-B"))
     insert_identifier(conn, Identifier("c_test_a", "suburban", "SW6DE"))
+
+    fetched_component = get_component(conn, "c_test_a")
+    if fetched_component is None or fetched_component.part_type_id != 412:
+        failures.append(f"expected c_test_a with part_type_id 412, got {fetched_component}")
+
+    by_identifier = get_component_by_identifier(conn, "suburban", "SW6DE")
+    if by_identifier is None or by_identifier.component_id != "c_test_a":
+        failures.append(f"expected SW6DE to resolve to c_test_a, got {by_identifier}")
+
+    missing_identifier = get_component_by_identifier(conn, "suburban", "NOPE")
+    if missing_identifier is not None:
+        failures.append(f"expected None for unknown identifier, got {missing_identifier}")
+
+    idents = get_identifiers_for_component(conn, "c_test_a")
+    if len(idents) != 1 or idents[0].value != "SW6DE":
+        failures.append(f"expected 1 identifier SW6DE for c_test_a, got {idents}")
 
     for attr in (
         ComponentAttribute("c_test_a", "voltage", "test", 900,
