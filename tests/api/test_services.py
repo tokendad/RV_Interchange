@@ -31,3 +31,74 @@ def test_resolve_unknown_identifier():
     _seed_basic_component(conn)
     result = IdentifierService.resolve(conn, "suburban", "NOPE")
     assert result is None
+
+
+from datetime import datetime, timezone
+
+from interchange_store import insert_edge, insert_evidence, insert_caveat
+from interchange_models import Edge, RelationshipEvidence, EdgeCaveat
+
+from api.services import ReplacementService
+
+
+def _now():
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def test_get_replacements_tiers_by_confidence():
+    conn = init_db(":memory:")
+    insert_component(conn, Component("c_test_a", 412, "412-0001-A"))
+    insert_component(conn, Component("c_test_b", 412, "412-0001-B"))
+    insert_component(conn, Component("c_test_c", 412, "412-0001-C"))
+    insert_identifier(conn, Identifier("c_test_a", "suburban", "SW6DE"))
+    insert_identifier(conn, Identifier("c_test_b", "suburban", "SW6DEL"))
+    insert_identifier(conn, Identifier("c_test_c", "suburban", "SW12DEL"))
+
+    drop_in_edge = Edge(type="substitutes", from_component_id="c_test_a",
+                         to_component_id="c_test_b")
+    insert_edge(conn, drop_in_edge)
+    for _ in range(8):
+        insert_evidence(conn, RelationshipEvidence(
+            edge_id=drop_in_edge.id, event_type="buyer_confirmed_install",
+            effect_alpha=3.0, effect_beta=0.0, occurred_at=_now()))
+
+    modified_edge = Edge(type="substitutes", from_component_id="c_test_a",
+                          to_component_id="c_test_c")
+    insert_edge(conn, modified_edge)
+    insert_evidence(conn, RelationshipEvidence(
+        edge_id=modified_edge.id, event_type="attribute_prior",
+        effect_alpha=3.0, effect_beta=1.0, occurred_at=_now()))
+    insert_caveat(conn, EdgeCaveat(edge_id=modified_edge.id, blocking=True,
+                                   text="Requires switch kit"))
+
+    result = ReplacementService.get_replacements(conn, "c_test_a")
+
+    assert result["source"] == "SW6DE"
+    assert result["replacements"] == [
+        {"part": "SW6DE", "fit": "Exact Match", "rank": 1, "summary": None},
+        {"part": "SW6DEL", "fit": "Direct Fit", "rank": 2, "summary": None},
+        {"part": "SW12DEL", "fit": "Fits With Modification", "rank": 3,
+         "summary": "Requires switch kit"},
+    ]
+
+
+def test_get_replacements_excludes_below_bar_and_unknown_component():
+    conn = init_db(":memory:")
+    insert_component(conn, Component("c_test_a", 412, "412-0001-A"))
+    insert_component(conn, Component("c_test_b", 412, "412-0001-B"))
+    insert_identifier(conn, Identifier("c_test_a", "suburban", "SW6DE"))
+    insert_identifier(conn, Identifier("c_test_b", "suburban", "SW12DEL"))
+
+    weak_edge = Edge(type="substitutes", from_component_id="c_test_a",
+                      to_component_id="c_test_b")
+    insert_edge(conn, weak_edge)
+    insert_evidence(conn, RelationshipEvidence(
+        edge_id=weak_edge.id, event_type="unknown_incomplete",
+        effect_alpha=1.0, effect_beta=1.0, occurred_at=_now()))
+
+    result = ReplacementService.get_replacements(conn, "c_test_a")
+    assert result["replacements"] == [
+        {"part": "SW6DE", "fit": "Exact Match", "rank": 1, "summary": None},
+    ]
+
+    assert ReplacementService.get_replacements(conn, "c_does_not_exist") is None
