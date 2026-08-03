@@ -24,13 +24,7 @@ def client():
         return conn
 
     main_module.app.dependency_overrides[main_module.get_conn] = _get_conn_override
-    # raise_server_exceptions=False: Starlette's ServerErrorMiddleware re-raises
-    # unhandled exceptions after invoking the registered handler (by design, so
-    # servers/tests can see the traceback) - the default TestClient behavior would
-    # surface that RuntimeError instead of letting us assert on the 500 response
-    # our unhandled_exception_handler actually produces. See
-    # test_unhandled_error_is_logged_and_returns_500.
-    yield TestClient(main_module.app, raise_server_exceptions=False)
+    yield TestClient(main_module.app)
     main_module.app.dependency_overrides.clear()
 
 
@@ -74,9 +68,18 @@ def test_unhandled_error_is_logged_and_returns_500(client, caplog):
 
     original = main_module.IdentifierService.resolve
     main_module.IdentifierService.resolve = staticmethod(_boom)
+    # raise_server_exceptions=False: Starlette's ServerErrorMiddleware re-raises
+    # unhandled exceptions after invoking the registered handler (by design, so
+    # servers/tests can see the traceback) - the default TestClient behavior would
+    # surface that RuntimeError instead of letting us assert on the 500 response
+    # our unhandled_exception_handler actually produces. Scoped to a local client
+    # here (rather than the shared `client` fixture) so the other tests that share
+    # that fixture keep the default TestClient behavior. dependency_overrides lives
+    # on main_module.app, not the TestClient instance, so it's already in effect.
+    error_client = TestClient(main_module.app, raise_server_exceptions=False)
     try:
         with caplog.at_level("ERROR", logger="rvinterchange.api"):
-            response = client.get(
+            response = error_client.get(
                 "/public/v1/resolve", params={"ns": "suburban", "identifier": "SW6DE"})
         assert response.status_code == 500
         assert response.json() == {"detail": "internal error"}
