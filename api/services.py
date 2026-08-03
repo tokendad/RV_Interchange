@@ -56,7 +56,9 @@ class ReplacementService:
             {"part": source_label, "fit": "Exact Match", "rank": 1, "summary": None},
         ]
 
-        rank = 2
+        _TIER_PRIORITY = {"Direct Fit": 0, "Fits With Modification": 1}
+
+        candidates = []
         for edge in get_edges_from(conn, component_id, type="substitutes"):
             evidence = get_evidence_for_edge(conn, edge["id"])
             confidence = compute_confidence(evidence)
@@ -65,12 +67,22 @@ class ReplacementService:
                 continue
             caveats = get_caveats_for_edge(conn, edge["id"])
             summary = "; ".join(c.text for c in caveats) if caveats else None
-            replacements.append({
+            candidates.append({
                 "part": _label_for(conn, edge["to_component_id"]),
                 "fit": fit,
-                "rank": rank,
                 "summary": summary,
+                "_confidence_value": confidence["value"],
             })
+
+        candidates.sort(
+            key=lambda c: (_TIER_PRIORITY[c["fit"]], -c["_confidence_value"])
+        )
+
+        rank = 2
+        for candidate in candidates:
+            del candidate["_confidence_value"]
+            candidate["rank"] = rank
+            replacements.append(candidate)
             rank += 1
 
         return {"source": source_label, "replacements": replacements}
