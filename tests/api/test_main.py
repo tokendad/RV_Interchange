@@ -24,7 +24,13 @@ def client():
         return conn
 
     main_module.app.dependency_overrides[main_module.get_conn] = _get_conn_override
-    yield TestClient(main_module.app)
+    # raise_server_exceptions=False: Starlette's ServerErrorMiddleware re-raises
+    # unhandled exceptions after invoking the registered handler (by design, so
+    # servers/tests can see the traceback) - the default TestClient behavior would
+    # surface that RuntimeError instead of letting us assert on the 500 response
+    # our unhandled_exception_handler actually produces. See
+    # test_unhandled_error_is_logged_and_returns_500.
+    yield TestClient(main_module.app, raise_server_exceptions=False)
     main_module.app.dependency_overrides.clear()
 
 
@@ -58,3 +64,22 @@ def test_replacements_endpoint_not_found(client):
     response = client.get(
         "/public/v1/replacements", params={"ns": "suburban", "identifier": "NOPE"})
     assert response.status_code == 404
+
+
+def test_unhandled_error_is_logged_and_returns_500(client, caplog):
+    import api.main as main_module
+
+    def _boom(conn, ns, identifier):
+        raise RuntimeError("simulated failure")
+
+    original = main_module.IdentifierService.resolve
+    main_module.IdentifierService.resolve = staticmethod(_boom)
+    try:
+        with caplog.at_level("ERROR", logger="rvinterchange.api"):
+            response = client.get(
+                "/public/v1/resolve", params={"ns": "suburban", "identifier": "SW6DE"})
+        assert response.status_code == 500
+        assert response.json() == {"detail": "internal error"}
+        assert any("Unhandled exception" in record.message for record in caplog.records)
+    finally:
+        main_module.IdentifierService.resolve = original

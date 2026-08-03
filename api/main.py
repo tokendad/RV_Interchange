@@ -5,12 +5,17 @@ No Dealer API, no auth, no write endpoints — see this plan's Phases section
 for why those are deferred.
 """
 
+import logging
+import os
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "Docs" / "Tools"))
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from interchange_schema import init_db
 
 from api.services import IdentifierService, ReplacementService
@@ -18,7 +23,48 @@ from api.schemas import ReplacementsResponse, ResolveResponse
 
 DB_PATH = str(Path(__file__).resolve().parent.parent / "Docs" / "Tools" / "components.db")
 
+# Defaults to a repo-local `logs/` dir so tests and local `uvicorn api.main:app` runs
+# work without root permissions; the Docker image overrides this to /app/logs, a
+# mounted volume, via the RVI_LOG_DIR env var (see api/Dockerfile and docker-compose.yaml).
+LOG_DIR = Path(os.environ.get(
+    "RVI_LOG_DIR", str(Path(__file__).resolve().parent.parent / "logs")))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+logger = logging.getLogger("rvinterchange.api")
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    file_handler = logging.FileHandler(LOG_DIR / "api.log")
+    file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    logger.addHandler(file_handler)
+    logger.addHandler(logging.StreamHandler())
+
 app = FastAPI(title="RV Interchange Public API", version="1")
+
+# Personal-use-only CORS: the test website (Task 10) is the one and only browser
+# caller, always on this fixed local port. Not "*" — see the Docker deployment plan's
+# note that this stack is not public.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8485", "http://127.0.0.1:8485"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.monotonic()
+    response = await call_next(request)
+    duration_ms = (time.monotonic() - start) * 1000
+    logger.info("%s %s -> %s (%.1fms)",
+                request.method, request.url.path, response.status_code, duration_ms)
+    return response
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "internal error"})
 
 
 def get_conn():
