@@ -91,6 +91,15 @@ curl "http://127.0.0.1:8000/public/v1/replacements?ns=suburban&identifier=SW6DE"
 See `docs/superpowers/plans/2026-08-03-stage2-public-api.md` for scope and the phased plan
 beyond this first slice.
 
+**Known gap: `components.db` isn't populated yet.** `Docs/Tools/components.db` is gitignored,
+and as of this writing nothing in the repo populates it with real Stage 1 data outside of ad
+hoc/manual runs — every `init_db()` call in `edge_resolver.py`'s and `resolver.py`'s self-tests
+targets an in-memory database, not the on-disk file. That means a fresh checkout's
+`components.db` is empty (or missing) until someone runs the resolver against real observations
+and persists the result to disk. Until that's done, the API above will return a clean 404 for
+every identifier — that's expected behavior, not a bug, and closing this gap (wiring a real
+build/persist step) is a prerequisite for using this API against real data.
+
 ## Known corrections logged
 
 - **`L` in SW6DEL means 12-volt relay, not "longer."** SW6DE and SW6DEL share an identical
