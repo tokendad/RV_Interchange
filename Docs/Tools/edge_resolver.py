@@ -39,6 +39,8 @@ THERMOSTAT_PART_TYPE = 415
 THERMOSTAT_CODE = "415-0012-A"
 COLEMAN_ENDPOINT_MODELS = ("7330G3351", "7330F3852", "9420-351")
 COLEMAN_ENDPOINT_RESOLVER_VERSION = "coleman_endpoint_v1"
+COLEMAN_SECOND_WAVE_ENDPOINT_MODELS = ("7330F3361", "7330-3861", "7330B3441")
+COLEMAN_SECOND_WAVE_RESOLVER_VERSION = "coleman_endpoint_v2"
 COLEMAN_VISUAL_MATCH_CANDIDATE = {
     "candidate": {"ns": "coleman", "value": "8330-3362"},
     "comparison_source_observation_id": 45,
@@ -501,6 +503,114 @@ def coleman_endpoint_components(product_row, replacement_row, legacy_row, compon
     }
     results = []
     for model in COLEMAN_ENDPOINT_MODELS:
+        component_id = component_ids[model]
+        component = Component(component_id, THERMOSTAT_PART_TYPE, None)
+        identifiers = [Identifier(component_id, "coleman", model, None)]
+        attributes = [text_attr(component_id, name, value, provenance, source_row)
+                      for name, value, provenance, source_row in attribute_specs[model]]
+        results.append((component, identifiers, attributes))
+    return results
+
+
+def coleman_second_wave_endpoint_components(product_row, corroboration_rows, component_ids):
+    """
+    Build 7330F3361/7330-3861/7330B3441 as exact endpoint components, same
+    shape as coleman_endpoint_components() above but from a different source
+    triple: obs #40's manufacturer table plus obs #55/#56, two dedicated
+    rvacguys.com retailer pages that corroborate two of the three models.
+    7330B3441 has no dedicated corroborating page (only cross-sell mentions
+    in #55/#56 with no stated attributes) and stays single-source.
+    """
+    expected_sources = ((product_row, 40, "manufacturer_page", "product"),)
+    for row, expected_id, expected_type, label in expected_sources:
+        try:
+            actual_id = row["id"]
+            actual_type = row["source_type"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise ValueError(f"Coleman {label} observation lacks source metadata") from exc
+        if (actual_id, actual_type) != (expected_id, expected_type):
+            raise ValueError(
+                f"unexpected Coleman {label} observation source: "
+                f"{actual_id}/{actual_type}")
+
+    corroboration_by_model = {"7330F3361": 55, "7330-3861": 56}
+    if {row["id"] for row in corroboration_rows} != set(corroboration_by_model.values()):
+        raise ValueError(
+            f"unexpected Coleman second-wave corroboration observations: "
+            f"{[row['id'] for row in corroboration_rows]}")
+    corroboration_by_id = {row["id"]: row for row in corroboration_rows}
+    for row in corroboration_rows:
+        if row["source_type"] != "retailer_page":
+            raise ValueError(
+                f"unexpected Coleman corroboration observation source: "
+                f"{row['id']}/{row['source_type']}")
+
+    product = _normalized_attributes(product_row)
+    product_models = product.get("model_spec_table")
+    if not isinstance(product_models, dict):
+        raise ValueError("Coleman second-wave product observation requires a model table")
+    if not set(COLEMAN_SECOND_WAVE_ENDPOINT_MODELS).issubset(product_models):
+        raise ValueError("official product page is missing a second-wave endpoint model")
+    if set(component_ids) != set(COLEMAN_SECOND_WAVE_ENDPOINT_MODELS):
+        raise ValueError(f"unexpected Coleman second-wave endpoint ID map: {component_ids}")
+
+    source_checks = (
+        (product_models["7330F3361"].get("function"), "cool_only", "7330F3361 function"),
+        (product_models["7330F3361"].get("color"), "white", "7330F3361 color"),
+        (product_models["7330-3861"].get("function"), "cool_only", "7330-3861 function"),
+        (product_models["7330-3861"].get("color"), "black", "7330-3861 color"),
+        (product_models["7330B3441"].get("function"), "single_stage_standard",
+         "7330B3441 function"),
+        (product_models["7330B3441"].get("color"), "white", "7330B3441 color"),
+    )
+    for actual, expected, label in source_checks:
+        if actual != expected:
+            raise ValueError(f"unexpected {label}: {actual!r}")
+
+    corroborated_models = {}
+    for model, obs_id in corroboration_by_model.items():
+        row = corroboration_by_id[obs_id]
+        models = _normalized_attributes(row).get("model_spec_table")
+        if not isinstance(models, dict) or model not in models:
+            raise ValueError(f"Coleman corroboration observation #{obs_id} missing {model}")
+        corroborated = models[model]
+        if (corroborated.get("function") != product_models[model]["function"]
+                or corroborated.get("stages") != "single"
+                or corroborated.get("interface_type") != "mechanical"
+                or corroborated.get("voltage") != "12VDC"):
+            raise ValueError(
+                f"Coleman corroboration mismatch for {model}: {corroborated}")
+        corroborated_models[model] = corroborated
+
+    def text_attr(component_id, name, value, provenance, source_row):
+        return ComponentAttribute(
+            component_id, name, provenance, source_row["id"], value_text=value,
+            resolver_version=COLEMAN_SECOND_WAVE_RESOLVER_VERSION)
+
+    attribute_specs = {
+        "7330F3361": (
+            ("function", "cool_only", "manufacturer_page", product_row),
+            ("color", "white", "manufacturer_page", product_row),
+            ("interface_type", "analog", "manufacturer_page", product_row),
+            ("stages", "single", "retailer_page", corroboration_by_id[55]),
+            ("voltage", "12VDC", "retailer_page", corroboration_by_id[55]),
+        ),
+        "7330-3861": (
+            ("function", "cool_only", "manufacturer_page", product_row),
+            ("color", "black", "manufacturer_page", product_row),
+            ("interface_type", "analog", "manufacturer_page", product_row),
+            ("stages", "single", "retailer_page", corroboration_by_id[56]),
+            ("voltage", "12VDC", "retailer_page", corroboration_by_id[56]),
+        ),
+        "7330B3441": (
+            ("function", "single_stage_standard", "manufacturer_page", product_row),
+            ("color", "white", "manufacturer_page", product_row),
+            ("interface_type", "analog", "manufacturer_page_single_source", product_row),
+            ("stages", "single", "manufacturer_page_inferred", product_row),
+        ),
+    }
+    results = []
+    for model in COLEMAN_SECOND_WAVE_ENDPOINT_MODELS:
         component_id = component_ids[model]
         component = Component(component_id, THERMOSTAT_PART_TYPE, None)
         identifiers = [Identifier(component_id, "coleman", model, None)]
@@ -990,6 +1100,83 @@ def self_test(verbose=False):
         try:
             coleman_endpoint_components(obs40, obs41, obs42, invalid_endpoint_ids)
             failures.append(f"forbidden Coleman endpoint ID was accepted: {forbidden_model}")
+        except ValueError:
+            pass
+
+    obs55 = load_observation(obs_db, 55)  # 7330F3361 retailer corroboration
+    obs56 = load_observation(obs_db, 56)  # 7330-3861 retailer corroboration
+    second_wave_ids = {
+        "7330F3361": "c_placeholder_tstat_7330f3361",
+        "7330-3861": "c_placeholder_tstat_7330_3861",
+        "7330B3441": "c_placeholder_tstat_7330b3441",
+    }
+    second_wave_endpoints = coleman_second_wave_endpoint_components(
+        obs40, [obs55, obs56], second_wave_ids)
+    _validate_coleman_endpoint_results(second_wave_endpoints, second_wave_ids)
+    second_wave_by_model = {
+        identifiers[0].value: (component, identifiers, attributes)
+        for component, identifiers, attributes in second_wave_endpoints
+    }
+    if set(second_wave_by_model) != set(second_wave_ids):
+        failures.append(f"Coleman second-wave endpoint set mismatch: {set(second_wave_by_model)}")
+    for model, (component, identifiers, attributes) in second_wave_by_model.items():
+        if component.part_type_id != 415 or component.interchange_code is not None:
+            failures.append(f"invalid second-wave endpoint component: {component}")
+        if [(i.ns, i.value, i.visibility) for i in identifiers] != [
+                ("coleman", model, None)]:
+            failures.append(f"invalid second-wave endpoint identifiers for {model}: {identifiers}")
+
+    expected_second_wave = {
+        "7330F3361": {
+            "function": ("cool_only", 40, "manufacturer_page",
+                         COLEMAN_SECOND_WAVE_RESOLVER_VERSION),
+            "color": ("white", 40, "manufacturer_page", COLEMAN_SECOND_WAVE_RESOLVER_VERSION),
+            "interface_type": (
+                "analog", 40, "manufacturer_page", COLEMAN_SECOND_WAVE_RESOLVER_VERSION),
+            "stages": ("single", 55, "retailer_page", COLEMAN_SECOND_WAVE_RESOLVER_VERSION),
+            "voltage": ("12VDC", 55, "retailer_page", COLEMAN_SECOND_WAVE_RESOLVER_VERSION),
+        },
+        "7330-3861": {
+            "function": ("cool_only", 40, "manufacturer_page",
+                         COLEMAN_SECOND_WAVE_RESOLVER_VERSION),
+            "color": ("black", 40, "manufacturer_page", COLEMAN_SECOND_WAVE_RESOLVER_VERSION),
+            "interface_type": (
+                "analog", 40, "manufacturer_page", COLEMAN_SECOND_WAVE_RESOLVER_VERSION),
+            "stages": ("single", 56, "retailer_page", COLEMAN_SECOND_WAVE_RESOLVER_VERSION),
+            "voltage": ("12VDC", 56, "retailer_page", COLEMAN_SECOND_WAVE_RESOLVER_VERSION),
+        },
+        "7330B3441": {
+            "function": ("single_stage_standard", 40, "manufacturer_page",
+                         COLEMAN_SECOND_WAVE_RESOLVER_VERSION),
+            "color": ("white", 40, "manufacturer_page", COLEMAN_SECOND_WAVE_RESOLVER_VERSION),
+            "interface_type": ("analog", 40, "manufacturer_page_single_source",
+                               COLEMAN_SECOND_WAVE_RESOLVER_VERSION),
+            "stages": ("single", 40, "manufacturer_page_inferred",
+                      COLEMAN_SECOND_WAVE_RESOLVER_VERSION),
+        },
+    }
+    for model, (_, _, attributes) in second_wave_by_model.items():
+        actual = {
+            attribute.name: (
+                attribute.value_text, attribute.source_observation_id,
+                attribute.provenance, attribute.resolver_version)
+            for attribute in attributes
+        }
+        if actual != expected_second_wave[model]:
+            failures.append(f"Coleman second-wave attributes mismatch for {model}: {actual}")
+
+    invalid_second_wave_inputs = (
+        (changed_row(obs40, lambda e: e["models"].pop("7330B3441")), [obs55, obs56]),
+        (obs40, [obs55]),
+        (obs40, [obs55, changed_row(obs56, lambda e: e["models"]["7330-3861"].__setitem__(
+            "voltage", "24VAC"))]),
+        (dict(obs40, id=400), [obs55, obs56]),
+        (obs40, [dict(obs55, source_type="manufacturer_page"), obs56]),
+    )
+    for product, corroboration in invalid_second_wave_inputs:
+        try:
+            coleman_second_wave_endpoint_components(product, corroboration, second_wave_ids)
+            failures.append("invalid Coleman second-wave endpoint evidence was accepted")
         except ValueError:
             pass
 
@@ -1874,6 +2061,96 @@ def check_fixture(ground_truth_path, obs_db_path):
         validate_coleman_visual_candidate(obs50)
     except ValueError as exc:
         print(f"MISMATCH Coleman visual candidate observation: {exc}")
+        mismatches += 1
+
+    second_wave_ids = {
+        "7330F3361": "c_placeholder_tstat_7330f3361",
+        "7330-3861": "c_placeholder_tstat_7330_3861",
+        "7330B3441": "c_placeholder_tstat_7330b3441",
+    }
+    fixture_second_wave_rows = [
+        component for component in components_doc
+        if component.get("component_id") in set(second_wave_ids.values())
+    ]
+    fixture_second_wave = {
+        component["component_id"]: component for component in fixture_second_wave_rows
+    }
+    if (len(fixture_second_wave_rows) != 3
+            or set(fixture_second_wave) != set(second_wave_ids.values())):
+        print(f"MISMATCH Coleman second-wave endpoint fixture set: "
+              f"count={len(fixture_second_wave_rows)} ids={set(fixture_second_wave)}")
+        mismatches += 1
+
+    obs55 = load_observation(obs_db_path, 55)
+    obs56 = load_observation(obs_db_path, 56)
+    second_wave_endpoints = coleman_second_wave_endpoint_components(
+        obs40, [obs55, obs56], second_wave_ids)
+    _validate_coleman_endpoint_results(second_wave_endpoints, second_wave_ids)
+    for endpoint, identifiers, attributes in second_wave_endpoints:
+        insert_component(conn, endpoint)
+        for identifier in identifiers:
+            insert_identifier(conn, identifier)
+        for attribute in attributes:
+            insert_component_attribute(conn, attribute)
+
+    for component_id, fixture_component in fixture_second_wave.items():
+        resolved_component = conn.execute(
+            "SELECT * FROM components WHERE component_id = ?", (component_id,)).fetchone()
+        if resolved_component is None:
+            print(f"MISMATCH Coleman second-wave endpoint missing: {component_id}")
+            mismatches += 1
+            continue
+        if (resolved_component["part_type_id"], resolved_component["interchange_code"]) != (
+                fixture_component["part_type_id"], fixture_component["interchange_code"]):
+            print(f"MISMATCH Coleman second-wave endpoint component: "
+                  f"resolved={dict(resolved_component)} fixture={fixture_component}")
+            mismatches += 1
+
+        resolved_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (component_id,)).fetchall()
+        }
+        expected_identifiers = {
+            (identifier["ns"], str(identifier["value"]), identifier.get("visibility"))
+            for identifier in fixture_component["identifiers"]
+        }
+        if resolved_identifiers != expected_identifiers:
+            print(f"MISMATCH Coleman second-wave endpoint identifiers for {component_id}: "
+                  f"resolved={resolved_identifiers} fixture={expected_identifiers}")
+            mismatches += 1
+
+        resolved_attribute_rows = get_component_attributes(conn, component_id)
+        resolved_attributes = {}
+        for attribute in resolved_attribute_rows:
+            value = attribute.value_text if attribute.value_text is not None else (
+                attribute.value_number if attribute.value_number is not None
+                else attribute.value_boolean)
+            resolved_attributes[attribute.name] = (
+                value, attribute.provenance, attribute.source_observation_id)
+        expected_attributes = {
+            name: (definition["value"], definition["provenance"],
+                   definition["source_observation_id"])
+            for name, definition in fixture_component["attributes"].items()
+        }
+        if (len(resolved_attribute_rows) != len(expected_attributes)
+                or resolved_attributes != expected_attributes):
+            print(f"MISMATCH Coleman second-wave endpoint attributes for {component_id}: "
+                  f"resolved={resolved_attributes} fixture={expected_attributes}")
+            mismatches += 1
+
+    fixture_second_wave_component_ids = tuple(second_wave_ids.values())
+    second_wave_substitutes_placeholders = ", ".join(
+        "?" for _ in fixture_second_wave_component_ids)
+    second_wave_edges = conn.execute(
+        f"SELECT COUNT(*) FROM edges WHERE type IN ('substitutes', 'supersedes') "
+        f"AND (from_component_id IN ({second_wave_substitutes_placeholders}) "
+        f"OR to_component_id IN ({second_wave_substitutes_placeholders}))",
+        (*fixture_second_wave_component_ids,
+         *fixture_second_wave_component_ids)).fetchone()[0]
+    if second_wave_edges != 0:
+        print(f"MISMATCH unsupported Coleman second-wave endpoint edges: {second_wave_edges}")
         mismatches += 1
 
     print(f"Coleman endpoints: {mismatches - coleman_mismatches_before} mismatch(es)")

@@ -365,6 +365,48 @@ components:
       interface_type: {value: analog, provenance: manufacturer_pdf, source_observation_id: 41}
       voltage:        {value: 12VDC, provenance: manufacturer_pdf, source_observation_id: 41}
 
+  # Second wave of exact catalog endpoints (obs #40 manufacturer table +
+  # obs #55/#56 rvacguys.com corroboration). No supersession/replacement
+  # target is stated in evidence for any of the three, so they carry no
+  # edges -- current-lineup products, not superseded ones.
+  - component_id: c_placeholder_tstat_7330f3361
+    part_type_id: 415
+    interchange_code: null
+    identifiers:
+      - {ns: coleman, value: "7330F3361", visibility: null}
+    attributes:
+      function:       {value: cool_only, provenance: manufacturer_page, source_observation_id: 40}
+      color:          {value: white, provenance: manufacturer_page, source_observation_id: 40}
+      interface_type: {value: analog, provenance: manufacturer_page, source_observation_id: 40}
+      stages:         {value: single, provenance: retailer_page, source_observation_id: 55}
+      voltage:        {value: 12VDC, provenance: retailer_page, source_observation_id: 55}
+
+  - component_id: c_placeholder_tstat_7330_3861
+    part_type_id: 415
+    interchange_code: null
+    identifiers:
+      - {ns: coleman, value: "7330-3861", visibility: null}
+    attributes:
+      function:       {value: cool_only, provenance: manufacturer_page, source_observation_id: 40}
+      color:          {value: black, provenance: manufacturer_page, source_observation_id: 40}
+      interface_type: {value: analog, provenance: manufacturer_page, source_observation_id: 40}
+      stages:         {value: single, provenance: retailer_page, source_observation_id: 56}
+      voltage:        {value: 12VDC, provenance: retailer_page, source_observation_id: 56}
+
+  # Single-source (obs #40 only) -- no dedicated retailer page, unlike its
+  # two siblings above. Cross-sell mentions in obs #55/#56 state no
+  # attributes for it, so they don't count as corroboration.
+  - component_id: c_placeholder_tstat_7330b3441
+    part_type_id: 415
+    interchange_code: null
+    identifiers:
+      - {ns: coleman, value: "7330B3441", visibility: null}
+    attributes:
+      function:       {value: single_stage_standard, provenance: manufacturer_page, source_observation_id: 40}
+      color:          {value: white, provenance: manufacturer_page, source_observation_id: 40}
+      interface_type: {value: analog, provenance: manufacturer_page_single_source, source_observation_id: 40}
+      stages:         {value: single, provenance: manufacturer_page_inferred, source_observation_id: 40}
+
   # =========================================================================
   # 3. MONITOR PANEL — system-bound; assembly decomposition case
   # =========================================================================

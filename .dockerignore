@@ -1,0 +1,9 @@
+.git
+.worktrees
+docs/
+Docs/Data
+Docs/Inital_Design
+*.pdf
+__pycache__
+*.pyc
+logs/
