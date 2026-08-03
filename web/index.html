@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>RV Interchange — Lookup (test)</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+    label { display: block; margin-top: 1rem; font-weight: bold; }
+    input, select { font-size: 1rem; padding: 0.4rem; width: 100%; box-sizing: border-box; }
+    button { margin-top: 1rem; font-size: 1rem; padding: 0.5rem 1rem; }
+    pre { background: #f2f2f2; padding: 1rem; overflow-x: auto; white-space: pre-wrap; }
+    .error { color: #b00020; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>RV Interchange — Lookup (test tool, not public)</h1>
+
+  <label for="ns">Namespace</label>
+  <select id="ns">
+    <option value="suburban">suburban</option>
+    <option value="coleman">coleman</option>
+    <option value="icm">icm</option>
+  </select>
+
+  <label for="identifier">Identifier</label>
+  <input id="identifier" type="text" placeholder="e.g. SW6DE" value="SW6DE">
+
+  <button id="lookup">Look up replacements</button>
+
+  <h2>Result</h2>
+  <pre id="result">(nothing yet)</pre>
+
+  <script src="app.js"></script>
+</body>
+</html>
