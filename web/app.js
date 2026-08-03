@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8484";
+const API_BASE = `${window.location.protocol}//${window.location.hostname}:8484`;
 
 document.getElementById("lookup").addEventListener("click", async () => {
   const ns = document.getElementById("ns").value;

@@ -325,3 +325,22 @@ identity and compatibility evidence.*
 > resolver checks its output is a subset of the fixture rather than forcing equality, and flags
 > the gap instead of silently passing or failing on it. All Suburban water-heater fixture work
 > is now either resolved or explicitly flagged — nothing left is a silent gap.
+
+12. **Third vendor started: JR Products slide-out switch, two-namespace case, resolved to
+    a strong (not yet source-confirmed) cross-reference.** In-hand teardown of a JR
+    Products-sold (SKU 12075) slide-room IN/OUT switch/bezel assembly found no JR
+    Products marking on the switch itself — it's stamped "American Technology
+    Components, Incorporated," 40A/12VDC, DPDT, wired black-yellow-green-black-red.
+    Wayback research first surfaced ATC's `AP-SWI-019` as a candidate on spec/application
+    grounds, but ATC's own datasheet and its `AP-INSTR-03` switch-replacement document
+    (found by the user) show `AP-SWI-019` uses a different 5-wire harness with no yellow
+    wire — ruling it out. The same `AP-INSTR-03` document gives `AH-SWI-P09` (variants
+    -1/-5/-8) an exact wire-color match. A Coast Distribution wholesale catalog (also
+    found by the user) separately gives JR Products' own SKUs for the bare switch
+    (`12095`/`12295`) and bezel assembly (`12075`/`12285`) with matching dimensions. See
+    `Docs/Data/JR-Products/VENDOR-JR-Products.md`. Working model: JR's `12095`/`12295` is
+    very likely a private-label of ATC's `AH-SWI-P09`, but no single source names both
+    SKUs together yet, so that cross-reference stays observation-only. Open lead: a
+    similarly-numbered Lippert switch (`AH-SWI-009-8`) may be the same private-labeling
+    pattern, not yet investigated. Nothing built into the resolver yet; the JR Products
+    SKUs (12075/12285/12095/12295) are ready to build as exact components now.

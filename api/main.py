@@ -41,11 +41,12 @@ if not logger.handlers:
 app = FastAPI(title="RV Interchange Public API", version="1")
 
 # Personal-use-only CORS: the test website (Task 10) is the one and only browser
-# caller, always on this fixed local port. Not "*" — see the Docker deployment plan's
-# note that this stack is not public.
+# caller, always on this fixed local port, reachable from localhost or the LAN. Not
+# "*" — see the Docker deployment plan's note that this stack is not public.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:8485", "http://127.0.0.1:8485"],
+    allow_origin_regex=r"http://(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}):8485",
     allow_methods=["GET"],
     allow_headers=["*"],
 )
