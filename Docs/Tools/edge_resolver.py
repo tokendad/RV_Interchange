@@ -8,6 +8,7 @@ fixture reproduction remains incremental.
 """
 
 import json
+import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -1680,7 +1681,7 @@ def _find_fixture_edge(edges_doc, a_id, b_id):
     return None
 
 
-def check_fixture(ground_truth_path, obs_db_path):
+def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
     try:
         import yaml
     except ImportError:
@@ -1705,7 +1706,7 @@ def check_fixture(ground_truth_path, obs_db_path):
     comp_6de, ids_6de = component_from_observation(
         obs2, "c_placeholder_wh_6de", WATER_HEATER_PART_TYPE)
 
-    conn = init_db(":memory:")
+    conn = init_db(db_path)
     insert_component(conn, comp_6de)
     for ident in ids_6de:
         insert_identifier(conn, ident)
@@ -2339,6 +2340,18 @@ def main():
         fixture_path = sys.argv[idx + 1]
         obs_db = str(Path(__file__).parent / "observations.db")
         sys.exit(check_fixture(fixture_path, obs_db))
+    if "--build" in sys.argv:
+        # Rebuilds the persistent components/edges store from observations.db,
+        # per ARCHITECTURE-Interchange_Core.md §9: "Resolution must be
+        # re-runnable, not a migration each time." Always starts from a clean
+        # file so re-running never hits stale primary-key conflicts.
+        idx = sys.argv.index("--build")
+        fixture_path = sys.argv[idx + 1]
+        db_path = sys.argv[idx + 2]
+        obs_db = str(Path(__file__).parent / "observations.db")
+        if os.path.exists(db_path):
+            os.remove(db_path)
+        sys.exit(check_fixture(fixture_path, obs_db, db_path=db_path))
 
 
 if __name__ == "__main__":
