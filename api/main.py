@@ -10,6 +10,7 @@ import os
 import sqlite3
 import sys
 import time
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "Docs" / "Tools"))
@@ -34,7 +35,8 @@ LOG_DIR.mkdir(parents=True, exist_ok=True)
 logger = logging.getLogger("rvinterchange.api")
 logger.setLevel(logging.INFO)
 if not logger.handlers:
-    file_handler = logging.FileHandler(LOG_DIR / "api.log")
+    file_handler = RotatingFileHandler(
+        LOG_DIR / "api.log", maxBytes=1_000_000, backupCount=3)
     file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
     logger.addHandler(file_handler)
     logger.addHandler(logging.StreamHandler())

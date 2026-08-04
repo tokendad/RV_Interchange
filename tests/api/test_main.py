@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import sqlite3
 import pytest
 from fastapi.testclient import TestClient
+from logging.handlers import RotatingFileHandler
 
 from interchange_schema import init_db
 from interchange_store import insert_component, insert_identifier
@@ -138,3 +139,11 @@ def test_get_conn_yields_working_readonly_connection(tmp_path, monkeypatch):
         assert row["component_id"] == "c_test_ro"
     finally:
         conn.close()
+
+
+def test_api_log_uses_rotating_file_handler():
+    rotating_handlers = [
+        h for h in main_module.logger.handlers if isinstance(h, RotatingFileHandler)]
+    assert len(rotating_handlers) == 1
+    assert rotating_handlers[0].maxBytes == 1_000_000
+    assert rotating_handlers[0].backupCount == 3
