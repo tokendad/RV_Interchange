@@ -44,6 +44,12 @@ COLEMAN_SECOND_WAVE_ENDPOINT_MODELS = ("7330F3361", "7330-3861", "7330B3441")
 COLEMAN_SECOND_WAVE_RESOLVER_VERSION = "coleman_endpoint_v2"
 COLEMAN_THIRD_WAVE_ENDPOINT_MODELS = ("7330E335", "7330E385", "7330E336")
 COLEMAN_THIRD_WAVE_RESOLVER_VERSION = "coleman_endpoint_v3"
+ATWOOD_ENDPOINT_MODELS = (
+    "G6A-7", "G6A-7P", "GC6AA-8", "GC6AA-10E", "GCH6A-10E", "G6A-8E", "GH6-8E",
+    "G9-EXT", "GE9-EXT", "GEH9-EXT", "G10-2", "GC10A-2", "G10-3E", "GH10-3E",
+    "GC10A-4E", "GCH10A-4E", "G16-EXT", "GE16-EXT", "GEH16-EXT",
+)
+ATWOOD_ENDPOINT_RESOLVER_VERSION = "atwood_endpoint_v1"
 COLEMAN_VISUAL_MATCH_CANDIDATE = {
     "candidate": {"ns": "coleman", "value": "8330-3362"},
     "comparison_source_observation_id": 45,
@@ -768,6 +774,110 @@ def resolve_coleman_third_wave_supersession(conn, retailer_row, corroboration_ro
     return edge.id
 
 
+def atwood_endpoint_components(catalog_row, component_ids):
+    """
+    Build the 19 RV Pilot/Electronic-Ignition Atwood water heater models named
+    in obs #92 (Atwood Mobile Products' own service manual: the "Atwood LP Gas
+    Water Heaters" catalog table cross-checked against its own Pilot and
+    Electronic-Ignition model-number-explanation legends) as exact endpoint
+    components. First Atwood vendor wave, catalog-only -- no in-hand teardown
+    anchor yet, same evidentiary shape as Coleman's own first/second-wave
+    endpoint builds. Marine/220V-CE water heaters in the same manual are out
+    of scope (not RV parts) and are not built here.
+    """
+    _validate_observation_source(catalog_row, 92, "manufacturer_pdf", 1, "catalog")
+    catalog = _normalized_attributes(catalog_row)
+    models = catalog.get("model_spec_table")
+    if not isinstance(models, dict) or set(models) != set(ATWOOD_ENDPOINT_MODELS):
+        raise ValueError(f"unexpected Atwood catalog model set: "
+                          f"{sorted(models) if isinstance(models, dict) else models}")
+    if set(component_ids) != set(ATWOOD_ENDPOINT_MODELS):
+        raise ValueError(f"unexpected Atwood endpoint ID map: {component_ids}")
+
+    required_fields = {"capacity_gal", "power_type", "ignition_type",
+                        "heat_exchanger", "exothermal"}
+    for model, spec in models.items():
+        if not required_fields.issubset(spec):
+            raise ValueError(f"Atwood model {model} is missing required fields: {spec}")
+        if spec["capacity_gal"] not in (6, 10):
+            raise ValueError(f"unexpected Atwood capacity for {model}: {spec}")
+        if spec["power_type"] not in ("gas_only", "gas_electric"):
+            raise ValueError(f"unexpected Atwood power_type for {model}: {spec}")
+        if spec["ignition_type"] not in ("pilot", "electronic"):
+            raise ValueError(f"unexpected Atwood ignition_type for {model}: {spec}")
+        if not isinstance(spec["heat_exchanger"], bool) or \
+                not isinstance(spec["exothermal"], bool):
+            raise ValueError(f"Atwood heat_exchanger/exothermal must be booleans: {spec}")
+        # model-number legend cross-check: same document, second independent
+        # presentation of the same facts (letters in the model string) --
+        # must agree with the table's own stated attributes. The XT/EXT
+        # legend ("G E H 9/16 - E XT") uses a different letter for the
+        # gas/electric combo flag (E, not C) than the Pilot/Electronic
+        # legend ("G C H 6 A -8 P" / "G C H 6 AA -10 E") does, so the two
+        # families are decoded separately per the manual's own two legends.
+        is_ext = model.endswith("-EXT")
+        prefix = model.split("-")[0]
+        if is_ext:
+            letters = prefix.rstrip("0123456789")
+            has_c = "E" in letters[1:]  # combo flag for XT models is E, not C
+            has_h = "H" in letters
+        else:
+            has_c = "C" in prefix
+            has_h = "H" in prefix
+        is_electronic = model.endswith("E") or is_ext
+        if has_c != (spec["power_type"] == "gas_electric"):
+            raise ValueError(f"Atwood model-number/table power_type mismatch for {model}")
+        if has_h != spec["heat_exchanger"]:
+            raise ValueError(
+                f"Atwood model-number/table heat_exchanger mismatch for {model}")
+        # exothermal is NOT cross-checked against the model number: the
+        # manual's own table shows it encoded via the "-EXT" suffix for the
+        # 6/16-gallon exothermal family but via description text only (no
+        # suffix change) for GC10A-4E/GCH10A-4E -- the manufacturer's own
+        # naming isn't consistent here, so this attribute stays
+        # single-presentation (description text), not cross-validated.
+        if is_electronic != (spec["ignition_type"] == "electronic"):
+            raise ValueError(
+                f"Atwood model-number/table ignition_type mismatch for {model}")
+
+    def text_attr(component_id, name, value, unit=None):
+        return ComponentAttribute(
+            component_id, name, "manufacturer_pdf", catalog_row["id"], value_text=value,
+            unit=unit, resolver_version=ATWOOD_ENDPOINT_RESOLVER_VERSION)
+
+    def number_attr(component_id, name, value, unit=None):
+        return ComponentAttribute(
+            component_id, name, "manufacturer_pdf", catalog_row["id"], value_number=value,
+            unit=unit, resolver_version=ATWOOD_ENDPOINT_RESOLVER_VERSION)
+
+    def bool_attr(component_id, name, value):
+        return ComponentAttribute(
+            component_id, name, "manufacturer_pdf", catalog_row["id"], value_boolean=value,
+            resolver_version=ATWOOD_ENDPOINT_RESOLVER_VERSION)
+
+    results = []
+    for model in ATWOOD_ENDPOINT_MODELS:
+        spec = models[model]
+        component_id = component_ids[model]
+        component = Component(component_id, WATER_HEATER_PART_TYPE, None)
+        identifiers = [Identifier(component_id, "atwood", model, None)]
+        attributes = [
+            number_attr(component_id, "capacity_gal", float(spec["capacity_gal"]), "gal"),
+            text_attr(component_id, "power_type", spec["power_type"]),
+            text_attr(component_id, "ignition_type", spec["ignition_type"]),
+            bool_attr(component_id, "heat_exchanger", spec["heat_exchanger"]),
+            bool_attr(component_id, "exothermal", spec["exothermal"]),
+        ]
+        if "pilot_relight" in spec:
+            attributes.append(bool_attr(component_id, "pilot_relight", spec["pilot_relight"]))
+        if "status" in spec:
+            attributes.append(text_attr(component_id, "status", spec["status"]))
+        if "availability" in spec:
+            attributes.append(text_attr(component_id, "availability", spec["availability"]))
+        results.append((component, identifiers, attributes))
+    return results
+
+
 def identifier_candidate_from_observation(obs_row):
     attrs = _normalized_attributes(obs_row)
     relation = attrs.get("sku_relationship")
@@ -1438,6 +1548,60 @@ def self_test(verbose=False):
                 third_wave_ids["7330E336"], second_wave_ids["7330F3361"])
             failures.append("invalid Coleman third-wave supersession evidence was accepted")
         except (ValueError, sqlite3.IntegrityError):
+            pass
+
+    obs92 = load_observation(obs_db, 92)  # Atwood RV catalog table
+    atwood_endpoint_ids = {
+        model: f"c_placeholder_wh_atwood_{model.lower().replace('-', '_')}"
+        for model in ATWOOD_ENDPOINT_MODELS
+    }
+    atwood_endpoints = atwood_endpoint_components(obs92, atwood_endpoint_ids)
+    if len(atwood_endpoints) != 19:
+        failures.append(f"expected 19 Atwood endpoints, got {len(atwood_endpoints)}")
+    atwood_by_model = {
+        identifiers[0].value: (component, identifiers, attributes)
+        for component, identifiers, attributes in atwood_endpoints
+    }
+    if set(atwood_by_model) != set(ATWOOD_ENDPOINT_MODELS):
+        failures.append(f"Atwood endpoint model set mismatch: {set(atwood_by_model)}")
+    for model, (component, identifiers, attributes) in atwood_by_model.items():
+        if component.part_type_id != WATER_HEATER_PART_TYPE or \
+                component.interchange_code is not None:
+            failures.append(f"invalid Atwood endpoint component: {component}")
+        if [(i.ns, i.value, i.visibility) for i in identifiers] != [
+                ("atwood", model, None)]:
+            failures.append(f"invalid Atwood endpoint identifiers for {model}: {identifiers}")
+        for attribute in attributes:
+            if attribute.provenance != "manufacturer_pdf" or \
+                    attribute.source_observation_id != 92 or \
+                    attribute.resolver_version != ATWOOD_ENDPOINT_RESOLVER_VERSION:
+                failures.append(f"invalid Atwood attribute provenance for {model}: {attribute}")
+
+    spot_check = atwood_by_model["GCH10A-4E"][2]
+    spot_check_values = {
+        a.name: (a.value_text if a.value_text is not None else
+                  a.value_number if a.value_number is not None else a.value_boolean)
+        for a in spot_check
+    }
+    if spot_check_values != {
+            "capacity_gal": 10.0, "power_type": "gas_electric",
+            "ignition_type": "electronic", "heat_exchanger": True, "exothermal": True}:
+        failures.append(f"Atwood GCH10A-4E attributes mismatch: {spot_check_values}")
+
+    invalid_atwood_inputs = (
+        changed_row(obs92, lambda e: e["models"].pop("G6A-7")),
+        changed_row(obs92, lambda e: e["models"]["GE9-EXT"].__setitem__(
+            "power_type", "gas_only")),
+        changed_row(obs92, lambda e: e["models"]["GCH6A-10E"].__setitem__(
+            "heat_exchanger", False)),
+        dict(obs92, id=400),
+        dict(obs92, source_type="retailer_pdf"),
+    )
+    for invalid in invalid_atwood_inputs:
+        try:
+            atwood_endpoint_components(invalid, atwood_endpoint_ids)
+            failures.append("invalid Atwood endpoint evidence was accepted")
+        except ValueError:
             pass
 
     invalid_inputs = (
@@ -2535,6 +2699,82 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
             mismatches += 1
 
     print(f"Coleman endpoints: {mismatches - coleman_mismatches_before} mismatch(es)")
+
+    atwood_mismatches_before = mismatches
+    atwood_endpoint_ids = {
+        model: f"c_placeholder_wh_atwood_{model.lower().replace('-', '_')}"
+        for model in ATWOOD_ENDPOINT_MODELS
+    }
+    fixture_atwood_rows = [
+        component for component in components_doc
+        if component.get("component_id") in set(atwood_endpoint_ids.values())
+    ]
+    fixture_atwood = {
+        component["component_id"]: component for component in fixture_atwood_rows
+    }
+    if (len(fixture_atwood_rows) != 19
+            or set(fixture_atwood) != set(atwood_endpoint_ids.values())):
+        print(f"MISMATCH Atwood endpoint fixture set: "
+              f"count={len(fixture_atwood_rows)} ids={set(fixture_atwood)}")
+        mismatches += 1
+
+    obs92 = load_observation(obs_db_path, 92)
+    atwood_endpoints = atwood_endpoint_components(obs92, atwood_endpoint_ids)
+    for endpoint, identifiers, attributes in atwood_endpoints:
+        insert_component(conn, endpoint)
+        for identifier in identifiers:
+            insert_identifier(conn, identifier)
+        for attribute in attributes:
+            insert_component_attribute(conn, attribute)
+
+    for component_id, fixture_component in fixture_atwood.items():
+        resolved_component = conn.execute(
+            "SELECT * FROM components WHERE component_id = ?", (component_id,)).fetchone()
+        if resolved_component is None:
+            print(f"MISMATCH Atwood endpoint missing: {component_id}")
+            mismatches += 1
+            continue
+        if (resolved_component["part_type_id"], resolved_component["interchange_code"]) != (
+                fixture_component["part_type_id"], fixture_component["interchange_code"]):
+            print(f"MISMATCH Atwood endpoint component: "
+                  f"resolved={dict(resolved_component)} fixture={fixture_component}")
+            mismatches += 1
+
+        resolved_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (component_id,)).fetchall()
+        }
+        expected_identifiers = {
+            (identifier["ns"], str(identifier["value"]), identifier.get("visibility"))
+            for identifier in fixture_component["identifiers"]
+        }
+        if resolved_identifiers != expected_identifiers:
+            print(f"MISMATCH Atwood endpoint identifiers for {component_id}: "
+                  f"resolved={resolved_identifiers} fixture={expected_identifiers}")
+            mismatches += 1
+
+        resolved_attribute_rows = get_component_attributes(conn, component_id)
+        resolved_attributes = {}
+        for attribute in resolved_attribute_rows:
+            value = attribute.value_text if attribute.value_text is not None else (
+                attribute.value_number if attribute.value_number is not None
+                else attribute.value_boolean)
+            resolved_attributes[attribute.name] = (
+                value, attribute.provenance, attribute.source_observation_id)
+        expected_attributes = {
+            name: (definition["value"], definition["provenance"],
+                   definition["source_observation_id"])
+            for name, definition in fixture_component["attributes"].items()
+        }
+        if (len(resolved_attribute_rows) != len(expected_attributes)
+                or resolved_attributes != expected_attributes):
+            print(f"MISMATCH Atwood endpoint attributes for {component_id}: "
+                  f"resolved={resolved_attributes} fixture={expected_attributes}")
+            mismatches += 1
+
+    print(f"Atwood endpoints: {mismatches - atwood_mismatches_before} mismatch(es)")
 
     suburban_remainder_mismatches_before = mismatches
     obs11 = load_observation(obs_db_path, 11)

@@ -442,6 +442,242 @@ components:
       interface_type: {value: analog, provenance: manufacturer_pdf_single_source, source_observation_id: 58}
       stages:         {value: single, provenance: manufacturer_pdf_inferred, source_observation_id: 58}
 
+  # First Atwood vendor wave, catalog-only (obs #92, Atwood Mobile Products own
+  # service manual: the "Atwood LP Gas Water Heaters" catalog table cross-checked
+  # against its own Pilot/Electronic-Ignition model-number legends). No in-hand
+  # teardown anchor yet -- same evidentiary tier as Coleman's catalog-only waves.
+  # Marine/220V-CE water heaters in the same manual are out of scope (not RV parts).
+  - component_id: c_placeholder_wh_atwood_g6a_7
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "G6A-7", visibility: null}
+    attributes:
+      capacity_gal: {value: 6, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_only, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: pilot, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_g6a_7p
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "G6A-7P", visibility: null}
+    attributes:
+      capacity_gal: {value: 6, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_only, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: pilot, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      pilot_relight: {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+      status:       {value: discontinued, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_gc6aa_8
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "GC6AA-8", visibility: null}
+    attributes:
+      capacity_gal: {value: 6, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_electric, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: pilot, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_gc6aa_10e
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "GC6AA-10E", visibility: null}
+    attributes:
+      capacity_gal: {value: 6, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_electric, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      availability: {value: oem_only, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_gch6a_10e
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "GCH6A-10E", visibility: null}
+    attributes:
+      capacity_gal: {value: 6, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_electric, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_g6a_8e
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "G6A-8E", visibility: null}
+    attributes:
+      capacity_gal: {value: 6, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_only, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_gh6_8e
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "GH6-8E", visibility: null}
+    attributes:
+      capacity_gal: {value: 6, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_only, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_g9_ext
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "G9-EXT", visibility: null}
+    attributes:
+      capacity_gal: {value: 6, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_only, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_ge9_ext
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "GE9-EXT", visibility: null}
+    attributes:
+      capacity_gal: {value: 6, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_electric, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_geh9_ext
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "GEH9-EXT", visibility: null}
+    attributes:
+      capacity_gal: {value: 6, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_electric, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_g10_2
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "G10-2", visibility: null}
+    attributes:
+      capacity_gal: {value: 10, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_only, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: pilot, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_gc10a_2
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "GC10A-2", visibility: null}
+    attributes:
+      capacity_gal: {value: 10, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_electric, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: pilot, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_g10_3e
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "G10-3E", visibility: null}
+    attributes:
+      capacity_gal: {value: 10, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_only, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_gh10_3e
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "GH10-3E", visibility: null}
+    attributes:
+      capacity_gal: {value: 10, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_only, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_gc10a_4e
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "GC10A-4E", visibility: null}
+    attributes:
+      capacity_gal: {value: 10, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_electric, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_gch10a_4e
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "GCH10A-4E", visibility: null}
+    attributes:
+      capacity_gal: {value: 10, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_electric, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_g16_ext
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "G16-EXT", visibility: null}
+    attributes:
+      capacity_gal: {value: 10, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_only, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_ge16_ext
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "GE16-EXT", visibility: null}
+    attributes:
+      capacity_gal: {value: 10, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_electric, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+
+  - component_id: c_placeholder_wh_atwood_geh16_ext
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "GEH16-EXT", visibility: null}
+    attributes:
+      capacity_gal: {value: 10, unit: gal, provenance: manufacturer_pdf, source_observation_id: 92}
+      power_type:   {value: gas_electric, provenance: manufacturer_pdf, source_observation_id: 92}
+      ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
+      heat_exchanger: {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+      exothermal:   {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+
   # =========================================================================
   # 3. MONITOR PANEL — system-bound; assembly decomposition case
   # =========================================================================
