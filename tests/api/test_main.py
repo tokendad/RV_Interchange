@@ -129,7 +129,8 @@ def test_get_conn_yields_working_readonly_connection(tmp_path, monkeypatch):
     seed_conn.close()
 
     monkeypatch.setattr(main_module, "DB_PATH", db_path)
-    conn = next(main_module.get_conn())
+    gen = main_module.get_conn()
+    conn = next(gen)
     try:
         row = conn.execute(
             "SELECT component_id FROM components WHERE component_id = ?",
