@@ -89,7 +89,7 @@ def replacements(ns: str, identifier: str, conn=Depends(get_conn)):
     resolved = IdentifierService.resolve(conn, ns, identifier)
     if resolved is None:
         raise HTTPException(status_code=404, detail="identifier not found")
-    result = ReplacementService.get_replacements(conn, resolved["component_id"])
+    result = ReplacementService.get_replacements(conn, resolved["component_id"], ns)
     if result is None:
         raise HTTPException(status_code=404, detail="identifier not found")
     return result

@@ -35,6 +35,12 @@ class ReplacementItem(BaseModel):
     summary: Optional[str] = None
 
 
+class SupersessionItem(BaseModel):
+    part: str
+    note: Optional[str] = None
+
+
 class ReplacementsResponse(BaseModel):
     source: str
     replacements: list[ReplacementItem]
+    supersessions: list[SupersessionItem] = []

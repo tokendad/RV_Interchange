@@ -35,8 +35,8 @@ def test_resolve_unknown_identifier():
 
 from datetime import datetime, timezone
 
-from interchange_store import insert_edge, insert_evidence, insert_caveat
-from interchange_models import Edge, RelationshipEvidence, EdgeCaveat
+from interchange_store import insert_edge, insert_evidence, insert_caveat, insert_supersession_detail
+from interchange_models import Edge, RelationshipEvidence, EdgeCaveat, EdgeSupersessionDetail
 
 from api.services import ReplacementService
 
@@ -179,3 +179,51 @@ def test_search_respects_limit():
 
     result = SearchService.search(conn, "SW", limit=1)
     assert [r["component_id"] for r in result["results"]] == ["c_test_a"]
+
+
+def test_label_for_prefers_querying_namespace():
+    conn = init_db(":memory:")
+    insert_component(conn, Component("c_test_a", 412, "412-0001-A"))
+    insert_identifier(conn, Identifier("c_test_a", "coleman", "7330G3351"))
+    insert_identifier(conn, Identifier("c_test_a", "icm", "PCB1060"))
+
+    assert ReplacementService.get_replacements(conn, "c_test_a", ns="icm")["source"] == "PCB1060"
+    assert ReplacementService.get_replacements(conn, "c_test_a", ns="coleman")["source"] == "7330G3351"
+    # No ns given: falls back to the first identifier (insertion order).
+    assert ReplacementService.get_replacements(conn, "c_test_a")["source"] == "7330G3351"
+
+
+def test_get_replacements_includes_supersessions():
+    conn = init_db(":memory:")
+    insert_component(conn, Component("c_test_a", 412, "412-0001-A"))
+    insert_component(conn, Component("c_test_b", 412, "412-0001-B"))
+    insert_identifier(conn, Identifier("c_test_a", "coleman", "7330G3351"))
+    insert_identifier(conn, Identifier("c_test_b", "coleman", "9420-351"))
+
+    edge = Edge(type="supersedes", from_component_id="c_test_a", to_component_id="c_test_b")
+    insert_edge(conn, edge)
+    insert_supersession_detail(conn, EdgeSupersessionDetail(
+        edge_id=edge.id, note="Coleman catalog names 9420-351 as the replacement"))
+    insert_evidence(conn, RelationshipEvidence(
+        edge_id=edge.id, event_type="manufacturer_assertion", effect_alpha=2.0,
+        effect_beta=0.0, occurred_at=_now()))
+
+    result = ReplacementService.get_replacements(conn, "c_test_a")
+    assert result["supersessions"] == [
+        {"part": "9420-351", "note": "Coleman catalog names 9420-351 as the replacement"},
+    ]
+
+
+def test_get_replacements_omits_supersession_with_no_evidence():
+    conn = init_db(":memory:")
+    insert_component(conn, Component("c_test_a", 412, "412-0001-A"))
+    insert_component(conn, Component("c_test_b", 412, "412-0001-B"))
+    insert_identifier(conn, Identifier("c_test_a", "coleman", "7330G3351"))
+    insert_identifier(conn, Identifier("c_test_b", "coleman", "9420-351"))
+
+    edge = Edge(type="supersedes", from_component_id="c_test_a", to_component_id="c_test_b")
+    insert_edge(conn, edge)
+    insert_supersession_detail(conn, EdgeSupersessionDetail(edge_id=edge.id, note="no evidence yet"))
+
+    result = ReplacementService.get_replacements(conn, "c_test_a")
+    assert result["supersessions"] == []

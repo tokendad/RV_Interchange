@@ -51,6 +51,7 @@ def test_replacements_endpoint(client):
         "replacements": [
             {"part": "SW6DE", "fit": "Exact Match", "rank": 1, "summary": None},
         ],
+        "supersessions": [],
     }
 
 
