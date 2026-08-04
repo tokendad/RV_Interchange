@@ -7,6 +7,7 @@ for why those are deferred.
 
 import logging
 import os
+import sqlite3
 import sys
 import time
 from pathlib import Path
@@ -68,8 +69,14 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     return JSONResponse(status_code=500, content={"detail": "internal error"})
 
 
+def _readonly_connection(path):
+    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
 def get_conn():
-    conn = init_db(DB_PATH)
+    conn = _readonly_connection(DB_PATH)
     try:
         yield conn
     finally:

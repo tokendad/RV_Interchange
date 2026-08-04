@@ -4,6 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "Docs" / "Tools"))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+import sqlite3
 import pytest
 from fastapi.testclient import TestClient
 
@@ -105,3 +106,34 @@ def test_search_endpoint_no_match_returns_200_with_empty_results(client):
     response = client.get("/public/v1/search", params={"q": "NOPE"})
     assert response.status_code == 200
     assert response.json() == {"query": "NOPE", "results": []}
+
+
+def test_readonly_connection_rejects_writes(tmp_path):
+    db_path = str(tmp_path / "ro_test.db")
+    init_db(db_path).close()
+
+    conn = main_module._readonly_connection(db_path)
+    try:
+        with pytest.raises(sqlite3.OperationalError):
+            conn.execute(
+                "INSERT INTO components (component_id, part_type_id, created_at) "
+                "VALUES ('x', 1, 'now')")
+    finally:
+        conn.close()
+
+
+def test_get_conn_yields_working_readonly_connection(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "get_conn_test.db")
+    seed_conn = init_db(db_path)
+    insert_component(seed_conn, Component("c_test_ro", 412, "412-0001-A"))
+    seed_conn.close()
+
+    monkeypatch.setattr(main_module, "DB_PATH", db_path)
+    conn = next(main_module.get_conn())
+    try:
+        row = conn.execute(
+            "SELECT component_id FROM components WHERE component_id = ?",
+            ("c_test_ro",)).fetchone()
+        assert row["component_id"] == "c_test_ro"
+    finally:
+        conn.close()
