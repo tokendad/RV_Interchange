@@ -1,15 +1,16 @@
 # VENDOR — JR Products (assembly) / American Technology Components (switch)
 
-**Status:** CLOSED — research exhausted via public sources. Exact assembly SKU
-confirmed; underlying ATC switch family identity confirmed as `AH-SWI-P09`, both by
-ATC's own wire-color documentation and independently by Lippert naming `AH-SWI-P09-5`
-(black, `117426`)/`AH-SWI-P09-8` (almond, `131777`) as their own "Manufacturer Reference
-Number." The JR-to-ATC white cross-reference and the `AH-SWI-P09-1` suffix itself remain
-formally unconfirmed; working theory (§4a) is that JR's white switch was a private,
-dealer-specific ATC order never given a public SKU, meaning no further public-source
-search is likely to close it. Only a direct manufacturer/dealer reply would move this
-forward from here.
-**Updated:** 2026-08-04 (closed after exhausting public-source research).
+**Status:** REOPENED — a direct ATC manufacturer reply (obs #100) contradicts the prior
+"closed" conclusion. `AH-SWI-P09-1` is a **confirmed real, formerly-sold ATC part**,
+discontinued in 2019 and replaced by `AH-SWI-P10-1`. ATC's own rep, asked specifically
+about `AH-SWI-P09-1`, pointed to a PDX RV Wholesale listing for JR Products' own `12095`
+(white, 5-pin) as the informational link for its replacement — real but circumstantial
+evidence connecting JR's `12095` to the ATC `P09`/`P10-1` lineage; no source yet prints
+"`12095` = `AH-SWI-P10-1`" directly. This also newly conflicts with Lippert's own
+`AH-SWI-P10-8` (§4): same `P10` family, but Lippert's is 4-pin vs. this lineage's 5-pin,
+and `-8` should mean Almond by convention, not White — see §4b. Status pending a reply
+from Lippert (email sent 2026-08-04) on that discrepancy.
+**Updated:** 2026-08-04 (reopened same day after an ATC manufacturer email reply).
 
 ## 1. Why this adapter
 
@@ -195,25 +196,25 @@ Lippert does not sell an `AH-SWI-P09` white switch at all; their white offering 
 different, 4-prong ATC family that doesn't match the in-hand unit's 5-wire harness. The
 `AH-SWI-P09-1` white-suffix question (§5) needs a source outside Lippert.
 
-## 5. What would close the remaining gap — CLOSED, research exhausted (2026-08-04)
+## 5. What would close the remaining gap — REOPENED 2026-08-04 (see §4b)
 
-- A source that names JR Products `12075`/`12095` and ATC `AH-SWI-P09` together by number
-  would still close this cleanly (a JR spec sheet, invoice, or ATC OEM customer list) —
-  wiring/dimensions/application converge strongly (§3.3), and `AH-SWI-P09` itself is
-  Lippert-confirmed for black/almond (§4). But per the working theory in §4a, this
-  cross-reference is likely an internal JR↔ATC record that was never published, so no
-  amount of further public-source searching is expected to surface it. Only a direct
-  reply from JR Products or ATC would resolve it from here.
-- ~~Confirming `AH-SWI-P09-1` as the white suffix~~ — **closed, obs #97-99, see §4a.**
-  Concluded that `AH-SWI-P09-1` most likely was never an actual stocked/sold part, based
-  on its total absence from every live source checked (WESCO distributor catalog, ATC's
-  current shop, general web search), despite ATC's `-1`/`-5`/`-8` = White/Black/Almond
-  suffix convention being independently well-attested across several *other* ATC product
-  lines. The in-hand unit's specific white-suffix number remains formally unconfirmed,
-  but this line of research is exhausted, not just paused.
+- A source that names JR Products `12075`/`12095` and ATC `AH-SWI-P09-1`/`AH-SWI-P10-1`
+  together by number would close this cleanly (a JR spec sheet, invoice, or ATC OEM
+  customer list). ATC's own rep has now circumstantially linked the two (§4b) by handing
+  over JR's `12095` listing in response to a direct question about `AH-SWI-P09-1`'s
+  replacement — but that's a pointer, not a printed cross-reference. A follow-up ATC
+  email asking directly "does `AH-SWI-P10-1` correspond to JR Products' `12095`?" could
+  plausibly get an explicit yes/no, given how responsive ATC's rep has already been.
+- ~~Confirming `AH-SWI-P09-1` as the white suffix~~ — **RESOLVED, obs #100, see §4b.**
+  `AH-SWI-P09-1` is confirmed real by ATC directly: discontinued 2019, replaced by
+  `AH-SWI-P10-1`. The earlier §4a conclusion ("likely never existed") is superseded.
+- **New open item (obs #100-101, §4b):** reconciling Lippert's `AH-SWI-P10-8` (white,
+  4-pin) against the `AH-SWI-P09`/`P10-1` lineage (white, 5-pin) — color-suffix
+  convention and pin count both conflict. User emailed Lippert 2026-08-04; reply pending.
 
-**Research on this adapter is closed for now.** Nothing left to chase via public sources;
-next movement requires either a direct manufacturer/dealer reply or new physical evidence.
+**Research on this adapter is active again.** The white-suffix question that closed it
+is resolved (real part, just discontinued); what's open now is the Lippert `P10-8`
+discrepancy and, ideally, an explicit ATC confirmation that `12095` = `AH-SWI-P10-1`.
 
 ## 4a. `AH-SWI-P09-1` white suffix — concluded likely never existed (obs #97-99)
 
@@ -227,27 +228,66 @@ nothing for `AH-SWI-P09-1`, and ATC's current shop (`shop.atcomp.com/controls/sw
 doesn't carry `AH-SWI-P09` at all anymore (consistent with it being a discontinued/older
 line surviving only in the archival `AP-INSTR-03` instructional PDF, obs #85).
 
-**Conclusion:** `AH-SWI-P09-1` most likely was never an actual manufactured/stocked part
-— it appears to be a pattern-completing placeholder in one instructional document rather
-than a real catalog entry. This closes the white-suffix sub-question as *exhausted*
-rather than *resolved*: there's no more research path left to pursue on it specifically.
-The `AH-SWI-P09` family identity itself (§3.2, §4) is unaffected — only the white variant
-number is in question.
+**Conclusion, SUPERSEDED 2026-08-04 (see §4b):** this section originally concluded
+`AH-SWI-P09-1` most likely was never an actual manufactured/stocked part. A direct ATC
+email reply (obs #100) disproves that: ATC's own rep confirmed it was real and gave the
+year it was discontinued. Left in place for the record of how the research got here —
+the absence from WESCO/ATC's shop/web search reflected the part being end-of-life
+(discontinued 2019), not nonexistent. See §4b for the corrected picture.
 
-**Working theory (user, 2026-08-04): private, dealer-specific ATC order, not a public
-SKU.** Given `AH-SWI-P09-1` is completely absent from every public source (WESCO, ATC's
-own current shop, general web search) while ATC's `-1`/`-5`/`-8` color-suffix convention
-is otherwise solid, the most likely explanation is that JR Products ordered a white
-variant directly from ATC for its own private-label line, and ATC either assigned it the
-pattern-consistent `-1` suffix or some other designation informally, without ever
-publishing it — because no third party would ever need to look it up. This is standard
-practice for private-label OEM arrangements: the cross-reference exists only as an
-internal record between JR Products and ATC (a purchase order, a mold/tooling spec, an
-internal parts database), not as public-facing documentation. If that's correct, the
-JR-to-ATC white cross-reference (§5) is not just hard to find — it may not exist in any
-form a public search could ever surface. Closing this research thread on that basis;
-revisit only if JR Products or ATC responds directly to a manufacturer inquiry with
-something that names it.
+**Working theory (user, 2026-08-04), SUPERSEDED — private, dealer-specific ATC order,
+not a public SKU.** This theory is no longer the leading explanation: ATC's rep treated
+`AH-SWI-P09-1` as a normal (if discontinued) catalog part, not a private one-off order,
+and pointed to a public distributor listing (§4b) as its replacement's informational
+page. Left in place for the record; superseded by §4b.
+
+## 4b. ATC direct reply: `AH-SWI-P09-1` confirmed real, discontinued 2019, replaced by `AH-SWI-P10-1` (obs #100)
+
+**2026-08-04, user emailed ATC's parts/service/warranty contact (Pamela White,
+`parts.atc@atcomp.com`) directly asking whether `AH-SWI-P09-1` was ever a real, sold
+product.** Two replies:
+
+1. First reply: *"That switch AH-SWI-P09-1 has been replaced with AH-SWI-P10-1. I
+   provided a link below to one of our distributors, PDX RV Wholesale. There is a
+   wiring diagram and additional information on the page as well."* — linking
+   `pdxrvwholesale.com/ols/products/slide-out-extend--retract-switch-white-12095`.
+2. Second reply (after the user re-asked for direct confirmation it was real):
+   *"Yes, it's a real product. We stopped selling it in 2019 and changed to the
+   AH-SWI-P10-1."*
+
+Full email PDF: `Docs/Data/American Technology Components/Email_AH_swi_p09_1.pdf`.
+
+**This directly contradicts §4a's "likely never existed" conclusion.** `AH-SWI-P09-1`
+was real, sold, and discontinued in 2019 in favor of `AH-SWI-P10-1` — its absence from
+every source checked in §4a reflects end-of-life status, not nonexistence. The `-1`/
+`-5`/`-8` = White/Black/Almond convention holds; it was simply researched past the
+point the white variant had already been discontinued and delisted everywhere except
+one still-indexed WESCO page (obs #97, re-examined: WESCO's `AH-SWI-P09-1` listing sits
+in the same `Switch-Slide-9-Position` template as the confirmed `AH-SWI-P09-5` listing —
+structurally a real catalog sibling, not a bad/orphan URL, corroborating the ATC email).
+
+**The PDX link is JR Products' own `12095`** (obs #101): the PDX RV Wholesale product
+at that URL is confirmed elsewhere (Walmart, eBay, Amazon, JR's own `jrproducts.net/
+product/12095/`) to be JR Products' `12095` — the same white, 5-pin bare switch already
+identified in §3.3 as JR's private-label SKU, wire-matched to the in-hand part. ATC's
+rep supplied this link specifically in response to "what replaced the discontinued
+`AH-SWI-P09-1`," which circumstantially ties JR's `12095` to the `P09-1`/`P10-1`
+lineage — **but no source yet prints "`12095` = `AH-SWI-P10-1`" directly**; this is a
+manufacturer-sourced pointer, not a printed cross-reference. Keep observation-only.
+
+**New conflict with §4: Lippert's `AH-SWI-P10-8` doesn't fit this picture.** Lippert's
+own `670704` (white) states Manufacturer Reference Number `AH-SWI-P10-8`, 4-pin — same
+`P10` family as the confirmed `P10-1` successor, but a different suffix, a different pin
+count (4 vs. the 5-pin `AH-SWI-P09`/`12095`/`P10-1` lineage), and a color (`White`) that
+contradicts the `-8` = Almond convention holding everywhere else in this research
+(including Lippert's own `131777` Almond = `AH-SWI-P09-8`). Two suffixes within the same
+`P10` family being genuinely different physical switches (5-pin vs. 4-pin) would be
+consistent with the pattern already seen in `P09` (suffix alone isn't a reliable design
+guarantee) — but the color mismatch specifically looks more like a listing error on
+Lippert's part than a real second white P10 switch. **User emailed Lippert 2026-08-04
+asking them to clarify the color/pin-count discrepancy for SKU `670704`/`AH-SWI-P10-8`.**
+Status: reply pending. If Lippert confirms an error, `670704` may actually correspond to
+`AH-SWI-P10-1` (or the retired `P09-1`) rather than a genuine `P10-8`.
 
 ## 5a. Reference material (not part identity, keep for troubleshooting)
 
@@ -295,4 +335,6 @@ SKUs linked to `AH-SWI-P09` as observation-only until then.
 | 96 | manufacturer_pdf | lci-support-doc.s3.amazonaws.com CCD-0002560 parts complist, user-supplied | authoritative BOM: kit 117460 (Black)→switch 117426; kit 117461 (White)→switch 129003 (OBSOLETE, use 670704) — confirms 670704/AH-SWI-P10-8 as current white switch, not a stale generation |
 | 97 | retailer_page | buy.wesco.com, several AH-SWI-0x/AH-SWI-P07 listings, user research | no `AH-SWI-P09-1` listing found; establishes WESCO carries other AH-SWI lines but not this suffix |
 | 98 | manufacturer_page | shop.atcomp.com/controls/switch-panels/, user research + agent re-check | confirms `-1`/`-5`/`-8` = White/Black/Almond suffix convention across other ATC lines (AH-SLD, AT-RLD); `AH-SWI-P09` itself absent from current shop entirely |
-| 99 | other | general web search, agent re-check | no result anywhere for `AH-SWI-P09-1`; corroborates user's conclusion that it likely was never a stocked part |
+| 99 | other | general web search, agent re-check | no result anywhere for `AH-SWI-P09-1`; corroborates user's conclusion that it likely was never a stocked part (later superseded by obs #100) |
+| 100 | manufacturer_email | ATC Parts (Pamela White, parts.atc@atcomp.com), direct reply, 2026-08-04 | confirms `AH-SWI-P09-1` was real, discontinued 2019, replaced by `AH-SWI-P10-1`; links PDX RV Wholesale `12095` as the replacement's info page — supersedes obs #97-99's conclusion |
+| 101 | retailer_page | pdxrvwholesale.com `12095` + cross-check (Walmart, eBay, Amazon, jrproducts.net) | confirms the PDX link ATC's rep gave is JR Products' own `12095` (white, 5-pin) — circumstantial ATC-sourced link to the P09/P10-1 lineage, not a printed cross-reference |
