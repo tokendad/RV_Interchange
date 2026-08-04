@@ -1,0 +1,126 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  max-width: 48rem;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  color: #1a1a1a;
+}
+
+h1 {
+  margin-bottom: 1.5rem;
+}
+
+h2, h3 {
+  margin-top: 1.5rem;
+}
+
+form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  font-weight: bold;
+  gap: 0.25rem;
+}
+
+input {
+  font-size: 1rem;
+  padding: 0.4rem;
+}
+
+button {
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+#search-form input#search-input {
+  flex: 1;
+  min-width: 16rem;
+}
+
+.result-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.result-card {
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+}
+
+.result-card:hover {
+  background: #f5f5f5;
+}
+
+.result-label {
+  font-weight: bold;
+  font-size: 1.05rem;
+}
+
+.identifier-pills {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pill {
+  background: #eee;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.tier-section,
+.supersession-section {
+  border-left: 3px solid #ccc;
+  padding-left: 1rem;
+  margin-top: 1rem;
+}
+
+.supersession-section {
+  border-left-color: #b8860b;
+}
+
+.admin-panel {
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.raw-form {
+  margin-bottom: 0.75rem;
+}
+
+pre {
+  background: #f2f2f2;
+  padding: 1rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  border-radius: 0.35rem;
+  max-height: 24rem;
+  overflow-y: auto;
+}
+
+.error {
+  color: #b00020;
+  font-weight: bold;
+}
