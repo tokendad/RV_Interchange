@@ -62,6 +62,33 @@ def get_identifiers_for_component(conn, component_id):
                         visibility=r["visibility"]) for r in rows]
 
 
+def search_identifiers(conn, query, limit=20):
+    """Ranked, deduped component_ids whose identifiers.value matches `query`.
+
+    Exact matches (case-insensitive) rank first; ties break by shorter value,
+    then alphabetically. A component can carry several matching identifiers
+    across namespaces — it appears once in the result, not once per match.
+    """
+    if not query:
+        return []
+    like_pattern = f"%{query}%"
+    rows = conn.execute(
+        "SELECT component_id, value FROM identifiers "
+        "WHERE value LIKE ? COLLATE NOCASE "
+        "ORDER BY (LOWER(value) = LOWER(?)) DESC, LENGTH(value), value",
+        (like_pattern, query)).fetchall()
+    component_ids = []
+    seen = set()
+    for row in rows:
+        if row["component_id"] in seen:
+            continue
+        seen.add(row["component_id"])
+        component_ids.append(row["component_id"])
+        if len(component_ids) >= limit:
+            break
+    return component_ids
+
+
 def insert_component_attribute(conn, attribute):
     cur = conn.execute(
         "INSERT INTO component_attributes "
@@ -367,6 +394,29 @@ def self_test(verbose=False):
     caveats = get_caveats_for_edge(conn, edge.id)
     if len(caveats) != 1 or caveats[0].text != "test caveat":
         failures.append(f"expected 1 caveat, got {caveats}")
+
+    insert_identifier(conn, Identifier("c_test_b", "suburban", "SW12DEL"))
+
+    exact_match = search_identifiers(conn, "SW6DE")
+    if exact_match != ["c_test_a"]:
+        failures.append(f"expected exact match search to return only c_test_a, got {exact_match}")
+
+    substring_match = search_identifiers(conn, "SW")
+    if substring_match != ["c_test_a", "c_test_b"]:
+        failures.append(
+            f"expected substring search ranked shortest-value-first, got {substring_match}")
+
+    limited = search_identifiers(conn, "SW", limit=1)
+    if limited != ["c_test_a"]:
+        failures.append(f"expected limit=1 to return only the best match, got {limited}")
+
+    no_match = search_identifiers(conn, "NOPE")
+    if no_match != []:
+        failures.append(f"expected no match for unknown query, got {no_match}")
+
+    empty_query = search_identifiers(conn, "")
+    if empty_query != []:
+        failures.append(f"expected empty query to return [], got {empty_query}")
 
     if failures:
         for f in failures:
