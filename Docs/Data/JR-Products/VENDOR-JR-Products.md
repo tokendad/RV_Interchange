@@ -2,8 +2,11 @@
 
 **Status:** exact assembly SKU confirmed; underlying ATC switch identity narrowed to
 `AH-SWI-P09` family via ATC's own wire-color documentation, correcting the initial
-`AP-SWI-019` candidate, which ATC's own datasheet rules out.
-**Updated:** 2026-08-03 (revised same day after new sources).
+`AP-SWI-019` candidate, which ATC's own datasheet rules out. Lippert independently
+confirms `AH-SWI-P09` as a live, cataloged ATC part family (its own "Manufacturer
+Reference Number") — the JR-to-ATC cross-reference itself is still not source-named, but
+the underlying identifier is no longer resting on Wayback research alone.
+**Updated:** 2026-08-03 (revised twice same day after new sources).
 
 ## 1. Why this adapter
 
@@ -132,30 +135,55 @@ generic version" SKU. One ambiguity: Tractor Supply's URL slug pairs this SKU wi
 `12075` product) — so which JR SKU this cross-reference number actually maps to is not
 fully disambiguated between retailers.
 
-## 4. Open lead: Lippert `AH-SWI-009-8` (obs #86)
+## 4. Lippert `AH-SWI-P09` — confirmed, not just a resemblance (obs #86, #89-91)
 
-User found a Lippert-branded slide-out switch with a similar SKU pattern,
-`AH-SWI-009-8`. Not yet investigated — open question whether Lippert sources the same ATC
-switch under its own part number (same pattern as JR Products) or this is a coincidental
-numbering resemblance. Worth checking against ATC's Wayback history and Lippert's own
-catalog before this Stage 1 vendor work also touches Lippert.
+The user's original lead (obs #86, transcribed as `AH-SWI-009-8`) turned out to be
+`AH-SWI-P09-8` — the exact same ATC part family already identified in §3.2, not a
+similarly-numbered coincidence. **Lippert's own catalog states it directly:** Lippert
+sells this switch under its own SKUs, with a field literally labeled "Manufacturer
+Reference Number":
+
+| Lippert SKU | Color | Manufacturer Reference Number |
+|---|---|---|
+| `131777` | Almond | `AH-SWI-P09-8` (obs #89) |
+| `117426` | Black | `AH-SWI-P09-5` (obs #90) |
+| `117461` | White | not directly confirmed; `AH-SWI-P09-1` expected by elimination (obs #91) |
+
+Both confirmed listings describe a "5-terminal"/"5-pin" replacement switch for
+Above-Floor and Through-Frame RV slide-outs, "new"-style, installed in Lippert slide-out
+mechanisms after May 2006 — consistent with everything already gathered about `AH-SWI-P09`
+from ATC's own `AP-INSTR-03` document (§3.2).
+
+**This is significant beyond just closing the Lippert question.** It's the first source
+anywhere in this research that names an `AH-SWI-P09` suffix as a *manufacturer reference
+number* on a live commercial retail listing, from a completely independent major RV OEM
+(Lippert, not a small retailer). That doesn't yet name JR Products specifically, but it
+substantially de-risks the working model in §3.3: `AH-SWI-P09` is a real, current,
+actively-cataloged ATC switch family used in mainstream RV slide-out systems by more than
+one OEM, not an obscure Wayback-only identifier this research pieced together in
+isolation. JR Products and Lippert both privately labeling the same ATC switch is exactly
+the kind of shared-OEM-supplier pattern already seen in Coleman-Mach and Suburban.
 
 ## 5. What would close the remaining gap
 
 - A source that names JR Products `12075`/`12095` and ATC `AH-SWI-P09` together by number
   (a JR spec sheet, invoice, or ATC OEM customer list) — wiring/dimensions/application now
-  converge strongly (§3.3), but no source states the cross-reference by part number.
-- Resolving which of `AH-SWI-P09-1`, `-5`, or `-8` is the specific white-vs-black (or other)
-  variant matching the in-hand unit — `AP-INSTR-03` groups all three without
-  disambiguating.
-- The Lippert `AH-SWI-009-8` lead (§4).
+  converge strongly (§3.3), and `AH-SWI-P09` itself is now Lippert-confirmed (§4), but no
+  source states the JR-to-ATC cross-reference by part number.
+- Confirming `AH-SWI-P09-1` as the white suffix. Black (`-5`) and almond (`-8`) are now
+  pinned by Lippert's own catalog (§4); white (`117461`) is listed without its suffix, so
+  `-1` is inferred by elimination, not directly confirmed — and the in-hand unit is white,
+  so this is the one remaining disambiguation that matters for this specific part.
 
 ## 6. Not yet built
 
 No components or edges have been resolved into `edge_resolver.py`/`components.db` yet.
 The JR Products assembly (SKU 12075/12285) and bare switch (12095/12295) are safe to build
-as exact components now, backed by JR's own catalog. The ATC `AH-SWI-P09` cross-reference
-should stay observation-only until a source names both SKUs together, per §5.
+as exact components now, backed by JR's own catalog. Lippert's `131777`/`117426`/`117461`
+family is now similarly safe to build, each backed by Lippert's own catalog. The
+underlying ATC `AH-SWI-P09` identity is Lippert-confirmed as a real part family; what's
+still missing is a source naming the *JR* cross-reference specifically (§5), so keep JR's
+SKUs linked to `AH-SWI-P09` as observation-only until then.
 
 ## 7. Observation log
 
@@ -174,3 +202,6 @@ should stay observation-only until a source names both SKUs together, per §5.
 | 86 | other | user lead, Lippert AH-SWI-009-8 | open, unconfirmed sibling/private-label question |
 | 87 | manufacturer_page | jrproducts.net product 13065 (harness) | JR's own wire colors match ATC AH-SWI-P09; lists 12075 in compatible-switch family |
 | 88 | retailer_page | youngfartsrvparts.com, NT-J4512095 | distributor/jobber cross-reference SKU, manufacturer confirmed JR Products |
+| 89 | retailer_page | lippert.com, 131777 Almond | Lippert's own "Manufacturer Reference Number" field states AH-SWI-P09-8 |
+| 90 | retailer_page | lippert.com, 117426 Black | Lippert's own "Manufacturer Reference Number" field states AH-SWI-P09-5 |
+| 91 | retailer_page | lippert.com / amazon.com, 117461 White / ELE-SWTCH-SLID-OUT | confirms white colorway exists in the same Lippert family; suffix not directly stated |

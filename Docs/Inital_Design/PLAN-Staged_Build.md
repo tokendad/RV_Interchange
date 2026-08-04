@@ -340,7 +340,12 @@ identity and compatibility evidence.*
     (`12095`/`12295`) and bezel assembly (`12075`/`12285`) with matching dimensions. See
     `Docs/Data/JR-Products/VENDOR-JR-Products.md`. Working model: JR's `12095`/`12295` is
     very likely a private-label of ATC's `AH-SWI-P09`, but no single source names both
-    SKUs together yet, so that cross-reference stays observation-only. Open lead: a
-    similarly-numbered Lippert switch (`AH-SWI-009-8`) may be the same private-labeling
-    pattern, not yet investigated. Nothing built into the resolver yet; the JR Products
-    SKUs (12075/12285/12095/12295) are ready to build as exact components now.
+    SKUs together yet, so that cross-reference stays observation-only. The user's
+    "Lippert `AH-SWI-009-8`" lead turned out to be `AH-SWI-P09-8`, the same ATC family —
+    Lippert's own catalog confirms it directly via a "Manufacturer Reference Number"
+    field: `131777` (Almond) = `AH-SWI-P09-8`, `117426` (Black) = `AH-SWI-P09-5`, `117461`
+    (White) = same family, suffix unstated. Doesn't close the JR-to-ATC gap, but confirms
+    `AH-SWI-P09` is a real, currently-cataloged ATC part used by a second major RV OEM.
+    Nothing built into the resolver yet; the JR Products SKUs (12075/12285/12095/12295)
+    and Lippert's (131777/117426/117461) are each ready to build as exact components, per
+    their own catalogs.
