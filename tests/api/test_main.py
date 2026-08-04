@@ -86,3 +86,21 @@ def test_unhandled_error_is_logged_and_returns_500(client, caplog):
         assert any("Unhandled exception" in record.message for record in caplog.records)
     finally:
         main_module.IdentifierService.resolve = original
+
+
+def test_search_endpoint(client):
+    response = client.get("/public/v1/search", params={"q": "SW6DE"})
+    assert response.status_code == 200
+    assert response.json() == {
+        "query": "SW6DE",
+        "results": [
+            {"component_id": "c_test_a", "label": "SW6DE",
+             "identifiers": [{"ns": "suburban", "value": "SW6DE"}]},
+        ],
+    }
+
+
+def test_search_endpoint_no_match_returns_200_with_empty_results(client):
+    response = client.get("/public/v1/search", params={"q": "NOPE"})
+    assert response.status_code == 200
+    assert response.json() == {"query": "NOPE", "results": []}

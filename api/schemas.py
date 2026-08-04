@@ -12,6 +12,17 @@ class IdentifierOut(BaseModel):
     value: str
 
 
+class SearchResultItem(BaseModel):
+    component_id: str
+    label: str
+    identifiers: list[IdentifierOut]
+
+
+class SearchResponse(BaseModel):
+    query: str
+    results: list[SearchResultItem]
+
+
 class ResolveResponse(BaseModel):
     component_id: str
     identifiers: list[IdentifierOut]

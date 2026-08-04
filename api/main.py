@@ -18,8 +18,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from interchange_schema import init_db
 
-from api.services import IdentifierService, ReplacementService
-from api.schemas import ReplacementsResponse, ResolveResponse
+from api.services import IdentifierService, ReplacementService, SearchService
+from api.schemas import ReplacementsResponse, ResolveResponse, SearchResponse
 
 DB_PATH = str(Path(__file__).resolve().parent.parent / "Docs" / "Tools" / "components.db")
 
@@ -93,3 +93,8 @@ def replacements(ns: str, identifier: str, conn=Depends(get_conn)):
     if result is None:
         raise HTTPException(status_code=404, detail="identifier not found")
     return result
+
+
+@app.get("/public/v1/search", response_model=SearchResponse)
+def search(q: str, limit: int = 20, conn=Depends(get_conn)):
+    return SearchService.search(conn, q, limit=limit)

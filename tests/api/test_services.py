@@ -144,3 +144,38 @@ def test_get_replacements_excludes_below_bar_and_unknown_component():
     ]
 
     assert ReplacementService.get_replacements(conn, "c_does_not_exist") is None
+
+
+from api.services import SearchService
+
+
+def test_search_ranks_exact_match_first():
+    conn = init_db(":memory:")
+    insert_component(conn, Component("c_test_a", 412, "412-0001-A"))
+    insert_component(conn, Component("c_test_b", 412, "412-0001-B"))
+    insert_identifier(conn, Identifier("c_test_a", "suburban", "SW6DE"))
+    insert_identifier(conn, Identifier("c_test_b", "suburban", "SW12DEL"))
+
+    result = SearchService.search(conn, "SW")
+
+    assert result["query"] == "SW"
+    assert [r["component_id"] for r in result["results"]] == ["c_test_a", "c_test_b"]
+    assert result["results"][0]["label"] == "SW6DE"
+    assert result["results"][0]["identifiers"] == [{"ns": "suburban", "value": "SW6DE"}]
+
+
+def test_search_no_match_returns_empty_results():
+    conn = init_db(":memory:")
+    result = SearchService.search(conn, "NOPE")
+    assert result == {"query": "NOPE", "results": []}
+
+
+def test_search_respects_limit():
+    conn = init_db(":memory:")
+    insert_component(conn, Component("c_test_a", 412, "412-0001-A"))
+    insert_component(conn, Component("c_test_b", 412, "412-0001-B"))
+    insert_identifier(conn, Identifier("c_test_a", "suburban", "SW6DE"))
+    insert_identifier(conn, Identifier("c_test_b", "suburban", "SW12DEL"))
+
+    result = SearchService.search(conn, "SW", limit=1)
+    assert [r["component_id"] for r in result["results"]] == ["c_test_a"]

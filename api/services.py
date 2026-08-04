@@ -7,7 +7,9 @@ insert it onto sys.path before importing this file (api/main.py does this
 at process start; tests do it per-file — see tests/api/test_services.py).
 """
 
-from interchange_store import get_component_by_identifier, get_identifiers_for_component
+from interchange_store import (
+    get_component_by_identifier, get_identifiers_for_component, search_identifiers,
+)
 
 
 class IdentifierService:
@@ -21,6 +23,21 @@ class IdentifierService:
             "component_id": component.component_id,
             "identifiers": [{"ns": i.ns, "value": i.value} for i in identifiers],
         }
+
+
+class SearchService:
+    @staticmethod
+    def search(conn, query, limit=20):
+        component_ids = search_identifiers(conn, query, limit=limit)
+        results = []
+        for component_id in component_ids:
+            identifiers = get_identifiers_for_component(conn, component_id)
+            results.append({
+                "component_id": component_id,
+                "label": identifiers[0].value if identifiers else component_id,
+                "identifiers": [{"ns": i.ns, "value": i.value} for i in identifiers],
+            })
+        return {"query": query, "results": results}
 
 
 from interchange_store import (
