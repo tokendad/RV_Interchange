@@ -106,3 +106,13 @@ def replacements(ns: str, identifier: str, conn=Depends(get_conn)):
 @app.get("/public/v1/search", response_model=SearchResponse)
 def search(q: str, limit: int = Query(20, ge=1, le=100), conn=Depends(get_conn)):
     return SearchService.search(conn, q, limit=limit)
+
+
+@app.get("/debug/v1/logs")
+def debug_logs(lines: int = Query(100, ge=1, le=1000)):
+    log_path = LOG_DIR / "api.log"
+    if not log_path.exists():
+        return {"lines": []}
+    with log_path.open("r", encoding="utf-8", errors="replace") as f:
+        all_lines = f.readlines()
+    return {"lines": [line.rstrip("\n") for line in all_lines[-lines:]]}

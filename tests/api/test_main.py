@@ -155,3 +155,29 @@ def test_api_log_uses_rotating_file_handler():
     assert len(rotating_handlers) == 1
     assert rotating_handlers[0].maxBytes == 1_000_000
     assert rotating_handlers[0].backupCount == 3
+
+
+def test_debug_logs_returns_empty_list_when_file_missing(tmp_path, monkeypatch):
+    monkeypatch.setattr(main_module, "LOG_DIR", tmp_path / "nonexistent_logs")
+    response = TestClient(main_module.app).get("/debug/v1/logs")
+    assert response.status_code == 200
+    assert response.json() == {"lines": []}
+
+
+def test_debug_logs_returns_tail_of_log_file(tmp_path, monkeypatch):
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    log_file = log_dir / "api.log"
+    log_file.write_text("\n".join(f"line {i}" for i in range(1, 11)) + "\n")
+    monkeypatch.setattr(main_module, "LOG_DIR", log_dir)
+
+    response = TestClient(main_module.app).get("/debug/v1/logs", params={"lines": 3})
+    assert response.status_code == 200
+    assert response.json() == {"lines": ["line 8", "line 9", "line 10"]}
+
+
+def test_debug_logs_rejects_out_of_range_lines(tmp_path, monkeypatch):
+    monkeypatch.setattr(main_module, "LOG_DIR", tmp_path)
+    client = TestClient(main_module.app)
+    assert client.get("/debug/v1/logs", params={"lines": 0}).status_code == 422
+    assert client.get("/debug/v1/logs", params={"lines": 1001}).status_code == 422
