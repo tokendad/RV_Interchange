@@ -109,6 +109,14 @@ def test_search_endpoint_no_match_returns_200_with_empty_results(client):
     assert response.json() == {"query": "NOPE", "results": []}
 
 
+def test_search_endpoint_rejects_out_of_range_limit(client):
+    response = client.get("/public/v1/search", params={"q": "SW", "limit": 0})
+    assert response.status_code == 422
+
+    response = client.get("/public/v1/search", params={"q": "SW", "limit": 101})
+    assert response.status_code == 422
+
+
 def test_readonly_connection_rejects_writes(tmp_path):
     db_path = str(tmp_path / "ro_test.db")
     init_db(db_path).close()

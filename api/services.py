@@ -31,13 +31,13 @@ class IdentifierService:
 class SearchService:
     @staticmethod
     def search(conn, query, limit=20):
-        component_ids = search_identifiers(conn, query, limit=limit)
+        matches = search_identifiers(conn, query, limit=limit)
         results = []
-        for component_id in component_ids:
+        for component_id, matched_value in matches:
             identifiers = get_identifiers_for_component(conn, component_id)
             results.append({
                 "component_id": component_id,
-                "label": identifiers[0].value if identifiers else component_id,
+                "label": matched_value,
                 "identifiers": [{"ns": i.ns, "value": i.value} for i in identifiers],
             })
         return {"query": query, "results": results}

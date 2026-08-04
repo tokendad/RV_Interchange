@@ -63,30 +63,32 @@ def get_identifiers_for_component(conn, component_id):
 
 
 def search_identifiers(conn, query, limit=20):
-    """Ranked, deduped component_ids whose identifiers.value matches `query`.
+    """Ranked, deduped (component_id, matched_value) pairs for identifiers matching `query`.
 
     Exact matches (case-insensitive) rank first; ties break by shorter value,
     then alphabetically. A component can carry several matching identifiers
-    across namespaces — it appears once in the result, not once per match.
+    across namespaces — it appears once in the result (paired with the
+    best-ranked identifier that matched), not once per match.
     """
-    if not query:
+    if not query or limit <= 0:
         return []
-    like_pattern = f"%{query}%"
+    escaped_query = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    like_pattern = f"%{escaped_query}%"
     rows = conn.execute(
         "SELECT component_id, value FROM identifiers "
-        "WHERE value LIKE ? COLLATE NOCASE "
+        "WHERE value LIKE ? ESCAPE '\\' COLLATE NOCASE "
         "ORDER BY (LOWER(value) = LOWER(?)) DESC, LENGTH(value), value",
         (like_pattern, query)).fetchall()
-    component_ids = []
+    results = []
     seen = set()
     for row in rows:
         if row["component_id"] in seen:
             continue
         seen.add(row["component_id"])
-        component_ids.append(row["component_id"])
-        if len(component_ids) >= limit:
+        results.append((row["component_id"], row["value"]))
+        if len(results) >= limit:
             break
-    return component_ids
+    return results
 
 
 def insert_component_attribute(conn, attribute):
@@ -398,16 +400,16 @@ def self_test(verbose=False):
     insert_identifier(conn, Identifier("c_test_b", "suburban", "SW12DEL"))
 
     exact_match = search_identifiers(conn, "SW6DE")
-    if exact_match != ["c_test_a"]:
+    if exact_match != [("c_test_a", "SW6DE")]:
         failures.append(f"expected exact match search to return only c_test_a, got {exact_match}")
 
     substring_match = search_identifiers(conn, "SW")
-    if substring_match != ["c_test_a", "c_test_b"]:
+    if substring_match != [("c_test_a", "SW6DE"), ("c_test_b", "SW12DEL")]:
         failures.append(
             f"expected substring search ranked shortest-value-first, got {substring_match}")
 
     limited = search_identifiers(conn, "SW", limit=1)
-    if limited != ["c_test_a"]:
+    if limited != [("c_test_a", "SW6DE")]:
         failures.append(f"expected limit=1 to return only the best match, got {limited}")
 
     no_match = search_identifiers(conn, "NOPE")
@@ -417,6 +419,14 @@ def self_test(verbose=False):
     empty_query = search_identifiers(conn, "")
     if empty_query != []:
         failures.append(f"expected empty query to return [], got {empty_query}")
+
+    wildcard_query = search_identifiers(conn, "%")
+    if wildcard_query != []:
+        failures.append(f"expected literal '%' query to match nothing, got {wildcard_query}")
+
+    zero_limit = search_identifiers(conn, "SW", limit=0)
+    if zero_limit != []:
+        failures.append(f"expected limit=0 to return [], got {zero_limit}")
 
     if failures:
         for f in failures:

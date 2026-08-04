@@ -15,10 +15,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "Docs" / "Tools"))
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from interchange_schema import init_db
 
 from api.services import IdentifierService, ReplacementService, SearchService
 from api.schemas import ReplacementsResponse, ResolveResponse, SearchResponse
@@ -105,5 +104,5 @@ def replacements(ns: str, identifier: str, conn=Depends(get_conn)):
 
 
 @app.get("/public/v1/search", response_model=SearchResponse)
-def search(q: str, limit: int = 20, conn=Depends(get_conn)):
+def search(q: str, limit: int = Query(20, ge=1, le=100), conn=Depends(get_conn)):
     return SearchService.search(conn, q, limit=limit)
