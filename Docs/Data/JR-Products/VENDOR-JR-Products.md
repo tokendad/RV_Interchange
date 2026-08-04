@@ -1,12 +1,15 @@
 # VENDOR — JR Products (assembly) / American Technology Components (switch)
 
-**Status:** exact assembly SKU confirmed; underlying ATC switch identity narrowed to
-`AH-SWI-P09` family via ATC's own wire-color documentation, correcting the initial
-`AP-SWI-019` candidate, which ATC's own datasheet rules out. Lippert independently
-confirms `AH-SWI-P09` as a live, cataloged ATC part family (its own "Manufacturer
-Reference Number") — the JR-to-ATC cross-reference itself is still not source-named, but
-the underlying identifier is no longer resting on Wayback research alone.
-**Updated:** 2026-08-03 (revised twice same day after new sources).
+**Status:** CLOSED — research exhausted via public sources. Exact assembly SKU
+confirmed; underlying ATC switch family identity confirmed as `AH-SWI-P09`, both by
+ATC's own wire-color documentation and independently by Lippert naming `AH-SWI-P09-5`
+(black, `117426`)/`AH-SWI-P09-8` (almond, `131777`) as their own "Manufacturer Reference
+Number." The JR-to-ATC white cross-reference and the `AH-SWI-P09-1` suffix itself remain
+formally unconfirmed; working theory (§4a) is that JR's white switch was a private,
+dealer-specific ATC order never given a public SKU, meaning no further public-source
+search is likely to close it. Only a direct manufacturer/dealer reply would move this
+forward from here.
+**Updated:** 2026-08-04 (closed after exhausting public-source research).
 
 ## 1. Why this adapter
 
@@ -135,7 +138,7 @@ generic version" SKU. One ambiguity: Tractor Supply's URL slug pairs this SKU wi
 `12075` product) — so which JR SKU this cross-reference number actually maps to is not
 fully disambiguated between retailers.
 
-## 4. Lippert `AH-SWI-P09` — confirmed, not just a resemblance (obs #86, #89-91)
+## 4. Lippert `AH-SWI-P09` — confirmed for black/almond; white is a different family (obs #86, #89-95)
 
 The user's original lead (obs #86, transcribed as `AH-SWI-009-8`) turned out to be
 `AH-SWI-P09-8` — the exact same ATC part family already identified in §3.2, not a
@@ -146,10 +149,10 @@ Reference Number":
 | Lippert SKU | Color | Manufacturer Reference Number |
 |---|---|---|
 | `131777` | Almond | `AH-SWI-P09-8` (obs #89) |
-| `117426` | Black | `AH-SWI-P09-5` (obs #90) |
-| `117461` | White | not directly confirmed; `AH-SWI-P09-1` expected by elimination (obs #91) |
+| `117426` | Black | `AH-SWI-P09-5` (obs #90, re-confirmed obs #95) |
+| `129003` → `670704` | White | `AH-SWI-P10-8` — **different family** (obs #92-93) |
 
-Both confirmed listings describe a "5-terminal"/"5-pin" replacement switch for
+Both black/almond listings describe a "5-terminal"/"5-pin" replacement switch for
 Above-Floor and Through-Frame RV slide-outs, "new"-style, installed in Lippert slide-out
 mechanisms after May 2006 — consistent with everything already gathered about `AH-SWI-P09`
 from ATC's own `AP-INSTR-03` document (§3.2).
@@ -164,16 +167,96 @@ one OEM, not an obscure Wayback-only identifier this research pieced together in
 isolation. JR Products and Lippert both privately labeling the same ATC switch is exactly
 the kind of shared-OEM-supplier pattern already seen in Coleman-Mach and Suburban.
 
-## 5. What would close the remaining gap
+**Correction (obs #92-94, revised same day as first entered):** the "white suffix
+expected by elimination" reasoning below (formerly citing SKU `117461`) was wrong.
+`117461` is not a bare switch — user supplied Lippert's Electric Through-Frame Slide-Out
+Owners Manual (`Docs/Data/Lippert/Lippert-Electric-Through-Frame-Slide-Out-Owners-Manual-0001613.pdf`,
+pages 21/35/42, obs #92) showing `117461`/`117460` are full kit SKUs (switch + bezel plate
++ wire harness `178436`), with the bare switches broken out separately as `129003` (White)
+and `117426` (Black). Following `129003` to Lippert's current listing (obs #93, user-supplied,
+it supersedes to SKU `670704`) gives Manufacturer Reference Number **`AH-SWI-P10-8`**,
+a **4-prong** connection — a different ATC family than `AH-SWI-P09`, and a prong count
+that contradicts the in-hand unit's 5-wire harness outright. Meanwhile `117426` Black
+independently re-confirms `AH-SWI-P09-5` on its own current product page (obs #95,
+user-supplied), matching the earlier obs #90 finding.
+
+**Net effect (confirmed by obs #96, a Lippert-issued parts complist, not just a retail
+page):** Lippert's black and white switches for this kit family are genuinely two
+different ATC part families, not color variants of one — and `129003`/`670704` (white,
+`AH-SWI-P10-8`) is confirmed as the actual, current, non-superseded-in-substance switch
+shipped inside kit `117461` (the complist explicitly notes `129003` is "OBSOLETE - Use
+670704," i.e. same part, renumbered, not a redesign). The "5-terminal" wording on
+`117461`'s own retail page (obs #94) appears to be either boilerplate/marketing-copy
+inaccuracy or refers to the harness rather than the switch itself — the complist and the
+`670704` product page both independently say 4-prong/`AH-SWI-P10-8`.
+
+**This closes off the Lippert-white avenue definitively, not just provisionally:**
+Lippert does not sell an `AH-SWI-P09` white switch at all; their white offering is a
+different, 4-prong ATC family that doesn't match the in-hand unit's 5-wire harness. The
+`AH-SWI-P09-1` white-suffix question (§5) needs a source outside Lippert.
+
+## 5. What would close the remaining gap — CLOSED, research exhausted (2026-08-04)
 
 - A source that names JR Products `12075`/`12095` and ATC `AH-SWI-P09` together by number
-  (a JR spec sheet, invoice, or ATC OEM customer list) — wiring/dimensions/application now
-  converge strongly (§3.3), and `AH-SWI-P09` itself is now Lippert-confirmed (§4), but no
-  source states the JR-to-ATC cross-reference by part number.
-- Confirming `AH-SWI-P09-1` as the white suffix. Black (`-5`) and almond (`-8`) are now
-  pinned by Lippert's own catalog (§4); white (`117461`) is listed without its suffix, so
-  `-1` is inferred by elimination, not directly confirmed — and the in-hand unit is white,
-  so this is the one remaining disambiguation that matters for this specific part.
+  would still close this cleanly (a JR spec sheet, invoice, or ATC OEM customer list) —
+  wiring/dimensions/application converge strongly (§3.3), and `AH-SWI-P09` itself is
+  Lippert-confirmed for black/almond (§4). But per the working theory in §4a, this
+  cross-reference is likely an internal JR↔ATC record that was never published, so no
+  amount of further public-source searching is expected to surface it. Only a direct
+  reply from JR Products or ATC would resolve it from here.
+- ~~Confirming `AH-SWI-P09-1` as the white suffix~~ — **closed, obs #97-99, see §4a.**
+  Concluded that `AH-SWI-P09-1` most likely was never an actual stocked/sold part, based
+  on its total absence from every live source checked (WESCO distributor catalog, ATC's
+  current shop, general web search), despite ATC's `-1`/`-5`/`-8` = White/Black/Almond
+  suffix convention being independently well-attested across several *other* ATC product
+  lines. The in-hand unit's specific white-suffix number remains formally unconfirmed,
+  but this line of research is exhausted, not just paused.
+
+**Research on this adapter is closed for now.** Nothing left to chase via public sources;
+next movement requires either a direct manufacturer/dealer reply or new physical evidence.
+
+## 4a. `AH-SWI-P09-1` white suffix — concluded likely never existed (obs #97-99)
+
+User research (`Docs/Data/American Technology Components/ATC_Sku_Research.md`) surveyed
+WESCO's distributor catalog (obs #97, several `AH-SWI-0x`/`AH-SWI-P07` listings) and
+ATC's naming pattern across other product lines (obs #98: `AH-SLD-5-HS01`/`AH-SLD-1-HS01`,
+`AT-RLD-1/5/8-LS01`, etc.) and found no listing anywhere for `AH-SWI-P09-1`, despite the
+`-1`/`-5`/`-8` = White/Black/Almond suffix convention being solid and repeated across
+several ATC lines. Independently re-verified (obs #99): a general web search turns up
+nothing for `AH-SWI-P09-1`, and ATC's current shop (`shop.atcomp.com/controls/switch-panels/`)
+doesn't carry `AH-SWI-P09` at all anymore (consistent with it being a discontinued/older
+line surviving only in the archival `AP-INSTR-03` instructional PDF, obs #85).
+
+**Conclusion:** `AH-SWI-P09-1` most likely was never an actual manufactured/stocked part
+— it appears to be a pattern-completing placeholder in one instructional document rather
+than a real catalog entry. This closes the white-suffix sub-question as *exhausted*
+rather than *resolved*: there's no more research path left to pursue on it specifically.
+The `AH-SWI-P09` family identity itself (§3.2, §4) is unaffected — only the white variant
+number is in question.
+
+**Working theory (user, 2026-08-04): private, dealer-specific ATC order, not a public
+SKU.** Given `AH-SWI-P09-1` is completely absent from every public source (WESCO, ATC's
+own current shop, general web search) while ATC's `-1`/`-5`/`-8` color-suffix convention
+is otherwise solid, the most likely explanation is that JR Products ordered a white
+variant directly from ATC for its own private-label line, and ATC either assigned it the
+pattern-consistent `-1` suffix or some other designation informally, without ever
+publishing it — because no third party would ever need to look it up. This is standard
+practice for private-label OEM arrangements: the cross-reference exists only as an
+internal record between JR Products and ATC (a purchase order, a mold/tooling spec, an
+internal parts database), not as public-facing documentation. If that's correct, the
+JR-to-ATC white cross-reference (§5) is not just hard to find — it may not exist in any
+form a public search could ever surface. Closing this research thread on that basis;
+revisit only if JR Products or ATC responds directly to a manufacturer inquiry with
+something that names it.
+
+## 5a. Reference material (not part identity, keep for troubleshooting)
+
+`Docs/Data/Lippert/ccd-0001613-through-frame-electric-slide-out-manual.pdf`
+(manuals.plus copy of the same CCD-0001613 manual as §4/obs #92, but with the
+Slide-Out Switch Wiring Diagram page intact) contains the full switch-to-motor-to-
+controller-to-battery wiring sequence with wire colors. Not yet mined for this
+identity question, but flagged as a useful troubleshooting reference for future
+slide-out electrical work generally.
 
 ## 6. Not yet built
 
@@ -205,3 +288,11 @@ SKUs linked to `AH-SWI-P09` as observation-only until then.
 | 89 | retailer_page | lippert.com, 131777 Almond | Lippert's own "Manufacturer Reference Number" field states AH-SWI-P09-8 |
 | 90 | retailer_page | lippert.com, 117426 Black | Lippert's own "Manufacturer Reference Number" field states AH-SWI-P09-5 |
 | 91 | retailer_page | lippert.com / amazon.com, 117461 White / ELE-SWTCH-SLID-OUT | confirms white colorway exists in the same Lippert family; suffix not directly stated |
+| 92 | manufacturer_pdf | Lippert Electric Through-Frame Slide-Out Owners Manual (0001613), pp.21/35/42, user-supplied local copy | kit BOM: `117461`/`117460` are switch+plate+harness kits; bare switches broken out as `129003` (White) / `117426` (Black) |
+| 93 | retailer_page | lippert.com, 129003 → superseded to 670704 White | Manufacturer Reference Number `AH-SWI-P10-8`, 4-prong — different ATC family than P09, contradicts in-hand unit's 5-wire harness |
+| 94 | retailer_page | lippert.com, 117461 White kit (current listing) | describes itself as "5-terminal switch assembly," inconsistent with 4-prong `129003`/`670704` BOM component — likely a parts revision, current kit's actual switch not identified |
+| 95 | retailer_page | lippert.com, 117426 Black (user-supplied direct link) | re-confirms Manufacturer Reference Number `AH-SWI-P09-5`, matching obs #90 |
+| 96 | manufacturer_pdf | lci-support-doc.s3.amazonaws.com CCD-0002560 parts complist, user-supplied | authoritative BOM: kit 117460 (Black)→switch 117426; kit 117461 (White)→switch 129003 (OBSOLETE, use 670704) — confirms 670704/AH-SWI-P10-8 as current white switch, not a stale generation |
+| 97 | retailer_page | buy.wesco.com, several AH-SWI-0x/AH-SWI-P07 listings, user research | no `AH-SWI-P09-1` listing found; establishes WESCO carries other AH-SWI lines but not this suffix |
+| 98 | manufacturer_page | shop.atcomp.com/controls/switch-panels/, user research + agent re-check | confirms `-1`/`-5`/`-8` = White/Black/Almond suffix convention across other ATC lines (AH-SLD, AT-RLD); `AH-SWI-P09` itself absent from current shop entirely |
+| 99 | other | general web search, agent re-check | no result anywhere for `AH-SWI-P09-1`; corroborates user's conclusion that it likely was never a stocked part |
