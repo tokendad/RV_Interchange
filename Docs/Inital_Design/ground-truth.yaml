@@ -407,6 +407,41 @@ components:
       interface_type: {value: analog, provenance: manufacturer_page_single_source, source_observation_id: 40}
       stages:         {value: single, provenance: manufacturer_page_inferred, source_observation_id: 40}
 
+  # Third wave: the "Electronic"-generation family's D->E transition
+  # instantiation (obs #74 rvcomfort.com naming + obs #58 wildcard family's
+  # functional split; see VENDOR-Coleman-Mach.md sec 6.7). Unlike the first
+  # and second waves, no source states color for any of these three -- see
+  # sec 6.7's "not yet confirmed" note -- so no color attribute is asserted.
+  - component_id: c_placeholder_tstat_7330e335
+    part_type_id: 415
+    interchange_code: null
+    identifiers:
+      - {ns: coleman, value: "7330E335", visibility: null}
+    attributes:
+      function:       {value: heat_cool, provenance: manufacturer_page, source_observation_id: 74}
+      interface_type: {value: analog, provenance: manufacturer_pdf_single_source, source_observation_id: 58}
+      stages:         {value: single, provenance: manufacturer_pdf_inferred, source_observation_id: 58}
+
+  - component_id: c_placeholder_tstat_7330e385
+    part_type_id: 415
+    interchange_code: null
+    identifiers:
+      - {ns: coleman, value: "7330E385", visibility: null}
+    attributes:
+      function:       {value: heat_cool, provenance: manufacturer_page, source_observation_id: 74}
+      interface_type: {value: analog, provenance: manufacturer_pdf_single_source, source_observation_id: 58}
+      stages:         {value: single, provenance: manufacturer_pdf_inferred, source_observation_id: 58}
+
+  - component_id: c_placeholder_tstat_7330e336
+    part_type_id: 415
+    interchange_code: null
+    identifiers:
+      - {ns: coleman, value: "7330E336", visibility: null}
+    attributes:
+      function:       {value: cool_only, provenance: manufacturer_page, source_observation_id: 74}
+      interface_type: {value: analog, provenance: manufacturer_pdf_single_source, source_observation_id: 58}
+      stages:         {value: single, provenance: manufacturer_pdf_inferred, source_observation_id: 58}
+
   # =========================================================================
   # 3. MONITOR PANEL — system-bound; assembly decomposition case
   # =========================================================================
@@ -528,6 +563,24 @@ edges:
       - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
       - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 41}
       - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 49}
+
+  # Retailer-tier only -- no manufacturer-primary statement of this specific
+  # pairing (unlike the two edges above). Two independent retailers name
+  # 7330F3361 as the current replacement for legacy 7330-E336: obs #59
+  # (MakariosRV's own chart) and obs #64 (trvparts.com). See
+  # VENDOR-Coleman-Mach.md sec 6.2/sec 8 item 3.
+  - type: supersedes
+    from: c_placeholder_tstat_7330e336
+    to: c_placeholder_tstat_7330f3361
+    group: coleman_e336_cool_only_replacement
+    status: candidate
+    detail:
+      note: "Two independent retailers name 7330F3361 as the replacement for 7330-E336 (obs #59, obs #64); not manufacturer-documented."
+    confidence: {alpha: 3, beta: 1, value: 0.75, certainty: 4}
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 59}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 64}
 
   # THE CANONICAL EDGE TEST. Asymmetric substitution, confirmed real.
   - type: substitutes

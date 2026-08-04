@@ -1,6 +1,15 @@
 # VENDOR — Coleman-Mach / RV Products / Airxcel
 
 **Status:** exact endpoint and supersession fixture complete; broader adapter research in progress
+**Updated:** 2026-08-04 — `7330E335`/`7330E385`/`7330E336` built as exact endpoint
+components (`coleman_third_wave_endpoint_components()`, resolver version
+`coleman_endpoint_v3`), plus the `7330E336 -> 7330F3361` supersession edge
+(`resolve_coleman_third_wave_supersession()`), closing §8 items 1 and 3. No manufacturer
+reply on color/date detail had arrived; the user asked to proceed with the build using the
+evidence already in hand rather than continue waiting. `edge_resolver.py --check-fixture`
+confirms 0 mismatches; `--build` has repopulated `components.db`. See §6.7/§8 below for the
+updated evidence-and-decision record.
+
 **Updated:** 2026-08-02 — `7330E335`/`7330E385`/`7330E336` confirmed as real,
 manufacturer-catalogued RV Products SKUs via `rvcomfort.com` (RVP/Airxcel's own historical
 site, found by the user on the Wayback Machine): the site's own catalog page names them
@@ -596,25 +605,31 @@ equivalence separate.
 
 Ready-to-do next work, in rough priority order:
 
-1. **Resolved 2026-08-02 (§6.7, obs #71–#75):** `7330E335`/`7330E385`/`7330E336` are
-   confirmed real, manufacturer-catalogued RV Products SKUs — RVP's own historical site
-   (`rvcomfort.com`, via Wayback Machine) names them verbatim, linking to the same
-   "Electronic"-generation document already in the fixture. Production window bounded to
-   roughly Dec 2005–Jul 2008, between the `D`-suffix family (named through Aug 2003) and
-   the `G`/`F`-suffix family already built as components. **Next decision, not yet made:**
-   whether to build `7330E335`/`7330E385`/`7330E336` as exact endpoint components — the
-   evidentiary bar that blocked `8330-3362`/`8330-3862` (§6.6) is now met. Open sub-items:
-   exact color for `7330E335` vs. `7330E385` (both Heat/Cool, color unstated on the catalog
-   page) and the precise D→E/E→G transition dates. The user has separately emailed
-   Coleman-Mach for datasheets on the `E` variant — worth waiting to see if that reply
-   supplies the missing color/date detail before or alongside building.
+1. **Resolved 2026-08-02 (§6.7, obs #71–#75), built 2026-08-04:** `7330E335`/`7330E385`/
+   `7330E336` are confirmed real, manufacturer-catalogued RV Products SKUs — RVP's own
+   historical site (`rvcomfort.com`, via Wayback Machine) names them verbatim, linking to
+   the same "Electronic"-generation document already in the fixture. Production window
+   bounded to roughly Dec 2005–Jul 2008, between the `D`-suffix family (named through Aug
+   2003) and the `G`/`F`-suffix family already built as components. **Built 2026-08-04:**
+   now exact endpoint components (`coleman_third_wave_endpoint_components()` in
+   `edge_resolver.py`, resolver version `coleman_endpoint_v3`), from obs #74 (naming) +
+   obs #58 (the wildcard family's functional split). No manufacturer reply on the `E`-variant
+   datasheets had arrived by build time — the user decided to proceed on the evidence
+   already in hand rather than continue waiting. Because color is unstated for all three in
+   every captured source (unlike the `G`/`F`/`F3361`/`-3861` siblings), **no color attribute
+   is asserted** on any of the three components — function (`heat_cool`/`heat_cool`/
+   `cool_only`) and `interface_type`/`stages` (inferred, single-source) are. If the pending
+   manufacturer reply ever arrives, fold in color and revisit the D→E/E→G transition dates.
 2. **Resolved 2026-08-02 (§6.6, obs #66/#67):** `8330-3362`/`8330-3862` will **not** be
    built as exact endpoint components. A direct check of Coleman-Mach's own current
    document library shows its digital line is named exclusively `9420-*`, with no
    `8330-3362`/`8330-3862` document anywhere, and a retailer independently reports
    `8330-3362` itself discontinued (replaced by `9420A382`). No further action unless a
    manufacturer-primary source naming these SKUs directly turns up.
-3. Once item 1's build decision is made, revisit whether `7330F3361` (already built, see
-   §6.1) should get a `supersedes` edge from `7330D337`/`7330E336`/`8330-339(2)` — obs #59's
-   replacement chart already names `7330F3361` as `7330-E336`'s replacement, so this edge
-   becomes buildable as soon as `7330E336` itself is a component.
+3. **Built 2026-08-04:** `7330E336 -> 7330F3361` `supersedes` edge
+   (`resolve_coleman_third_wave_supersession()`), evidenced by two independent retailers
+   (obs #59 MakariosRV's chart, obs #64 trvparts.com) — retailer-cross-reference tier only,
+   no manufacturer-primary statement of this specific pairing, so confidence is 0.75/n=4
+   (weaker than the manufacturer-backed `-> 9420-351` edges' 0.8/n=5). `7330D337` and
+   `8330-339(2)` remain unbuilt identifiers (obs #59's chart also names `7330F3361` as their
+   replacement) — out of scope here, a separate future decision.

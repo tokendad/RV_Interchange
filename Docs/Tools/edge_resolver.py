@@ -42,6 +42,8 @@ COLEMAN_ENDPOINT_MODELS = ("7330G3351", "7330F3852", "9420-351")
 COLEMAN_ENDPOINT_RESOLVER_VERSION = "coleman_endpoint_v1"
 COLEMAN_SECOND_WAVE_ENDPOINT_MODELS = ("7330F3361", "7330-3861", "7330B3441")
 COLEMAN_SECOND_WAVE_RESOLVER_VERSION = "coleman_endpoint_v2"
+COLEMAN_THIRD_WAVE_ENDPOINT_MODELS = ("7330E335", "7330E385", "7330E336")
+COLEMAN_THIRD_WAVE_RESOLVER_VERSION = "coleman_endpoint_v3"
 COLEMAN_VISUAL_MATCH_CANDIDATE = {
     "candidate": {"ns": "coleman", "value": "8330-3362"},
     "comparison_source_observation_id": 45,
@@ -621,6 +623,151 @@ def coleman_second_wave_endpoint_components(product_row, corroboration_rows, com
     return results
 
 
+def coleman_third_wave_endpoint_components(naming_row, family_row, component_ids):
+    """
+    Build 7330E335/7330E385/7330E336 as exact endpoint components -- the
+    "Electronic"-generation family's D->E transition instantiation (see
+    VENDOR-Coleman-Mach.md sec 6.7). Two manufacturer-primary sources, neither
+    a model_spec_table: obs #74 (rvcomfort.com's own catalog page, naming all
+    three verbatim as the SKUs current for the linked installation PDF) and
+    obs #58 (that same wildcard-family installation manual, whose
+    family_statement gives the Heat/Cool vs Cool Only functional split by
+    wildcard suffix: *335*/*385* = Heat/Cool, *336* = Cool Only). Neither
+    source states color for any of the three (unlike the already-built
+    7330G3351/7330F3852/7330F3361/7330-3861, where color is manufacturer- or
+    retailer-stated) -- VENDOR-Coleman-Mach.md sec 6.7's "not yet confirmed"
+    note -- so no color attribute is asserted here.
+    """
+    expected_sources = (
+        (naming_row, 74, "manufacturer_page", "naming"),
+        (family_row, 58, "manufacturer_pdf", "family"),
+    )
+    for row, expected_id, expected_type, label in expected_sources:
+        try:
+            actual_id = row["id"]
+            actual_type = row["source_type"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise ValueError(f"Coleman {label} observation lacks source metadata") from exc
+        if (actual_id, actual_type) != (expected_id, expected_type):
+            raise ValueError(
+                f"unexpected Coleman {label} observation source: "
+                f"{actual_id}/{actual_type}")
+
+    naming = _normalized_attributes(naming_row)
+    family = _normalized_attributes(family_row)
+
+    models_named = naming.get("models_named_list")
+    if not isinstance(models_named, list) or \
+            set(models_named) != set(COLEMAN_THIRD_WAVE_ENDPOINT_MODELS):
+        raise ValueError(f"unexpected Coleman third-wave naming: {models_named}")
+
+    sku_relationship = naming.get("sku_relationship")
+    expected_relationship = {
+        "type": "link_target",
+        "from": list(COLEMAN_THIRD_WAVE_ENDPOINT_MODELS),
+        "to": "pdf_documents/1976190.pdf",
+    }
+    if sku_relationship != expected_relationship:
+        raise ValueError(f"unexpected Coleman third-wave sku_relationship: {sku_relationship}")
+
+    family_statement = family.get("compatibility_statement")
+    if not family_statement or "*335*" not in family_statement or \
+            "*385*" not in family_statement or \
+            "Cool Only" not in family_statement:
+        raise ValueError(f"unexpected Coleman third-wave family_statement: {family_statement}")
+
+    if set(component_ids) != set(COLEMAN_THIRD_WAVE_ENDPOINT_MODELS):
+        raise ValueError(f"unexpected Coleman third-wave endpoint ID map: {component_ids}")
+
+    def text_attr(component_id, name, value, provenance, source_row):
+        return ComponentAttribute(
+            component_id, name, provenance, source_row["id"], value_text=value,
+            resolver_version=COLEMAN_THIRD_WAVE_RESOLVER_VERSION)
+
+    function_by_model = {
+        "7330E335": "heat_cool",
+        "7330E385": "heat_cool",
+        "7330E336": "cool_only",
+    }
+    results = []
+    for model in COLEMAN_THIRD_WAVE_ENDPOINT_MODELS:
+        component_id = component_ids[model]
+        component = Component(component_id, THERMOSTAT_PART_TYPE, None)
+        identifiers = [Identifier(component_id, "coleman", model, None)]
+        attributes = [
+            text_attr(component_id, "function", function_by_model[model],
+                      "manufacturer_page", naming_row),
+            text_attr(component_id, "interface_type", "analog",
+                      "manufacturer_pdf_single_source", family_row),
+            text_attr(component_id, "stages", "single",
+                      "manufacturer_pdf_inferred", family_row),
+        ]
+        results.append((component, identifiers, attributes))
+    return results
+
+
+def resolve_coleman_third_wave_supersession(conn, retailer_row, corroboration_row,
+                                             from_component_id, to_component_id):
+    """
+    7330E336 -> 7330F3361, retailer-tier only (no manufacturer statement,
+    unlike the first-wave 7330G3351/7330F3852 -> 9420-351 edges): obs #59
+    (MakariosRV's own replacement chart, "7330-E336": "7330F3361") plus a
+    second, independent retailer corroboration, obs #64 (trvparts.com,
+    structured `sku_relationship: retailer_named_replacement`). See
+    VENDOR-Coleman-Mach.md sec 6.2/sec 8 item 3.
+    """
+    _validate_observation_source(corroboration_row, 64, "retailer_page", None, "corroboration")
+    corroboration = _normalized_attributes(corroboration_row)
+    relation = corroboration.get("sku_relationship")
+    expected_relation = {
+        "type": "retailer_named_replacement", "from": ["7330-E336"], "to": "7330F3361",
+    }
+    if relation != expected_relation:
+        raise ValueError(f"unexpected Coleman third-wave corroboration relation: {relation}")
+
+    try:
+        retailer_id = retailer_row["id"]
+        retailer_type = retailer_row["source_type"]
+    except (KeyError, IndexError, TypeError) as exc:
+        raise ValueError("Coleman third-wave retailer observation lacks source metadata") \
+            from exc
+    if (retailer_id, retailer_type) != (59, "retailer_prose"):
+        raise ValueError(
+            f"unexpected Coleman third-wave retailer observation source: "
+            f"{retailer_id}/{retailer_type}")
+    retailer = _normalized_attributes(retailer_row)
+    chart = retailer.get("replacement_chart_entries")
+    if not isinstance(chart, dict) or chart.get("7330-E336") != "7330F3361":
+        raise ValueError(
+            f"MakariosRV chart missing 7330-E336 -> 7330F3361: {chart}")
+
+    edge = Edge(
+        type="supersedes",
+        from_component_id=from_component_id,
+        to_component_id=to_component_id,
+        group_key="coleman_e336_cool_only_replacement",
+        status="candidate",
+        resolver_version=COLEMAN_THIRD_WAVE_RESOLVER_VERSION,
+        notes="Two independent retailers (MakariosRV, trvparts.com) name "
+              "7330F3361 as the current replacement for legacy 7330-E336; "
+              "no manufacturer-primary statement of this specific pairing.",
+    )
+    insert_edge(conn, edge)
+    insert_supersession_detail(conn, EdgeSupersessionDetail(
+        edge_id=edge.id,
+        note="Two independent retailers name 7330F3361 as the replacement "
+             "for 7330-E336 (obs #59, obs #64); not manufacturer-documented."))
+    for event_type, alpha, beta, source_id in (
+        ("attribute_prior", 1.0, 1.0, None),
+        ("retailer_cross_reference", 1.0, 0.0, retailer_row["id"]),
+        ("retailer_cross_reference", 1.0, 0.0, corroboration_row["id"]),
+    ):
+        insert_evidence(conn, RelationshipEvidence(
+            edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+            effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+    return edge.id
+
+
 def identifier_candidate_from_observation(obs_row):
     attrs = _normalized_attributes(obs_row)
     relation = attrs.get("sku_relationship")
@@ -1179,6 +1326,118 @@ def self_test(verbose=False):
             coleman_second_wave_endpoint_components(product, corroboration, second_wave_ids)
             failures.append("invalid Coleman second-wave endpoint evidence was accepted")
         except ValueError:
+            pass
+
+    obs58 = load_observation(obs_db, 58)  # wildcard family installation manual
+    obs59 = load_observation(obs_db, 59)  # MakariosRV replacement chart
+    obs64 = load_observation(obs_db, 64)  # trvparts.com corroboration
+    obs74 = load_observation(obs_db, 74)  # rvcomfort.com E-suffix naming
+    third_wave_ids = {
+        "7330E335": "c_placeholder_tstat_7330e335",
+        "7330E385": "c_placeholder_tstat_7330e385",
+        "7330E336": "c_placeholder_tstat_7330e336",
+    }
+    third_wave_endpoints = coleman_third_wave_endpoint_components(
+        obs74, obs58, third_wave_ids)
+    _validate_coleman_endpoint_results(third_wave_endpoints, third_wave_ids)
+    third_wave_by_model = {
+        identifiers[0].value: (component, identifiers, attributes)
+        for component, identifiers, attributes in third_wave_endpoints
+    }
+    if set(third_wave_by_model) != set(third_wave_ids):
+        failures.append(f"Coleman third-wave endpoint set mismatch: {set(third_wave_by_model)}")
+    for model, (component, identifiers, attributes) in third_wave_by_model.items():
+        if component.part_type_id != 415 or component.interchange_code is not None:
+            failures.append(f"invalid third-wave endpoint component: {component}")
+        if [(i.ns, i.value, i.visibility) for i in identifiers] != [
+                ("coleman", model, None)]:
+            failures.append(f"invalid third-wave endpoint identifiers for {model}: {identifiers}")
+
+    expected_third_wave = {
+        "7330E335": {
+            "function": ("heat_cool", 74, "manufacturer_page",
+                         COLEMAN_THIRD_WAVE_RESOLVER_VERSION),
+            "interface_type": ("analog", 58, "manufacturer_pdf_single_source",
+                                COLEMAN_THIRD_WAVE_RESOLVER_VERSION),
+            "stages": ("single", 58, "manufacturer_pdf_inferred",
+                       COLEMAN_THIRD_WAVE_RESOLVER_VERSION),
+        },
+        "7330E385": {
+            "function": ("heat_cool", 74, "manufacturer_page",
+                         COLEMAN_THIRD_WAVE_RESOLVER_VERSION),
+            "interface_type": ("analog", 58, "manufacturer_pdf_single_source",
+                                COLEMAN_THIRD_WAVE_RESOLVER_VERSION),
+            "stages": ("single", 58, "manufacturer_pdf_inferred",
+                       COLEMAN_THIRD_WAVE_RESOLVER_VERSION),
+        },
+        "7330E336": {
+            "function": ("cool_only", 74, "manufacturer_page",
+                         COLEMAN_THIRD_WAVE_RESOLVER_VERSION),
+            "interface_type": ("analog", 58, "manufacturer_pdf_single_source",
+                                COLEMAN_THIRD_WAVE_RESOLVER_VERSION),
+            "stages": ("single", 58, "manufacturer_pdf_inferred",
+                       COLEMAN_THIRD_WAVE_RESOLVER_VERSION),
+        },
+    }
+    for model, (_, _, attributes) in third_wave_by_model.items():
+        actual = {
+            attribute.name: (
+                attribute.value_text, attribute.source_observation_id,
+                attribute.provenance, attribute.resolver_version)
+            for attribute in attributes
+        }
+        if actual != expected_third_wave[model]:
+            failures.append(f"Coleman third-wave attributes mismatch for {model}: {actual}")
+
+    invalid_third_wave_inputs = (
+        (changed_row(obs74, lambda e: e["models_named"].remove("7330E336")), obs58),
+        (changed_row(obs74, lambda e: e["sku_relationship"].__setitem__(
+            "to", "pdf_documents/other.pdf")), obs58),
+        (obs74, changed_row(obs58, lambda e: e.__setitem__(
+            "family_statement", "no wildcard split stated"))),
+        (dict(obs74, id=400), obs58),
+        (obs74, dict(obs58, source_type="retailer_pdf")),
+    )
+    for naming, family in invalid_third_wave_inputs:
+        try:
+            coleman_third_wave_endpoint_components(naming, family, third_wave_ids)
+            failures.append("invalid Coleman third-wave endpoint evidence was accepted")
+        except ValueError:
+            pass
+
+    store_conn_third_wave = init_db(":memory:")
+    for component, identifiers, attributes in third_wave_endpoints:
+        insert_component(store_conn_third_wave, component)
+        for identifier in identifiers:
+            insert_identifier(store_conn_third_wave, identifier)
+    insert_component(store_conn_third_wave, Component(
+        second_wave_ids["7330F3361"], THERMOSTAT_PART_TYPE, None))
+    third_wave_edge_id = resolve_coleman_third_wave_supersession(
+        store_conn_third_wave, obs59, obs64,
+        third_wave_ids["7330E336"], second_wave_ids["7330F3361"])
+    third_wave_edge_confidence = compute_confidence(
+        get_evidence_for_edge(store_conn_third_wave, third_wave_edge_id))
+    if (third_wave_edge_confidence["value"], third_wave_edge_confidence["certainty"]) != \
+            (0.75, 4.0):
+        failures.append(
+            f"Coleman third-wave supersession confidence mismatch: "
+            f"{third_wave_edge_confidence}")
+
+    invalid_third_wave_supersession_inputs = (
+        (obs59, dict(obs64, id=400)),
+        (obs59, changed_row(obs64, lambda e: e["sku_relationship"].__setitem__(
+            "to", "9420-351"))),
+        (changed_row(obs59, lambda e: e["replacement_chart"].__setitem__(
+            "7330-E336", "8330-3482")), obs64),
+        (dict(obs59, source_type="retailer_page"), obs64),
+    )
+    for retailer, corroboration in invalid_third_wave_supersession_inputs:
+        try:
+            resolve_coleman_third_wave_supersession(
+                init_db(":memory:"), retailer, corroboration,
+                third_wave_ids["7330E336"], second_wave_ids["7330F3361"])
+            failures.append("invalid Coleman third-wave supersession evidence was accepted")
+        except (ValueError, sqlite3.IntegrityError):
             pass
 
     invalid_inputs = (
@@ -1960,8 +2219,11 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
                   f"resolved={resolved_attributes} fixture={expected_attributes}")
             mismatches += 1
 
+    endpoint_component_ids = set(endpoint_ids.values())
     fixture_supersession_rows = [
         edge for edge in edges_doc if edge.get("type") == "supersedes"
+        and edge.get("from") in endpoint_component_ids
+        and edge.get("to") in endpoint_component_ids
     ]
     fixture_supersessions = {
         (edge["from"], edge["to"]): edge for edge in fixture_supersession_rows
@@ -2153,6 +2415,124 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
     if second_wave_edges != 0:
         print(f"MISMATCH unsupported Coleman second-wave endpoint edges: {second_wave_edges}")
         mismatches += 1
+
+    third_wave_ids = {
+        "7330E335": "c_placeholder_tstat_7330e335",
+        "7330E385": "c_placeholder_tstat_7330e385",
+        "7330E336": "c_placeholder_tstat_7330e336",
+    }
+    fixture_third_wave_rows = [
+        component for component in components_doc
+        if component.get("component_id") in set(third_wave_ids.values())
+    ]
+    fixture_third_wave = {
+        component["component_id"]: component for component in fixture_third_wave_rows
+    }
+    if (len(fixture_third_wave_rows) != 3
+            or set(fixture_third_wave) != set(third_wave_ids.values())):
+        print(f"MISMATCH Coleman third-wave endpoint fixture set: "
+              f"count={len(fixture_third_wave_rows)} ids={set(fixture_third_wave)}")
+        mismatches += 1
+
+    obs58 = load_observation(obs_db_path, 58)
+    obs59 = load_observation(obs_db_path, 59)
+    obs64 = load_observation(obs_db_path, 64)
+    obs74 = load_observation(obs_db_path, 74)
+    third_wave_endpoints = coleman_third_wave_endpoint_components(
+        obs74, obs58, third_wave_ids)
+    _validate_coleman_endpoint_results(third_wave_endpoints, third_wave_ids)
+    for endpoint, identifiers, attributes in third_wave_endpoints:
+        insert_component(conn, endpoint)
+        for identifier in identifiers:
+            insert_identifier(conn, identifier)
+        for attribute in attributes:
+            insert_component_attribute(conn, attribute)
+
+    for component_id, fixture_component in fixture_third_wave.items():
+        resolved_component = conn.execute(
+            "SELECT * FROM components WHERE component_id = ?", (component_id,)).fetchone()
+        if resolved_component is None:
+            print(f"MISMATCH Coleman third-wave endpoint missing: {component_id}")
+            mismatches += 1
+            continue
+        if (resolved_component["part_type_id"], resolved_component["interchange_code"]) != (
+                fixture_component["part_type_id"], fixture_component["interchange_code"]):
+            print(f"MISMATCH Coleman third-wave endpoint component: "
+                  f"resolved={dict(resolved_component)} fixture={fixture_component}")
+            mismatches += 1
+
+        resolved_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (component_id,)).fetchall()
+        }
+        expected_identifiers = {
+            (identifier["ns"], str(identifier["value"]), identifier.get("visibility"))
+            for identifier in fixture_component["identifiers"]
+        }
+        if resolved_identifiers != expected_identifiers:
+            print(f"MISMATCH Coleman third-wave endpoint identifiers for {component_id}: "
+                  f"resolved={resolved_identifiers} fixture={expected_identifiers}")
+            mismatches += 1
+
+        resolved_attribute_rows = get_component_attributes(conn, component_id)
+        resolved_attributes = {}
+        for attribute in resolved_attribute_rows:
+            value = attribute.value_text if attribute.value_text is not None else (
+                attribute.value_number if attribute.value_number is not None
+                else attribute.value_boolean)
+            resolved_attributes[attribute.name] = (
+                value, attribute.provenance, attribute.source_observation_id)
+        expected_attributes = {
+            name: (definition["value"], definition["provenance"],
+                   definition["source_observation_id"])
+            for name, definition in fixture_component["attributes"].items()
+        }
+        if (len(resolved_attribute_rows) != len(expected_attributes)
+                or resolved_attributes != expected_attributes):
+            print(f"MISMATCH Coleman third-wave endpoint attributes for {component_id}: "
+                  f"resolved={resolved_attributes} fixture={expected_attributes}")
+            mismatches += 1
+
+    third_wave_edge_id = resolve_coleman_third_wave_supersession(
+        conn, obs59, obs64, third_wave_ids["7330E336"], second_wave_ids["7330F3361"])
+    fixture_third_wave_edge = next(
+        (edge for edge in edges_doc if edge.get("type") == "supersedes"
+         and edge.get("from") == third_wave_ids["7330E336"]
+         and edge.get("to") == second_wave_ids["7330F3361"]), None)
+    if fixture_third_wave_edge is None:
+        print("MISMATCH ground-truth.yaml has no 7330E336 -> 7330F3361 supersedes edge")
+        mismatches += 1
+    else:
+        resolved_edge_row = conn.execute(
+            "SELECT type, status, group_key FROM edges WHERE id = ?",
+            (third_wave_edge_id,)).fetchone()
+        expected_edge_fields = (
+            "supersedes", fixture_third_wave_edge["status"], fixture_third_wave_edge["group"])
+        if tuple(resolved_edge_row) != expected_edge_fields:
+            print(f"MISMATCH Coleman third-wave supersession fields: "
+                  f"resolved={tuple(resolved_edge_row)} fixture={expected_edge_fields}")
+            mismatches += 1
+
+        resolved_detail = get_supersession_detail(conn, third_wave_edge_id)
+        expected_note = fixture_third_wave_edge["detail"]["note"]
+        if resolved_detail is None or resolved_detail.note != expected_note:
+            print(f"MISMATCH Coleman third-wave supersession detail: "
+                  f"resolved={resolved_detail} fixture={expected_note}")
+            mismatches += 1
+
+        resolved_third_wave_evidence = get_evidence_for_edge(conn, third_wave_edge_id)
+        resolved_confidence = compute_confidence(resolved_third_wave_evidence)
+        expected_confidence = fixture_third_wave_edge["confidence"]
+        if resolved_confidence != {
+                "alpha": float(expected_confidence["alpha"]),
+                "beta": float(expected_confidence["beta"]),
+                "value": float(expected_confidence["value"]),
+                "certainty": float(expected_confidence["certainty"])}:
+            print(f"MISMATCH Coleman third-wave supersession confidence: "
+                  f"resolved={resolved_confidence} fixture={expected_confidence}")
+            mismatches += 1
 
     print(f"Coleman endpoints: {mismatches - coleman_mismatches_before} mismatch(es)")
 
