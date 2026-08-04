@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>RV Interchange — Admin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>RV Interchange — Admin / Debug</h1>
+  <p><a href="index.html">&larr; Back to lookup</a></p>
+
+  <section class="admin-panel">
+    <h2>Search</h2>
+    <form id="search-form" class="raw-form">
+      <label>q <input id="search-q" type="text" value="SW6DE"></label>
+      <label>limit <input id="search-limit" type="number" value="20"></label>
+      <button type="submit">Send</button>
+    </form>
+    <pre id="search-output">(nothing yet)</pre>
+  </section>
+
+  <section class="admin-panel">
+    <h2>Resolve</h2>
+    <form id="resolve-form" class="raw-form">
+      <label>ns <input id="resolve-ns" type="text" value="suburban"></label>
+      <label>identifier <input id="resolve-identifier" type="text" value="SW6DE"></label>
+      <button type="submit">Send</button>
+    </form>
+    <pre id="resolve-output">(nothing yet)</pre>
+  </section>
+
+  <section class="admin-panel">
+    <h2>Replacements</h2>
+    <form id="replacements-form" class="raw-form">
+      <label>ns <input id="replacements-ns" type="text" value="suburban"></label>
+      <label>identifier <input id="replacements-identifier" type="text" value="SW6DE"></label>
+      <button type="submit">Send</button>
+    </form>
+    <pre id="replacements-output">(nothing yet)</pre>
+  </section>
+
+  <section class="admin-panel">
+    <h2>Recent log lines</h2>
+    <button id="logs-refresh">Refresh</button>
+    <pre id="logs-output">(not loaded yet)</pre>
+  </section>
+
+  <script src="api-client.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
