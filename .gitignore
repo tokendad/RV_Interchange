@@ -53,5 +53,9 @@ Docs/Data/**/https___*_files/
 # Oversized source PDFs (exceed GitHub's 100MB limit) — kept on disk, not in git
 Docs/Data/Atwood/ParkPower Catalog.pdf
 
+# Personal in-hand RV photos/build sheet — never commit, identifies the owner's specific
+# coach; evidence gets hand-transcribed into observations.db instead
+Docs/Data/Current RV - DO NOT COMMIT THIS FOLDER/
+
 # Resolver output db — rebuildable from observations.db, not source of truth
 Docs/Tools/components.db
