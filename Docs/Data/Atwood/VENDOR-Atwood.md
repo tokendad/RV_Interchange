@@ -1,8 +1,10 @@
 # VENDOR — Atwood / Atwood Mobile Products
 
-**Status:** first vendor wave built (catalog-only, no in-hand teardown anchor yet)
-**Updated:** 2026-08-04 — 19 RV Pilot/Electronic-Ignition water heater models built as exact
-endpoint components from Atwood's own service manual.
+**Status:** endpoint components + repair-parts cross-reference built (catalog-only, no
+in-hand teardown anchor yet)
+**Updated:** 2026-08-05 — Electronic Ignition repair-parts cross-reference (obs #96, 47
+parts, 248 `fits` edges) built alongside the existing Pilot one (obs #95), for combined
+totals of 19 endpoint components + 87 repair-part components + 367 `fits` edges. See §7.
 
 ## 1. Why this adapter
 
@@ -133,32 +135,37 @@ interchange, not marine.
 - obs #95 — the January 2007 edition's Pilot "Replacement Part Reference" table (pp.31-32),
   scoped to the 5 already-built Pilot models. `Docs/Data/Atwood/Atwood-Water-Heater-Service-Manual-2007.pdf`.
   See §7.
+- obs #96 — the January 2007 edition's Electronic Ignition "Replacement Part Reference"
+  table (pp.35-36), scoped to the 8 already-built Electronic models. Same source PDF. See §7.
 
 ## 6. Resolver status and next milestone
 
-First wave complete: 19 exact endpoint components. Second wave (§7) adds a shared
-repair-parts cross-reference for the 5 Pilot models among them.
+First wave complete: 19 exact endpoint components. Second wave (§7) adds shared
+repair-parts cross-references for all 13 of the 19 models that have a Pilot or Electronic
+Ignition parts table (5 Pilot + 8 Electronic) — **87 repair-part components, 367 `fits`
+edges** total across both tables.
 
 Ready-to-do next work, in rough priority order:
 
-1. Extend §7's repair-parts cross-reference to the Electronic Ignition table (same manual,
-   pp.33-36 in the 2007 edition) for our 8 built Electronic models (`GH6-8E`, `G6A-8E`,
-   `G10-3E`, `GH10-3E`, `GCH6A-10E`, `GC6AA-10E`, `GC10A-4E`, `GCH10A-4E`) — larger table
-   (15 columns vs. Pilot's 12), not yet attempted.
-2. If/when a physical Atwood unit becomes available, add an in-hand teardown observation
+1. If/when a physical Atwood unit becomes available, add an in-hand teardown observation
    (rear label, data plate, model number) as a real anchor fixture, same role as the
    Coleman-Mach thermostat teardown (obs #44) — the two existing generic
    `c_placeholder_wh_atwood_6gal`/`_10gal` family-placeholder components (Suburban-arc,
    §1 above) are not a substitute for this.
-3. Retailer/Wayback Machine research to corroborate or extend the 19-model catalog (e.g.
+2. Retailer/Wayback Machine research to corroborate or extend the 19-model catalog (e.g.
    confirm current-vs-discontinued status beyond the one `NLA` flag the manual itself
    states, or find later/earlier manual revisions for a production-window timeline like
    Coleman-Mach's D→E→G/F letter progression).
-4. `capacity_gal`/`opening_h`/`opening_w` cross-comparison against the existing Suburban
+3. `capacity_gal`/`opening_h`/`opening_w` cross-comparison against the existing Suburban
    `opening_families` fixture data (§4's `part_types` block, `Docs/Inital_Design/
    ground-truth.yaml`) — none of these 19 components assert cutout/opening dimensions yet,
    since the manual's catalog table doesn't give them; that would need either the manual's
    own dimensional pages (not yet captured) or a separate retailer spec source.
+4. The 6 remaining EXT-family models (`G9-EXT`, `GE9-EXT`, `GEH9-EXT`, `G16-EXT`,
+   `GE16-EXT`, `GEH16-EXT`) don't appear in either Pilot or Electronic Ignition
+   "Replacement Part Reference" table — the manual covers them under a separate "XT Water
+   Heater" section (obs #92's own manual, pp.37-38) with its own parts diagrams, not yet
+   captured as a cross-reference table.
 
 ## 7. Second wave: Pilot repair-parts cross-reference (obs #95)
 
@@ -205,11 +212,11 @@ editions; the 2014 scan's OCR text layer, while real, has demonstrated gaps (a w
 overlapping two drain-plug rows, one row's marks merged into an adjacent row) and is not
 treated as authoritative.
 
-### 7.2 What was built
+### 7.2 What was built (Pilot table)
 
 Scoped to the 5 Pilot models already built as exact endpoint components: `G6A-7`,
 `G6A-7P`, `GC6AA-8`, `GC10A-2`, `G10-2` (the Electronic Ignition table's own repair-parts
-cross-reference, for the 8 built Electronic models, is not yet attempted — see §6 item 1).
+cross-reference, for the 8 built Electronic models, is covered separately in §7.3).
 
 **40 repair-part components, 119 `fits` edges** — `atwood_repair_parts_and_fits()` in
 `edge_resolver.py`, resolver version `atwood_fits_v1`. Each component carries one
@@ -234,3 +241,35 @@ handles them with a "measure drain coupling" instruction instead), not a gap in 
 
 `edge_resolver.py --check-fixture`: 0 mismatches (40 parts, 119 edges, all 3 spot-checks
 pass). `pytest`: 25/25 green.
+
+### 7.3 Third wave: Electronic Ignition repair-parts cross-reference (obs #96)
+
+Same manual, same edition (January 2007), same extraction method (§7.1) applied to the
+Electronic Ignition table (pp.35-36, 15 model-group columns instead of the Pilot table's
+12), scoped to the 8 already-built Electronic models: `GH6-8E`, `G6A-8E`, `G10-3E`,
+`GH10-3E`, `GCH6A-10E`, `GC6AA-10E`, `GC10A-4E`, `GCH10A-4E`.
+
+**47 repair-part components, 248 `fits` edges** — `atwood_electronic_repair_parts_and_fits()`
+in `edge_resolver.py`, resolver version `atwood_fits_v2`. Same evidence tier and validation
+approach as §7.2. `ground-truth.yaml`'s fixture entry is the same shape: total counts
+(47/248) plus four spot-checks, in `atwood_electronic_repair_parts_fixture`.
+
+The coordinate-based extraction method held up on a larger, denser table and gave an
+internal consistency check for free: part `91802` ("Drawn Pan (Electronic 6 Gallon)")
+resolved to exactly the four 6-gallon models among the 8 (`GH6-8E`, `G6A-8E`, `GCH6A-10E`,
+`GC6AA-10E`), and its 10-gallon sibling `93871` to three of the four 10-gallon ones
+(`G10-3E`, `GC10A-4E`, `GCH10A-4E` — not `GH10-3E`, plausibly because that model's heat
+exchanger needs a different drawn pan; not investigated further). A part's own
+gallon-capacity-specific description landing on exactly the capacity-matching model subset,
+independently for two different rows, is a strong sanity check that column alignment
+extraction is correct, not a coincidence.
+
+Two columns in this table's own header (`GCH6A-10E`/`GC6AA-10E` share one column;
+`GC10A-4E`/`GCH10A-4E` share another) mean several rows apply to pairs of our built models
+at once rather than being separable — e.g. `91230` ("Switch 12 VDC - White Combo") fits both
+`GCH6A-10E` and `GC6AA-10E`, with no way to tell from this table alone whether it fits one,
+the other, or genuinely both; the manual's own bracket says both, so both get the edge.
+
+`edge_resolver.py --check-fixture`: 0 mismatches (47 parts, 248 edges, all 4 spot-checks
+pass). `pytest`: 25/25 green. Combined Atwood repair-parts total across both tables: **87
+components, 367 `fits` edges.**

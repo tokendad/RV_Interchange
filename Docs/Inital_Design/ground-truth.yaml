@@ -1206,3 +1206,26 @@ atwood_pilot_repair_parts_fixture:
     - part: "91591"
       description: "Conversion to Pilot 6 gallon 110VAC"
       applies_to: [G6A-7, G6A-7P]
+
+---
+
+# Atwood Electronic Ignition repair-parts cross-reference (obs #96, same
+# January 2007 edition, pp.35-36, scoped to the 8 already-built Electronic
+# models -- see VENDOR-Atwood.md sec 7). Same "fits" edge type and same
+# structural (not per-row) validation approach as the Pilot table above.
+atwood_electronic_repair_parts_fixture:
+  total_parts: 47
+  total_fits_edges: 248
+  spot_checks:
+    - part: "91802"
+      description: "Drawn Pan (Electronic 6 Gallon)"
+      applies_to: [GH6-8E, G6A-8E, GCH6A-10E, GC6AA-10E]
+    - part: "93871"
+      description: "Drawn Pan (Electronic 10 Gal.)"
+      applies_to: [G10-3E, GC10A-4E, GCH10A-4E]
+    - part: "91853"
+      description: "110 VAC Thermostat (Rect) NLA"
+      applies_to: [G10-3E]
+    - part: "91222"
+      description: "Junction Box 110V - 6 gal"
+      applies_to: [GCH6A-10E, GC6AA-10E]
