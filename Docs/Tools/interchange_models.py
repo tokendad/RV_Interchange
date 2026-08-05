@@ -11,6 +11,9 @@ import sys
 from dataclasses import dataclass
 from typing import Optional
 
+from edge_types import validate_edge_type
+from edge_types import EDGE_TYPE_SUBSTITUTES
+
 
 @dataclass
 class Component:
@@ -59,6 +62,9 @@ class Edge:
     resolver_version: Optional[str] = None
     notes: Optional[str] = None
     id: Optional[int] = None
+
+    def __post_init__(self):
+        self.type = validate_edge_type(self.type)
 
 
 @dataclass
@@ -177,6 +183,16 @@ def self_test(verbose=False):
     detail = EdgeSupersessionDetail(edge_id=7, note="7330G3351 replaced by 9420-351")
     if detail.edge_id != 7 or "9420-351" not in detail.note:
         failures.append(f"supersession detail mismatch: {detail}")
+
+    edge = Edge(type=EDGE_TYPE_SUBSTITUTES, from_component_id="c_test_a",
+                to_component_id="c_test_b")
+    if edge.type != EDGE_TYPE_SUBSTITUTES:
+        failures.append(f"known edge type was not preserved: {edge}")
+    try:
+        Edge(type="bogus", from_component_id="c_test_a")
+        failures.append("bogus edge type was accepted")
+    except ValueError:
+        pass
 
     for kwargs in (
         {"value_text": "12VDC"},

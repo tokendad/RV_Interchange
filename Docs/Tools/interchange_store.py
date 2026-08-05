@@ -12,6 +12,7 @@ from interchange_models import (
     EdgeSupersessionDetail, EdgeControlsDetail, EdgeCaveat, EdgeRequiredPart,
     RelationshipEvidence, IdentifierEquivalenceCandidate, IdentifierEquivalenceEvidence,
 )
+from edge_types import validate_edge_type, EDGE_TYPE_SUBSTITUTES, EDGE_TYPE_SUPERSEDES
 from interchange_schema import init_db
 
 
@@ -187,6 +188,7 @@ def get_identifier_equivalence_evidence(conn, candidate_id):
 
 
 def insert_edge(conn, edge):
+    validate_edge_type(edge.type)
     cur = conn.execute(
         "INSERT INTO edges (type, from_component_id, to_component_id, group_key, "
         "status, resolver_version, created_at, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -272,7 +274,8 @@ def insert_evidence(conn, evidence):
 
 
 def get_edges_from(conn, component_id, type=None):
-    if type:
+    if type is not None:
+        validate_edge_type(type)
         return conn.execute(
             "SELECT * FROM edges WHERE from_component_id = ? AND type = ?",
             (component_id, type)).fetchall()
@@ -356,13 +359,13 @@ def self_test(verbose=False):
     except ValueError:
         pass
 
-    edge = Edge(type="substitutes", from_component_id="c_test_a",
+    edge = Edge(type=EDGE_TYPE_SUBSTITUTES, from_component_id="c_test_a",
                 to_component_id="c_test_b", group_key="412-0001")
     insert_edge(conn, edge)
     if edge.id is None:
         failures.append("insert_edge did not set edge.id")
 
-    supersession = Edge(type="supersedes", from_component_id="c_test_a",
+    supersession = Edge(type=EDGE_TYPE_SUPERSEDES, from_component_id="c_test_a",
                         to_component_id="c_test_b")
     insert_edge(conn, supersession)
     insert_supersession_detail(conn, EdgeSupersessionDetail(
@@ -384,7 +387,7 @@ def self_test(verbose=False):
         "CREATE INDEX test_relationship_evidence_desc "
         "ON relationship_evidence(edge_id, id DESC)")
 
-    fetched = get_edges_from(conn, "c_test_a", type="substitutes")
+    fetched = get_edges_from(conn, "c_test_a", type=EDGE_TYPE_SUBSTITUTES)
     if len(fetched) != 1:
         failures.append(f"expected 1 edge from c_test_a, got {len(fetched)}")
 
