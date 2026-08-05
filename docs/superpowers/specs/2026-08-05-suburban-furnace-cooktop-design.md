@@ -56,15 +56,33 @@ independently evidenced.
    - **Cut-out dimensions (Figure 2), `SRNA3S`/`SRSA3S` row:** A 18-5/8", B 16", C 2", D 20-5/8", E 7/8" (the manual's Figure 2 labels these letters against a diagram not extracted here — recorded as five labeled dimensions, not further interpreted).
    - Minimum vertical clearance to combustible material above the cooktop: 24" (also matches the in-hand plate), reducible to 19-1/2" with a range hood installed 1/4" off the construction.
 
-These six observations are sufficient to create three components, populate cutout/clearance
-attributes on both endpoints, and one `fits` edge.
+### New retailer observation (corroborates the `2608A` fits edge, resolves issue #26)
 
-### Explicitly not asserted (see issue #26)
+7. `unitedrvparts.com`'s `SF-30FQ` product page: OEM numbers `2518A`/`2391A`/`2558A` — `2391A`
+   matches the in-hand unit's own `Stock No. 2391` exactly, confirming this retailer's listing
+   covers our specific unit. Its own crossover chart independently states `SF-30FQ | 2391 |
+   Stock# 2608A, Model# RP-30FQ` — a second, independent source for the `2608A` fits edge
+   (previously sourced only to the manufacturer catalog), plus the core module's own model
+   designation, `RP-30FQ`, not present in the catalog. `source_type: retailer_page` → tier 7;
+   does not upgrade the edge's primary manufacturer-assertion evidence, but adds a
+   `retailer_cross_reference` corroborating event, same pattern as the Coleman endpoint
+   design's retailer corroboration (§2 "New retailer observations" of that design).
+8. `unitedrvparts.com`'s `SF-30VHFQ` and `SF-30VHQ` product pages: neither contains a
+   supersession statement toward `SF-30FQ`. This is meaningful rather than merely an absence
+   of data: the same retailer explicitly uses "Superseded from 2563A" language elsewhere (the
+   `SF-35VHFQ` `2587A` listing) when a real supersession exists, so its absence on both
+   `SF-30FQ`'s stated successors-in-name is evidence the manufacturer has not declared one.
+   This does not become an edge or attribute — it's the basis for continuing to *not* build a
+   `supersedes` edge, closing issue #26 with a "no" rather than leaving it open as "unknown."
 
-- No `supersedes` edge from `SF-30FQ` to the current-catalog `SF-30VHFQ`. The catalog shows
-  `SF-30FQ` is absent from the current lineup and still serviceable via `2608A`, but does not
-  state a direct replacement relationship the way the Coleman-Mach catalog does for
-  thermostats (e.g. obs #94's explicit `REPLACES` table). Tracked as issue #26.
+These eight observations are sufficient to create three components, populate cutout/clearance
+attributes on both endpoints, one `fits` edge with two independent corroborating sources, and
+a second identifier on the core-module component.
+
+### Explicitly not asserted
+
+- No `supersedes` edge from `SF-30FQ` to `SF-30VHFQ`/`SF-30VHQ` — see observation 8 above
+  (issue #26, closed as resolved "no").
 - No interpretation of the cooktop manual's Figure 2 dimension letters (A–E) beyond recording
   their values — the diagram itself isn't extracted, so which letter is width vs. depth vs.
   offset isn't asserted here.
@@ -150,6 +168,10 @@ opens the "appliances" block (`600s`), the first part type assigned there.
   part_type_id: 417
   identifiers:
     - {ns: suburban, value: "2608A", visibility: catalog}
+    - {ns: suburban, value: "RP-30FQ", visibility: retailer_page}   # obs 7, corroborating
+                                                                      # model designation,
+                                                                      # not the catalog's own
+                                                                      # order-number identifier
   attributes:
     description: "Furnace Core Replacement Module"
   edges:
@@ -213,8 +235,10 @@ no dedicated detail table:
 - `from_component_id`: `2608A`, `to_component_id`: `SF-30FQ`
 - group key `suburban_furnace_core_module`
 - status `candidate`
-- evidence: `attribute_prior` Beta(1,1), then `manufacturer_assertion` effect alpha `+2`
-  beta `+0`, sourced to the catalog observation
+- evidence: `attribute_prior` Beta(1,1); `manufacturer_assertion` effect alpha `+2` beta `+0`
+  sourced to the catalog observation; `retailer_cross_reference` effect alpha `+1` beta `+0`
+  sourced to the `unitedrvparts.com` observation (obs 7) — same three-event shape as the
+  Coleman endpoint design's supersession edges (§4 of that design)
 
 ## 6. Resolver boundaries
 
