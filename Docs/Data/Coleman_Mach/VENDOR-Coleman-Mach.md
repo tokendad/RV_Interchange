@@ -550,11 +550,57 @@ here).
 `7330E336 -> 7330F3361 -> 9420-352` — not a contradiction; `7330F3361` was itself current
 when it superseded `7330E336`; it has since itself been superseded.
 
-**Not built, logged for future work:** `9420A382` (a single digital SKU that REPLACES three
-separate old-part groups — one of which, `7330F3361`, overlaps this session's edge, but the
-other two groups, `9630A335x`/`9430A337x`, are heat-pump-line parts not in the fixture at
-all) and `9420-391` (WiFi, a new product with no REPLACES entry). Both are logged in obs
-#93's `other_replacements_noted_not_built` field. See §8.
+**Not built this pass:** `9420-391` (WiFi, a new product with no REPLACES entry — nothing
+to build a supersession edge from). `9420A382` was scoped and built separately — see §6.9.
+
+### 6.9 Built 2026-08-04: `9420A382`, scoped to its one independently-evidenced edge
+
+Decision on the `9420A382` item logged in §6.8/obs #93: **build the component, build only
+the edge its evidence actually supports.**
+
+The same catalog page's `9420A382` row lists three separate `REPLACES` groups under one
+SKU — captured as a new observation, obs #94 (same page, same visual-read method as obs
+#93), since obs #93 itself only logged this narratively (`other_replacements_noted_not_built`,
+deliberately IGNORED_KEYS-classified, not usable as build evidence):
+
+| REPLACES group | Description |
+|---|---|
+| `7330F3361`, `9430-3392`, `9430A3392` | Digital, Cool Only, 12VDC - Black |
+| `9630A3351`, `9630A3361` | Digital, Heat Pump, 12VDC - Black, used with Single Stage Heat Pump Control Package & Gas Furnace |
+| `9630A3371`, `9430A3372` | Digital, Heat/Cool, 12VDC - Black |
+
+One SKU replacing three functionally distinct old-part groups is evidence that `9420A382`
+is itself one multi-configuration digital thermostat (parallel to the already-catalogued
+`9420A330` multizone unit, "fully programmable for cooling and heating... third party
+heater"), not three different products sharing a number — so `9420A382` is built as a
+**single** component with three `configurable_mode` attributes (`cool_only`, `heat_pump`,
+`heat_cool`), rather than asserting one `function` value that would misrepresent the
+evidence.
+
+**Edge scoping:** of the six old part numbers named across the three groups, only
+`7330F3361` already exists as an independently-evidenced component in this fixture. The
+other five (`9430-3392`, `9430A3392`, `9630A3351`, `9630A3361`, `9630A3371`, `9430A3372`)
+appear **only** as bare `REPLACES` targets on this one catalog row — no dedicated product
+page, spec table, or description anywhere else in this fixture's evidence. That is the same
+evidentiary gap that already keeps `7330D337`/`8330-339(2)` unbuilt (§6.2) despite also
+being named in a `REPLACES`-style chart (obs #59). Consistent with that precedent: **only
+the `7330F3361 -> 9420A382` edge is built.** The other five part numbers are logged in obs
+#94's structured `sku_relationship.groups` field (real, citable evidence if a future session
+finds independent confirmation for any of them) but are not identifiers, components, or
+graph edges yet.
+
+This makes `9420A382` `7330F3361`'s **second** coexisting replacement path, alongside the
+analog `7330F3361 -> 9420-352` edge (§6.8) — the same "two coexisting, non-contradictory
+paths" framing §6.3 already established for the original `7330G3351`/`7330F3852` pair. The
+one difference from §6.3: there, the digital alternatives (`8330-3362`/`8330-3862`) never
+cleared the manufacturer-primary-component bar (§6.6 decided against building them at all),
+so only the analog path got a real graph edge. Here, `9420A382` clears that bar directly —
+this catalog names it, with real attributes — so **both** paths get real edges. Not an
+inconsistency with §6.3; the evidentiary bar was simply met this time.
+
+Built via `coleman_9420a382_component_and_supersession()`, resolver version
+`coleman_endpoint_v5`. Confidence 0.75/n=4 (manufacturer-primary single-source, same tier
+as the `9420-352` edge). `edge_resolver.py --check-fixture`: 0 mismatches.
 
 ## 7. Sources
 
@@ -643,6 +689,8 @@ all) and `9420-391` (WiFi, a new product with no REPLACES entry). Both are logge
 - obs #93 — Airxcel's own current (May 2025) dealer catalog, `CM-4040.02_2025 AMCAT.pdf`
   p.8, "NEW SINGLE STAGE THERMOSTATS" table naming `9420-352` as the replacement for
   `7330F3361` (see §6.8)
+- obs #94 — same catalog page, the `9420A382` `REPLACES` rows (three groups: cool-only,
+  heat pump, heat/cool) (see §6.9)
 
 ## 8. Resolver status and next milestone
 
@@ -700,14 +748,14 @@ Ready-to-do next work, in rough priority order:
    `7330F3361 -> 9420-352` `supersedes` edge, from Airxcel's own current (May 2025) dealer
    catalog. This revised `7330F3361`'s status from "current/unsuperseded" (§6.1) to
    superseded — an honest evidence-driven revision.
-5. **Not yet built, logged in obs #93:** `9420A382` (digital, replaces `7330F3361` +
-   `9430-3392`/`9430A3392` in one group, plus two more old-part groups —
-   `9630A3351`/`9630A3361` and `9630A3371`/`9430A3372` — that are heat-pump-line parts not
-   otherwise in this fixture at all) and `9420-391` (WiFi, new product, no replacement
-   target). Building `9420A382` cleanly would need either scoping it to just the
-   `7330F3361`-overlapping REPLACES group (leaving the heat-pump groups unbuilt, mirroring
-   how this vendor already treats partial evidence) or a decision to bring in the
-   heat-pump-line components first — not decided yet.
+5. **Built 2026-08-04 (§6.9, obs #94):** `9420A382` as an exact endpoint component
+   (`coleman_9420a382_component_and_supersession()`, resolver version `coleman_endpoint_v5`)
+   plus the `7330F3361 -> 9420A382` `supersedes` edge — scoped to just the one
+   independently-evidenced REPLACES group. The other two groups' old part numbers
+   (`9630A3351`/`9630A3361`, `9630A3371`/`9430A3372`, heat-pump-line parts not otherwise in
+   this fixture) remain unbuilt, same evidentiary treatment as `7330D337`/`8330-339(2)`.
+   `9420-391` (WiFi, new product, no replacement target) remains unbuilt — nothing to anchor
+   a supersession edge to.
 6. The `2026 Attwood Catalog.pdf` the user also supplied this session is a **marine**
    products catalog (Atwood/marine items overlapping RV items only incidentally) — out of
    scope for this vendor, and out of scope for RV Interchange generally per the Atwood

@@ -853,6 +853,121 @@ def coleman_9420_352_component_and_supersession(conn, catalog_row, component_id,
     return component, identifiers, attributes, edge.id
 
 
+COLEMAN_9420A382_RESOLVER_VERSION = "coleman_endpoint_v5"
+
+
+def coleman_9420a382_component_and_supersession(conn, catalog_row, component_id,
+                                                 from_component_id):
+    """
+    Build 9420A382 as an exact endpoint component and the one supersession
+    edge this fixture can evidence into it: 7330F3361 -> 9420A382 (obs #94,
+    same 2025 Airxcel catalog page as obs #93/9420-352). The catalog's own
+    REPLACES entry for 9420A382 spans three separate old-part groups
+    (cool-only, heat-pump, heat/cool control-package lines) -- one SKU used
+    as the replacement across all three, evidently one multi-configuration
+    digital thermostat rather than three products, so all three
+    "configurable_mode" facts are recorded on the single component. Only the
+    cool-only group's 7330F3361 already exists as an independently-evidenced
+    component in this fixture; the other five old part numbers (9430-3392,
+    9430A3392, 9630A3351, 9630A3361, 9630A3371, 9430A3372) appear ONLY as bare
+    REPLACES targets on this one catalog row, with no independent product
+    description anywhere in this fixture's evidence -- the same evidentiary
+    gap that already keeps 7330D337/8330-339(2) unbuilt (VENDOR-Coleman-Mach.md
+    sec 6.2) -- so no edge is built from any of them. This is a second,
+    coexisting replacement path alongside the already-built analog
+    7330F3361 -> 9420-352 edge: unlike the 8330-3362/8330-3862 digital
+    alternatives sec 6.3 deliberately left ungraphed (because THOSE never
+    cleared the manufacturer-primary-component bar), 9420A382 clears it right
+    here, so both paths get real edges. See VENDOR-Coleman-Mach.md sec 6.9.
+    """
+    _validate_observation_source(
+        catalog_row, 94, "manufacturer_pdf", 1, "2025 catalog (9420A382)")
+    catalog = _normalized_attributes(catalog_row)
+    models = catalog.get("model_spec_table")
+    if not isinstance(models, dict) or "9420A382" not in models:
+        raise ValueError(f"obs #94 catalog is missing 9420A382: {models}")
+    spec = models["9420A382"]
+    expected_spec = {"interface_type": "digital", "color": "black", "voltage": "12VDC"}
+    if spec != expected_spec:
+        raise ValueError(f"unexpected 9420A382 spec: {spec}")
+
+    relation = catalog.get("sku_relationship")
+    if not isinstance(relation, dict) or \
+            relation.get("type") != "manufacturer_supersedes_multi":
+        raise ValueError(f"unexpected 9420A382 relation: {relation}")
+    groups = relation.get("groups")
+    expected_groups = [
+        {"from": ["7330F3361", "9430-3392", "9430A3392"], "to": "9420A382",
+         "description": "Digital, Cool Only, 12VDC - Black"},
+        {"from": ["9630A3351", "9630A3361"], "to": "9420A382",
+         "description": "Digital, Heat Pump, 12VDC - Black, Used with Single "
+                         "Stage Heat Pump Control Package & Gas Furnace"},
+        {"from": ["9630A3371", "9430A3372"], "to": "9420A382",
+         "description": "Digital, Heat/Cool, 12VDC - Black"},
+    ]
+    if groups != expected_groups:
+        raise ValueError(f"unexpected 9420A382 REPLACES groups: {groups}")
+    if "7330F3361" not in groups[0]["from"]:
+        raise ValueError("9420A382 cool-only group must include 7330F3361")
+
+    def text_attr(name, value):
+        return ComponentAttribute(
+            component_id, name, "manufacturer_pdf", catalog_row["id"], value_text=value,
+            resolver_version=COLEMAN_9420A382_RESOLVER_VERSION)
+
+    def mode_attr(mode):
+        return ComponentAttribute(
+            component_id, "configurable_mode", "manufacturer_pdf", catalog_row["id"],
+            value_boolean=True, qualifier=mode,
+            resolver_version=COLEMAN_9420A382_RESOLVER_VERSION)
+
+    component = Component(component_id, THERMOSTAT_PART_TYPE, None)
+    identifiers = [Identifier(component_id, "coleman", "9420A382", None)]
+    attributes = [
+        text_attr("interface_type", "digital"),
+        text_attr("color", "black"),
+        text_attr("voltage", "12VDC"),
+        mode_attr("cool_only"),
+        mode_attr("heat_pump"),
+        mode_attr("heat_cool"),
+    ]
+    insert_component(conn, component)
+    for identifier in identifiers:
+        insert_identifier(conn, identifier)
+    for attribute in attributes:
+        insert_component_attribute(conn, attribute)
+
+    edge = Edge(
+        type="supersedes",
+        from_component_id=from_component_id,
+        to_component_id=component_id,
+        group_key="coleman_cool_only_digital_upgrade",
+        status="candidate",
+        resolver_version=COLEMAN_9420A382_RESOLVER_VERSION,
+        notes="Coleman-Mach's current (2025) dealer catalog names 9420A382 as "
+              "a digital replacement option for 7330F3361 -- one of three "
+              "REPLACES groups on this catalog row; the other two groups' old "
+              "part numbers have no independent evidence in this fixture and "
+              "are not built (VENDOR-Coleman-Mach.md sec 6.9).",
+    )
+    insert_edge(conn, edge)
+    insert_supersession_detail(conn, EdgeSupersessionDetail(
+        edge_id=edge.id,
+        note="Coleman-Mach's 2025 dealer catalog (CM-4040.02) names 9420A382 as "
+             "a digital replacement for 7330F3361 -- a second, coexisting "
+             "replacement path alongside the analog 7330F3361 -> 9420-352 edge "
+             "(sec 6.3's 'two coexisting paths' pattern)."))
+    for event_type, alpha, beta, source_id in (
+        ("attribute_prior", 1.0, 1.0, None),
+        ("manufacturer_assertion", 2.0, 0.0, catalog_row["id"]),
+    ):
+        insert_evidence(conn, RelationshipEvidence(
+            edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+            effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+
+    return component, identifiers, attributes, edge.id
+
+
 def atwood_endpoint_components(catalog_row, component_ids):
     """
     Build the 19 RV Pilot/Electronic-Ignition Atwood water heater models named
@@ -1666,6 +1781,51 @@ def self_test(verbose=False):
                 init_db(":memory:"), invalid, "c_placeholder_tstat_9420_352_bad",
                 second_wave_ids["7330F3361"])
             failures.append("invalid 9420-352 evidence was accepted")
+        except (ValueError, sqlite3.IntegrityError):
+            pass
+
+    obs94 = load_observation(obs_db, 94)  # 2025 Airxcel dealer catalog, 9420A382
+    store_conn_9420a382 = init_db(":memory:")
+    insert_component(store_conn_9420a382, Component(
+        second_wave_ids["7330F3361"], THERMOSTAT_PART_TYPE, None))
+    component_9420a382, identifiers_9420a382, attrs_9420a382, edge_id_9420a382 = \
+        coleman_9420a382_component_and_supersession(
+            store_conn_9420a382, obs94, "c_placeholder_tstat_9420a382",
+            second_wave_ids["7330F3361"])
+    if component_9420a382.part_type_id != 415 or \
+            component_9420a382.interchange_code is not None:
+        failures.append(f"invalid 9420A382 component: {component_9420a382}")
+    if [(i.ns, i.value, i.visibility) for i in identifiers_9420a382] != [
+            ("coleman", "9420A382", None)]:
+        failures.append(f"invalid 9420A382 identifiers: {identifiers_9420a382}")
+    attrs_9420a382_scalar = {
+        a.name: a.value_text for a in attrs_9420a382 if a.value_text is not None}
+    if attrs_9420a382_scalar != {
+            "interface_type": "digital", "color": "black", "voltage": "12VDC"}:
+        failures.append(f"9420A382 scalar attributes mismatch: {attrs_9420a382_scalar}")
+    attrs_9420a382_modes = {
+        a.qualifier for a in attrs_9420a382 if a.name == "configurable_mode"}
+    if attrs_9420a382_modes != {"cool_only", "heat_pump", "heat_cool"}:
+        failures.append(f"9420A382 configurable_mode mismatch: {attrs_9420a382_modes}")
+    confidence_9420a382 = compute_confidence(
+        get_evidence_for_edge(store_conn_9420a382, edge_id_9420a382))
+    if (confidence_9420a382["value"], confidence_9420a382["certainty"]) != (0.75, 4.0):
+        failures.append(f"9420A382 supersession confidence mismatch: {confidence_9420a382}")
+
+    invalid_9420a382_inputs = (
+        dict(obs94, id=400),
+        changed_row(obs94, lambda e: e["sku_relationship"]["groups"][0].__setitem__(
+            "from", ["9430-3392", "9430A3392"])),
+        changed_row(obs94, lambda e: e["models"]["9420A382"].__setitem__(
+            "interface_type", "analog")),
+        changed_row(obs94, lambda e: e["sku_relationship"]["groups"].pop()),
+    )
+    for invalid in invalid_9420a382_inputs:
+        try:
+            coleman_9420a382_component_and_supersession(
+                init_db(":memory:"), invalid, "c_placeholder_tstat_9420a382_bad",
+                second_wave_ids["7330F3361"])
+            failures.append("invalid 9420A382 evidence was accepted")
         except (ValueError, sqlite3.IntegrityError):
             pass
 
@@ -2881,6 +3041,83 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
                     "certainty": float(expected_9420_352_conf["certainty"])}:
                 print(f"MISMATCH 9420-352 supersession confidence: "
                       f"resolved={resolved_9420_352_conf} fixture={expected_9420_352_conf}")
+                mismatches += 1
+
+    obs94 = load_observation(obs_db_path, 94)
+    fixture_9420a382 = next(
+        (c for c in components_doc
+         if c.get("component_id") == "c_placeholder_tstat_9420a382"), None)
+    if fixture_9420a382 is None:
+        print("MISMATCH ground-truth.yaml is missing c_placeholder_tstat_9420a382")
+        mismatches += 1
+    else:
+        component_9420a382, identifiers_9420a382, attrs_9420a382, edge_id_9420a382 = \
+            coleman_9420a382_component_and_supersession(
+                conn, obs94, "c_placeholder_tstat_9420a382", second_wave_ids["7330F3361"])
+
+        resolved_9420a382 = conn.execute(
+            "SELECT * FROM components WHERE component_id = ?",
+            ("c_placeholder_tstat_9420a382",)).fetchone()
+        if (resolved_9420a382["part_type_id"], resolved_9420a382["interchange_code"]) != (
+                fixture_9420a382["part_type_id"], fixture_9420a382["interchange_code"]):
+            print(f"MISMATCH 9420A382 component: resolved={dict(resolved_9420a382)} "
+                  f"fixture={fixture_9420a382}")
+            mismatches += 1
+
+        resolved_9420a382_ids = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                ("c_placeholder_tstat_9420a382",)).fetchall()
+        }
+        expected_9420a382_ids = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_9420a382["identifiers"]
+        }
+        if resolved_9420a382_ids != expected_9420a382_ids:
+            print(f"MISMATCH 9420A382 identifiers: resolved={resolved_9420a382_ids} "
+                  f"fixture={expected_9420a382_ids}")
+            mismatches += 1
+
+        resolved_9420a382_attrs = get_component_attributes(conn, "c_placeholder_tstat_9420a382")
+        resolved_9420a382_scalar = {
+            a.name: a.value_text for a in resolved_9420a382_attrs if a.value_text is not None}
+        resolved_9420a382_modes = {
+            a.qualifier for a in resolved_9420a382_attrs if a.name == "configurable_mode"}
+        expected_9420a382_scalar = {
+            name: definition["value"]
+            for name, definition in fixture_9420a382["attributes"].items()
+            if name != "configurable_modes"
+        }
+        expected_9420a382_modes = set(
+            fixture_9420a382["attributes"]["configurable_modes"]["value"])
+        if resolved_9420a382_scalar != expected_9420a382_scalar:
+            print(f"MISMATCH 9420A382 scalar attributes: resolved={resolved_9420a382_scalar} "
+                  f"fixture={expected_9420a382_scalar}")
+            mismatches += 1
+        if resolved_9420a382_modes != expected_9420a382_modes:
+            print(f"MISMATCH 9420A382 configurable modes: resolved={resolved_9420a382_modes} "
+                  f"fixture={expected_9420a382_modes}")
+            mismatches += 1
+
+        fixture_9420a382_edge = next(
+            (e for e in edges_doc if e.get("type") == "supersedes"
+             and e.get("from") == second_wave_ids["7330F3361"]
+             and e.get("to") == "c_placeholder_tstat_9420a382"), None)
+        if fixture_9420a382_edge is None:
+            print("MISMATCH ground-truth.yaml has no 7330F3361 -> 9420A382 supersedes edge")
+            mismatches += 1
+        else:
+            resolved_9420a382_conf = compute_confidence(
+                get_evidence_for_edge(conn, edge_id_9420a382))
+            expected_9420a382_conf = fixture_9420a382_edge["confidence"]
+            if resolved_9420a382_conf != {
+                    "alpha": float(expected_9420a382_conf["alpha"]),
+                    "beta": float(expected_9420a382_conf["beta"]),
+                    "value": float(expected_9420a382_conf["value"]),
+                    "certainty": float(expected_9420a382_conf["certainty"])}:
+                print(f"MISMATCH 9420A382 supersession confidence: "
+                      f"resolved={resolved_9420a382_conf} fixture={expected_9420a382_conf}")
                 mismatches += 1
 
     print(f"Coleman endpoints: {mismatches - coleman_mismatches_before} mismatch(es)")

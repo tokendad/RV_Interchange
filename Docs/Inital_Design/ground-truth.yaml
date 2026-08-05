@@ -422,6 +422,23 @@ components:
       interface_type: {value: analog, provenance: manufacturer_pdf, source_observation_id: 93}
       voltage:        {value: 12VDC, provenance: manufacturer_pdf, source_observation_id: 93}
 
+  # obs #94: same 2025 Airxcel catalog page, the 9420A382 REPLACES rows. One
+  # SKU used as the replacement across three separate old-part groups (only
+  # the cool-only group's 7330F3361 is independently evidenced in this
+  # fixture -- the other five old numbers are bare REPLACES-target mentions,
+  # same evidentiary gap that keeps 7330D337/8330-339(2) unbuilt). See
+  # VENDOR-Coleman-Mach.md sec 6.9.
+  - component_id: c_placeholder_tstat_9420a382
+    part_type_id: 415
+    interchange_code: null
+    identifiers:
+      - {ns: coleman, value: "9420A382", visibility: null}
+    attributes:
+      color:              {value: black, provenance: manufacturer_pdf, source_observation_id: 94}
+      interface_type:     {value: digital, provenance: manufacturer_pdf, source_observation_id: 94}
+      voltage:            {value: 12VDC, provenance: manufacturer_pdf, source_observation_id: 94}
+      configurable_modes: {value: [cool_only, heat_pump, heat_cool], provenance: manufacturer_pdf, source_observation_id: 94}
+
   # Third wave: the "Electronic"-generation family's D->E transition
   # instantiation (obs #74 rvcomfort.com naming + obs #58 wildcard family's
   # functional split; see VENDOR-Coleman-Mach.md sec 6.7). Unlike the first
@@ -848,6 +865,22 @@ edges:
     evidence:
       - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
       - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 93}
+
+  # Second, coexisting replacement path for 7330F3361 (same "two coexisting
+  # paths" pattern as sec 6.3, but unlike the ungraphed 8330-3362/8330-3862
+  # digital alternatives there, 9420A382 clears the manufacturer-primary
+  # component bar right here, so both paths get real edges).
+  - type: supersedes
+    from: c_placeholder_tstat_7330f3361
+    to: c_placeholder_tstat_9420a382
+    group: coleman_cool_only_digital_upgrade
+    status: candidate
+    detail:
+      note: "Coleman-Mach's 2025 dealer catalog (CM-4040.02) names 9420A382 as a digital replacement for 7330F3361 -- a second, coexisting replacement path alongside the analog 7330F3361 -> 9420-352 edge."
+    confidence: {alpha: 3, beta: 1, value: 0.75, certainty: 4}
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 94}
 
   # THE CANONICAL EDGE TEST. Asymmetric substitution, confirmed real.
   - type: substitutes
