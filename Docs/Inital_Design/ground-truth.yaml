@@ -94,6 +94,45 @@ part_types:
     tags: [plumbing, lp_gas, electrical, appliance, repair_part]
     pcdb_term_id: null
 
+  - id: 416
+    label: furnace
+    compat_mode: attribute
+    critical_attributes: [btu_rating, ignition_type, clearance_front_in, clearance_left_in,
+                           clearance_right_in, clearance_top_in, clearance_bottom_in,
+                           clearance_back_in]
+    secondary_attributes: [cabinet_cutout_h_in, cabinet_cutout_w_in]
+    tags: [climate, lp_gas, appliance]
+    pcdb_term_id: null
+    # cabinet_cutout_h/w is SECONDARY: the installation manual states it once for
+    # the whole SF-FQ family tied to one installation method (against the outer
+    # skin), not confirmed SF-30FQ-specific the way the clearance table is. See
+    # docs/superpowers/specs/2026-08-05-suburban-furnace-cooktop-design.md sec 3.
+    # ignition_type is left unpopulated on SF-30FQ (see that design's sec 4) --
+    # the current VH-series is documented as direct-spark, the legacy pre-VH
+    # SF-30FQ is not independently confirmed to share it.
+
+  - id: 417
+    label: furnace repair/service part
+    compat_mode: fits_bracket
+    critical_attributes: [description]
+    tags: [climate, lp_gas, appliance, repair_part]
+    pcdb_term_id: null
+    # Mirrors 413 (water heater repair/service part) for the furnace host category.
+
+  - id: 601
+    label: cooktop/range
+    compat_mode: attribute
+    critical_attributes: [burner_count, btu_rating, cutout_a_in, cutout_b_in, cutout_c_in,
+                           cutout_d_in, cutout_e_in]
+    secondary_attributes: [oven_btu_rating, manifold_pressure_wc, clearance_below_counter_in,
+                            clearance_right_sidewall_in, clearance_left_sidewall_in,
+                            clearance_backwall_in, clearance_vertical_in]
+    tags: [appliance, lp_gas]
+    pcdb_term_id: null
+    # cutout_a..e_in are the manual's own Figure 2 dimension labels, recorded
+    # without further interpretation. First part type in the "appliances" (600s)
+    # block per ARCHITECTURE-Interchange_Core.md sec 6.
+
 ---
 
 components:
