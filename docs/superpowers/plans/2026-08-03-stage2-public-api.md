@@ -13,10 +13,9 @@ so the API is actually exercisable by hand instead of only via `curl`.
 Layer (`Docs/Tools/interchange_store.py` already fills this role per the API design doc —
 it isolates SQLite from the resolver logic; it just needs three new read functions). A
 FastAPI app (`api/main.py`) exposes two endpoints over that service layer. No auth, no
-Dealer API, no publication-workflow gate — everything currently committed to
-`components.db` is treated as the de facto "published" set, matching how the project has
-operated since Stage 1 (git commit + fixture verification has been the actual publication
-act to date). A static single-page test website (`web/`) calls the API over CORS from a
+Dealer API, no publication-workflow gate — the canonical rebuild command writes the
+published `components.db` snapshot, and the API reads that on-disk store as the de facto
+"published" set. A static single-page test website (`web/`) calls the API over CORS from a
 second container; both are wired into the shared `/data/DockerConfigs/docker-compose.yaml`
 stack alongside the rest of the homelab, following that file's existing
 build-context/container-naming/healthcheck conventions (see the `civicdenovo-*` services).
@@ -910,8 +909,9 @@ git commit -m "Add request logging, CORS, and unhandled-error handling to the AP
 The image bakes in `api/` (application code, rebuilt on change) but does **not** bake in
 `Docs/Tools` — that directory is bind-mounted at runtime (Task 11's compose entry) because
 it is the live, host-edited data/tooling directory (parser, resolver, `components.db`),
-not static app code. Rebuilding the image every time an observation gets resolved would be
-backwards.
+not static app code. The canonical rebuild command updates `components.db` there
+atomically after validation, so rebuilding the image every time an observation gets
+resolved would be backwards.
 
 - [ ] **Step 1: Add `.dockerignore` at the repo root**
 

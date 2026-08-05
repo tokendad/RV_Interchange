@@ -20,8 +20,10 @@ components (`coleman_third_wave_endpoint_components()`, resolver version
 (`resolve_coleman_third_wave_supersession()`), closing §8 items 1 and 3. No manufacturer
 reply on color/date detail had arrived; the user asked to proceed with the build using the
 evidence already in hand rather than continue waiting. `edge_resolver.py --check-fixture`
-confirms 0 mismatches; `--build` has repopulated `components.db`. See §6.7/§8 below for the
-updated evidence-and-decision record.
+confirms 0 mismatches; the canonical rebuild command
+(`python3 Docs/Tools/edge_resolver.py --build Docs/Inital_Design/ground-truth.yaml Docs/Tools/components.db`)
+has repopulated `components.db`. See §6.7/§8 below for the updated evidence-and-decision
+record.
 
 **Updated:** 2026-08-02 — `7330E335`/`7330E385`/`7330E336` confirmed as real,
 manufacturer-catalogued RV Products SKUs via `rvcomfort.com` (RVP/Airxcel's own historical
