@@ -11,6 +11,7 @@ import json
 import os
 import sqlite3
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -3705,17 +3706,35 @@ def main():
         obs_db = str(Path(__file__).parent / "observations.db")
         sys.exit(check_fixture(fixture_path, obs_db))
     if "--build" in sys.argv:
-        # Rebuilds the persistent components/edges store from observations.db,
-        # per ARCHITECTURE-Interchange_Core.md §9: "Resolution must be
-        # re-runnable, not a migration each time." Always starts from a clean
-        # file so re-running never hits stale primary-key conflicts.
         idx = sys.argv.index("--build")
         fixture_path = sys.argv[idx + 1]
         db_path = sys.argv[idx + 2]
-        obs_db = str(Path(__file__).parent / "observations.db")
-        if os.path.exists(db_path):
-            os.remove(db_path)
-        sys.exit(check_fixture(fixture_path, obs_db, db_path=db_path))
+        sys.exit(build_database(fixture_path, db_path))
+
+
+def build_database(fixture_path, db_path):
+    """
+    Rebuild the persistent components/edges store into a temporary database
+    first, then atomically replace the published file only after validation
+    succeeds. This keeps the last known-good database intact if validation
+    fails or raises.
+    """
+    db_path = Path(db_path)
+    obs_db = str(Path(__file__).parent / "observations.db")
+    temp_fd, temp_name = tempfile.mkstemp(
+        prefix=f"{db_path.name}.tmp.",
+        dir=str(db_path.parent),
+    )
+    os.close(temp_fd)
+    temp_db_path = Path(temp_name)
+    try:
+        result = check_fixture(fixture_path, obs_db, db_path=str(temp_db_path))
+        if result == 0:
+            os.replace(temp_db_path, db_path)
+        return result
+    finally:
+        if temp_db_path.exists():
+            temp_db_path.unlink()
 
 
 if __name__ == "__main__":
