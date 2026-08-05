@@ -50,6 +50,9 @@ ATWOOD_ENDPOINT_MODELS = (
     "GC10A-4E", "GCH10A-4E", "G16-EXT", "GE16-EXT", "GEH16-EXT",
 )
 ATWOOD_ENDPOINT_RESOLVER_VERSION = "atwood_endpoint_v1"
+ATWOOD_PART_TYPE = 413
+ATWOOD_PILOT_PARTS_RESOLVER_VERSION = "atwood_fits_v1"
+ATWOOD_PILOT_PARTS_TARGET_MODELS = ("G6A-7", "G6A-7P", "GC6AA-8", "GC10A-2", "G10-2")
 COLEMAN_VISUAL_MATCH_CANDIDATE = {
     "candidate": {"ns": "coleman", "value": "8330-3362"},
     "comparison_source_observation_id": 45,
@@ -1072,6 +1075,80 @@ def atwood_endpoint_components(catalog_row, component_ids):
     return results
 
 
+def atwood_repair_parts_and_fits(conn, catalog_row, host_component_ids):
+    """
+    Build Atwood repair/service-part components and "fits" edges from a
+    manufacturer service-manual "Replacement Part Reference" cross-reference
+    table -- a genuinely different relationship shape than supersedes
+    (old model -> new model) or substitutes (interchangeable end products):
+    one generic repair part (e.g. a thermostat valve or burner) fits MANY
+    distinct end-product models. obs #95, the January 2007 edition's Pilot
+    table (Docs/Data/Atwood/Atwood-Water-Heater-Service-Manual.pdf), scoped
+    to the five Pilot models already built as exact endpoint components (see
+    VENDOR-Atwood.md sec 7) -- not the full ~40-row x 12-column table.
+
+    "fits" is a new edge type value (edges.type is free-text, no schema
+    migration needed, same as how "controls" was added). Validation here is
+    STRUCTURAL (required fields present, applies_to is a non-empty subset of
+    the five known host models) rather than per-row hardcoded expected
+    values -- deliberately, given the ~40-row scale; see the "bulk catalog
+    ingestion" trade-off memo this mirrors, scoped tight to one table
+    instead of a general-purpose ingestion pipeline.
+    """
+    _validate_observation_source(catalog_row, 95, "manufacturer_pdf", 1, "repair parts")
+    catalog = _normalized_attributes(catalog_row)
+    parts = catalog.get("repair_part_fitment_table")
+    if not isinstance(parts, dict) or not parts:
+        raise ValueError(f"obs #95 catalog has no repair_part_fitment_table: {parts}")
+    if set(host_component_ids) != set(ATWOOD_PILOT_PARTS_TARGET_MODELS):
+        raise ValueError(f"unexpected Atwood repair-part host ID map: {host_component_ids}")
+
+    results = []
+    for part_number, spec in parts.items():
+        if not isinstance(spec, dict) or "description" not in spec or "applies_to" not in spec:
+            raise ValueError(f"Atwood repair part {part_number} missing required fields: {spec}")
+        applies_to = spec["applies_to"]
+        if not isinstance(applies_to, list) or not applies_to or \
+                not set(applies_to).issubset(ATWOOD_PILOT_PARTS_TARGET_MODELS):
+            raise ValueError(f"Atwood repair part {part_number} has invalid applies_to: {applies_to}")
+
+        component_id = f"c_placeholder_wh_atwood_part_{part_number}"
+        component = Component(component_id, ATWOOD_PART_TYPE, None)
+        identifiers = [Identifier(component_id, "atwood", part_number, None)]
+        attributes = [ComponentAttribute(
+            component_id, "description", "manufacturer_pdf", catalog_row["id"],
+            value_text=spec["description"], resolver_version=ATWOOD_PILOT_PARTS_RESOLVER_VERSION)]
+        insert_component(conn, component)
+        for identifier in identifiers:
+            insert_identifier(conn, identifier)
+        for attribute in attributes:
+            insert_component_attribute(conn, attribute)
+
+        edge_ids = []
+        for model in applies_to:
+            edge = Edge(
+                type="fits",
+                from_component_id=component_id,
+                to_component_id=host_component_ids[model],
+                group_key="atwood_pilot_repair_part",
+                status="candidate",
+                resolver_version=ATWOOD_PILOT_PARTS_RESOLVER_VERSION,
+                notes=f"Atwood's January 2007 service manual Replacement Part Reference "
+                      f"table names {part_number} as fitting {model}.",
+            )
+            insert_edge(conn, edge)
+            for event_type, alpha, beta, source_id in (
+                ("attribute_prior", 1.0, 1.0, None),
+                ("manufacturer_assertion", 2.0, 0.0, catalog_row["id"]),
+            ):
+                insert_evidence(conn, RelationshipEvidence(
+                    edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+                    effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+            edge_ids.append(edge.id)
+        results.append((component, identifiers, attributes, edge_ids))
+    return results
+
+
 def identifier_candidate_from_observation(obs_row):
     attrs = _normalized_attributes(obs_row)
     relation = attrs.get("sku_relationship")
@@ -1881,6 +1958,42 @@ def self_test(verbose=False):
             atwood_endpoint_components(invalid, atwood_endpoint_ids)
             failures.append("invalid Atwood endpoint evidence was accepted")
         except ValueError:
+            pass
+
+    obs95 = load_observation(obs_db, 95)  # Atwood Pilot repair-parts cross-reference
+    atwood_parts_host_ids = {
+        model: atwood_endpoint_ids[model] for model in ATWOOD_PILOT_PARTS_TARGET_MODELS}
+    store_conn_atwood_parts = init_db(":memory:")
+    for component, identifiers, attrs in atwood_endpoints:
+        if identifiers[0].value in ATWOOD_PILOT_PARTS_TARGET_MODELS:
+            insert_component(store_conn_atwood_parts, component)
+            for identifier in identifiers:
+                insert_identifier(store_conn_atwood_parts, identifier)
+    atwood_parts_results = atwood_repair_parts_and_fits(
+        store_conn_atwood_parts, obs95, atwood_parts_host_ids)
+    if len(atwood_parts_results) != 40:
+        failures.append(f"expected 40 Atwood repair parts, got {len(atwood_parts_results)}")
+    total_fits_edges = sum(len(edge_ids) for _, _, _, edge_ids in atwood_parts_results)
+    if total_fits_edges != 119:
+        failures.append(f"expected 119 Atwood fits edges, got {total_fits_edges}")
+    for component, identifiers, attrs, edge_ids in atwood_parts_results:
+        if component.part_type_id != ATWOOD_PART_TYPE or component.interchange_code is not None:
+            failures.append(f"invalid Atwood repair-part component: {component}")
+        if identifiers[0].ns != "atwood":
+            failures.append(f"invalid Atwood repair-part identifier: {identifiers}")
+
+    invalid_atwood_parts_inputs = (
+        dict(obs95, id=400),
+        changed_row(obs95, lambda e: e["parts"]["92610"].__setitem__(
+            "applies_to", ["G6A-7", "NOT_A_REAL_MODEL"])),
+        changed_row(obs95, lambda e: e["parts"]["92610"].__delitem__("description")),
+        changed_row(obs95, lambda e: e.__setitem__("parts", {})),
+    )
+    for invalid in invalid_atwood_parts_inputs:
+        try:
+            atwood_repair_parts_and_fits(init_db(":memory:"), invalid, atwood_parts_host_ids)
+            failures.append("invalid Atwood repair-part evidence was accepted")
+        except (ValueError, KeyError, sqlite3.IntegrityError):
             pass
 
     invalid_inputs = (
@@ -3195,6 +3308,51 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
             print(f"MISMATCH Atwood endpoint attributes for {component_id}: "
                   f"resolved={resolved_attributes} fixture={expected_attributes}")
             mismatches += 1
+
+    atwood_parts_fixture = next(
+        (d["atwood_pilot_repair_parts_fixture"] for d in docs
+         if isinstance(d, dict) and "atwood_pilot_repair_parts_fixture" in d), None)
+    if atwood_parts_fixture is None:
+        print("MISMATCH ground-truth.yaml is missing atwood_pilot_repair_parts_fixture")
+        mismatches += 1
+    else:
+        obs95 = load_observation(obs_db_path, 95)
+        atwood_parts_host_ids = {
+            model: atwood_endpoint_ids[model] for model in ATWOOD_PILOT_PARTS_TARGET_MODELS}
+        atwood_parts_results = atwood_repair_parts_and_fits(conn, obs95, atwood_parts_host_ids)
+        if len(atwood_parts_results) != atwood_parts_fixture["total_parts"]:
+            print(f"MISMATCH Atwood repair-part count: resolved={len(atwood_parts_results)} "
+                  f"fixture={atwood_parts_fixture['total_parts']}")
+            mismatches += 1
+        total_fits_edges = sum(len(edge_ids) for _, _, _, edge_ids in atwood_parts_results)
+        if total_fits_edges != atwood_parts_fixture["total_fits_edges"]:
+            print(f"MISMATCH Atwood fits-edge count: resolved={total_fits_edges} "
+                  f"fixture={atwood_parts_fixture['total_fits_edges']}")
+            mismatches += 1
+
+        results_by_part = {identifiers[0].value: (component, identifiers, attrs, edge_ids)
+                            for component, identifiers, attrs, edge_ids in atwood_parts_results}
+        for spot_check in atwood_parts_fixture["spot_checks"]:
+            part = spot_check["part"]
+            if part not in results_by_part:
+                print(f"MISMATCH Atwood repair part {part} missing from resolver output")
+                mismatches += 1
+                continue
+            component, identifiers, attrs, edge_ids = results_by_part[part]
+            if attrs[0].value_text != spot_check["description"]:
+                print(f"MISMATCH Atwood repair part {part} description: "
+                      f"resolved={attrs[0].value_text} fixture={spot_check['description']}")
+                mismatches += 1
+            resolved_targets = {
+                row["to_component_id"] for row in conn.execute(
+                    "SELECT to_component_id FROM edges WHERE id IN ({})".format(
+                        ",".join("?" for _ in edge_ids)), edge_ids).fetchall()
+            }
+            expected_targets = {atwood_parts_host_ids[m] for m in spot_check["applies_to"]}
+            if resolved_targets != expected_targets:
+                print(f"MISMATCH Atwood repair part {part} fits targets: "
+                      f"resolved={resolved_targets} fixture={expected_targets}")
+                mismatches += 1
 
     print(f"Atwood endpoints: {mismatches - atwood_mismatches_before} mismatch(es)")
 

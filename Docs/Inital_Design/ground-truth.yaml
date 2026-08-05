@@ -82,6 +82,18 @@ part_types:
     tags: [electrical, plumbing, interior]
     pcdb_term_id: null
 
+  - id: 413
+    label: water heater repair/service part
+    compat_mode: fits_bracket
+    # Generic internal service parts (thermostat valves, burners, orifices,
+    # doors, gaskets...) that fit a BRACKET of many distinct water heater
+    # models -- a many-to-many "fits" relationship, not a single-model
+    # attribute set. See c_placeholder_wh_switch (412) for the earlier,
+    # single-encounter TODO this resolves on the second (larger) encounter.
+    critical_attributes: [description]
+    tags: [plumbing, lp_gas, electrical, appliance, repair_part]
+    pcdb_term_id: null
+
 ---
 
 components:
@@ -1169,3 +1181,28 @@ identifier_equivalence_candidates:
 #     anode rod, T&P valve, element, control board
 #
 # Empty tiers are a valid answer AND a demand signal. Log them.
+
+---
+
+# Atwood Pilot repair-parts cross-reference (obs #95, January 2007 edition's
+# Replacement Part Reference table, scoped to the 5 already-built Pilot
+# models -- see VENDOR-Atwood.md sec 7). "fits" is a new edge type (many
+# repair parts each fit many host models) -- part_type 413 above. Bulk
+# relationship (40 parts, 119 edges): validated structurally (total counts +
+# spot-checks) in edge_resolver.py's self_test/check_fixture, not itemized
+# component-by-component the way every other fixture entry in this file is --
+# see the resolver function's own docstring for why (the "bulk catalog
+# ingestion" trade-off, scoped tight to just this one table).
+atwood_pilot_repair_parts_fixture:
+  total_parts: 40
+  total_fits_edges: 119
+  spot_checks:
+    - part: "92610"
+      description: "Gas Line Grommet"
+      applies_to: [G6A-7, G6A-7P, GC6AA-8, GC10A-2, G10-2]
+    - part: "93914"
+      description: "Main Burner Orifice (10 Gal.)"
+      applies_to: [GC10A-2]
+    - part: "91591"
+      description: "Conversion to Pilot 6 gallon 110VAC"
+      applies_to: [G6A-7, G6A-7P]
