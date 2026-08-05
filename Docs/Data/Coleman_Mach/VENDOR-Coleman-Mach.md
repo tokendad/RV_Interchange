@@ -1,6 +1,19 @@
 # VENDOR — Coleman-Mach / RV Products / Airxcel
 
 **Status:** exact endpoint and supersession fixture complete; broader adapter research in progress
+**Updated:** 2026-08-04 — the user supplied Airxcel's own current (May 2025) dealer catalog
+(`CM-4040.02_2025 AMCAT.pdf`, `Docs/Data/Coleman_Mach/`), the highest-currency
+manufacturer-primary source found for this vendor yet. Its own "NEW SINGLE STAGE
+THERMOSTATS" THIS#/REPLACES/DESCRIPTION table (obs #93) directly names `9420-352` as the
+current replacement for `7330F3361` — revising that component's earlier
+"current/unsuperseded" framing from the second wave (§6.1) below, which was accurate only
+because no replacement had been found in evidence *at that time*. `9420-352` built as an
+exact endpoint component plus the `7330F3361 -> 9420-352` supersession edge
+(`coleman_9420_352_component_and_supersession()`, resolver version `coleman_endpoint_v4`).
+See §6.8. The same catalog page also names `9420A382` (digital, multi-target universal
+replacement across three separate old-part groups) and `9420-391` (WiFi) — logged but not
+yet built; see §6.8/§8 for scope notes.
+
 **Updated:** 2026-08-04 — `7330E335`/`7330E385`/`7330E336` built as exact endpoint
 components (`coleman_third_wave_endpoint_components()`, resolver version
 `coleman_endpoint_v3`), plus the `7330E336 -> 7330F3361` supersession edge
@@ -496,6 +509,53 @@ thermostat — this domain doesn't help resolve §6.2's open item, but is logged
 session doesn't repeat the search. It does independently confirm `9420-381` as a real,
 current Coleman-Mach digital SKU (a third `9420-*` number now seen in this document).
 
+### 6.8 Built 2026-08-04: `9420-352`, and `7330F3361`'s status revised
+
+The user supplied Airxcel's own current dealer catalog, `CM-4040.02_2025 AMCAT.pdf`
+(printed May 2025, document number CM-4040.02, `Docs/Data/Coleman_Mach/`) — a live, dated,
+dealer-facing print catalog, a higher-currency manufacturer-primary tier than every
+retailer/Wayback source used elsewhere in this document. Its Thermostats page (p.8) has a
+"NEW SINGLE STAGE THERMOSTATS" table in the same `THIS#`/`REPLACES`/`DESCRIPTION` shape as
+the original obs #41 replacement sheet that established the `-> 9420-351` edges (§6):
+
+| THIS # | REPLACES | DESCRIPTION |
+|---|---|---|
+| `9420-351` | `7330G3351`, `7330F3852` | Analog, Heat/Cool, 12VDC - Black |
+| `9420-352` | `7330F3361` | Analog, Cool Only, 12VDC - Black |
+| `9420A382` | `7330F3361`, `9430-3392`, `9430A3392` | Digital, Cool Only, 12VDC - Black |
+| `9420A382` | `9630A3351`, `9630A3361` | Digital, Heat Pump, 12VDC - Black |
+| `9420A382` | `9630A3371`, `9430A3372` | Digital, Heat/Cool, 12VDC - Black |
+| `9420-391` | *(none — new product)* | WiFi Accessible Digital Thermostat - Black |
+
+The `9420-351` row corroborates the fixture's existing edges exactly (obs #41's own
+successor, still current). The `9420-352` row is new: **obs #93, this session**, captured
+by rendering the page to a PNG and reading it directly (`pdftotext -layout` interleaves
+this table's two side-by-side blocks unreadably). It directly names `9420-352` as the
+current replacement for `7330F3361` — the same model built in the second wave (§6.1) and
+described there as current/unsuperseded, because no replacement had been found in evidence
+at that time. This is that evidence, found later — **an honest revision, not a
+contradiction**: §6.1's language reflected the evidentiary state as of 2026-08-02, not a
+permanent claim.
+
+**Built:** `9420-352` as an exact endpoint component (`function: cool_only, color: black,
+interface_type: analog, voltage: 12VDC`, all from obs #93) plus the `7330F3361 ->
+9420-352` `supersedes` edge, both via `coleman_9420_352_component_and_supersession()`,
+resolver version `coleman_endpoint_v4`. Manufacturer-primary, single-source (no independent
+retailer corroboration yet, unlike the obs #41 edges' retailer cross-references) —
+confidence 0.75/n=4, same tier as the third-wave `7330E336 -> 7330F3361` edge (§6.2) for a
+different underlying reason (single manufacturer source there vs. two retailer sources
+here).
+
+`7330F3361` now sits in the middle of a two-hop supersession chain:
+`7330E336 -> 7330F3361 -> 9420-352` — not a contradiction; `7330F3361` was itself current
+when it superseded `7330E336`; it has since itself been superseded.
+
+**Not built, logged for future work:** `9420A382` (a single digital SKU that REPLACES three
+separate old-part groups — one of which, `7330F3361`, overlaps this session's edge, but the
+other two groups, `9630A335x`/`9430A337x`, are heat-pump-line parts not in the fixture at
+all) and `9420-391` (WiFi, a new product with no REPLACES entry). Both are logged in obs
+#93's `other_replacements_noted_not_built` field. See §8.
+
 ## 7. Sources
 
 - obs #40 — Coleman-Mach current analog thermostat product page
@@ -580,6 +640,9 @@ current Coleman-Mach digital SKU (a third `9420-*` number now seen in this docum
   question (see §6.7)
 - obs #75 — `rvcomfort.com`, Apr/Aug 2005 catalog page showing no 7330-series listing at
   all, narrowing the D→E transition window (see §6.7)
+- obs #93 — Airxcel's own current (May 2025) dealer catalog, `CM-4040.02_2025 AMCAT.pdf`
+  p.8, "NEW SINGLE STAGE THERMOSTATS" table naming `9420-352` as the replacement for
+  `7330F3361` (see §6.8)
 
 ## 8. Resolver status and next milestone
 
@@ -633,3 +696,19 @@ Ready-to-do next work, in rough priority order:
    (weaker than the manufacturer-backed `-> 9420-351` edges' 0.8/n=5). `7330D337` and
    `8330-339(2)` remain unbuilt identifiers (obs #59's chart also names `7330F3361` as their
    replacement) — out of scope here, a separate future decision.
+4. **Built 2026-08-04 (§6.8, obs #93):** `9420-352` as an exact endpoint component plus the
+   `7330F3361 -> 9420-352` `supersedes` edge, from Airxcel's own current (May 2025) dealer
+   catalog. This revised `7330F3361`'s status from "current/unsuperseded" (§6.1) to
+   superseded — an honest evidence-driven revision.
+5. **Not yet built, logged in obs #93:** `9420A382` (digital, replaces `7330F3361` +
+   `9430-3392`/`9430A3392` in one group, plus two more old-part groups —
+   `9630A3351`/`9630A3361` and `9630A3371`/`9430A3372` — that are heat-pump-line parts not
+   otherwise in this fixture at all) and `9420-391` (WiFi, new product, no replacement
+   target). Building `9420A382` cleanly would need either scoping it to just the
+   `7330F3361`-overlapping REPLACES group (leaving the heat-pump groups unbuilt, mirroring
+   how this vendor already treats partial evidence) or a decision to bring in the
+   heat-pump-line components first — not decided yet.
+6. The `2026 Attwood Catalog.pdf` the user also supplied this session is a **marine**
+   products catalog (Atwood/marine items overlapping RV items only incidentally) — out of
+   scope for this vendor, and out of scope for RV Interchange generally per the Atwood
+   vendor's own marine-exclusion decision (`VENDOR-Atwood.md` §4). Not reviewed further.

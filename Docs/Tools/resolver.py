@@ -518,6 +518,7 @@ IGNORED_KEYS = {
     "capture_date": "meta date this observation's specific web-archive capture was taken; about the source, not the product",
     "pdf_internal_title": "meta internal filename/title embedded in a PDF's own metadata; about the source, not the product",
     "pdf_creation_date": "meta creation date embedded in a PDF's own metadata; about the source, not the product",
+    "other_replacements_noted_not_built": "narrative note logging other REPLACES entries seen on the same catalog page that are out of scope for this observation's build (e.g. reference old parts not yet in the fixture) -- future-work pointer, not itself product data",
 
     # out of scope: furnace/cooktop grammar captured incidentally on the
     # same chart image as the water heater grammar. Real data, wrong

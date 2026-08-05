@@ -407,6 +407,21 @@ components:
       interface_type: {value: analog, provenance: manufacturer_page_single_source, source_observation_id: 40}
       stages:         {value: single, provenance: manufacturer_page_inferred, source_observation_id: 40}
 
+  # obs #93: Coleman-Mach/Airxcel's own current (May 2025) dealer catalog
+  # (CM-4040.02) directly names 9420-352 as the replacement for 7330F3361 --
+  # manufacturer-primary, revising 7330F3361's earlier "current/unsuperseded"
+  # framing from the second wave above. See VENDOR-Coleman-Mach.md sec 6.8.
+  - component_id: c_placeholder_tstat_9420_352
+    part_type_id: 415
+    interchange_code: null
+    identifiers:
+      - {ns: coleman, value: "9420-352", visibility: null}
+    attributes:
+      function:       {value: cool_only, provenance: manufacturer_pdf, source_observation_id: 93}
+      color:          {value: black, provenance: manufacturer_pdf, source_observation_id: 93}
+      interface_type: {value: analog, provenance: manufacturer_pdf, source_observation_id: 93}
+      voltage:        {value: 12VDC, provenance: manufacturer_pdf, source_observation_id: 93}
+
   # Third wave: the "Electronic"-generation family's D->E transition
   # instantiation (obs #74 rvcomfort.com naming + obs #58 wildcard family's
   # functional split; see VENDOR-Coleman-Mach.md sec 6.7). Unlike the first
@@ -817,6 +832,22 @@ edges:
       - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
       - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 59}
       - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 64}
+
+  # Manufacturer-primary: Coleman-Mach/Airxcel's own current (May 2025)
+  # dealer catalog (CM-4040.02, obs #93) directly names 9420-352 as the
+  # replacement for 7330F3361, same THIS#/REPLACES/DESCRIPTION table shape
+  # as the original 7330G3351/7330F3852 -> 9420-351 evidence (obs #41).
+  - type: supersedes
+    from: c_placeholder_tstat_7330f3361
+    to: c_placeholder_tstat_9420_352
+    group: coleman_analog_cool_only_12v
+    status: candidate
+    detail:
+      note: "Coleman-Mach's 2025 dealer catalog (CM-4040.02) names 9420-352 as the current replacement for 7330F3361."
+    confidence: {alpha: 3, beta: 1, value: 0.75, certainty: 4}
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 93}
 
   # THE CANONICAL EDGE TEST. Asymmetric substitution, confirmed real.
   - type: substitutes
