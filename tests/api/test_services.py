@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from interchange_schema import init_db
 from interchange_store import insert_component, insert_identifier
 from interchange_models import Component, Identifier
+from edge_types import EDGE_TYPE_SUBSTITUTES, EDGE_TYPE_SUPERSEDES
 
 from api.services import IdentifierService
 
@@ -54,7 +55,7 @@ def test_get_replacements_tiers_by_confidence():
     insert_identifier(conn, Identifier("c_test_b", "suburban", "SW6DEL"))
     insert_identifier(conn, Identifier("c_test_c", "suburban", "SW12DEL"))
 
-    drop_in_edge = Edge(type="substitutes", from_component_id="c_test_a",
+    drop_in_edge = Edge(type=EDGE_TYPE_SUBSTITUTES, from_component_id="c_test_a",
                          to_component_id="c_test_b")
     insert_edge(conn, drop_in_edge)
     for _ in range(8):
@@ -62,7 +63,7 @@ def test_get_replacements_tiers_by_confidence():
             edge_id=drop_in_edge.id, event_type="buyer_confirmed_install",
             effect_alpha=3.0, effect_beta=0.0, occurred_at=_now()))
 
-    modified_edge = Edge(type="substitutes", from_component_id="c_test_a",
+    modified_edge = Edge(type=EDGE_TYPE_SUBSTITUTES, from_component_id="c_test_a",
                           to_component_id="c_test_c")
     insert_edge(conn, modified_edge)
     insert_evidence(conn, RelationshipEvidence(
@@ -96,7 +97,7 @@ def test_get_replacements_rank_reflects_tier_not_insertion_order():
     insert_identifier(conn, Identifier("c_test_c", "suburban", "SW12DEL"))
 
     # Weaker edge inserted FIRST.
-    modified_edge = Edge(type="substitutes", from_component_id="c_test_a",
+    modified_edge = Edge(type=EDGE_TYPE_SUBSTITUTES, from_component_id="c_test_a",
                           to_component_id="c_test_c")
     insert_edge(conn, modified_edge)
     insert_evidence(conn, RelationshipEvidence(
@@ -106,7 +107,7 @@ def test_get_replacements_rank_reflects_tier_not_insertion_order():
                                    text="Requires switch kit"))
 
     # Stronger edge inserted SECOND.
-    drop_in_edge = Edge(type="substitutes", from_component_id="c_test_a",
+    drop_in_edge = Edge(type=EDGE_TYPE_SUBSTITUTES, from_component_id="c_test_a",
                          to_component_id="c_test_b")
     insert_edge(conn, drop_in_edge)
     for _ in range(8):
@@ -131,7 +132,7 @@ def test_get_replacements_excludes_below_bar_and_unknown_component():
     insert_identifier(conn, Identifier("c_test_a", "suburban", "SW6DE"))
     insert_identifier(conn, Identifier("c_test_b", "suburban", "SW12DEL"))
 
-    weak_edge = Edge(type="substitutes", from_component_id="c_test_a",
+    weak_edge = Edge(type=EDGE_TYPE_SUBSTITUTES, from_component_id="c_test_a",
                       to_component_id="c_test_b")
     insert_edge(conn, weak_edge)
     insert_evidence(conn, RelationshipEvidence(
@@ -200,7 +201,8 @@ def test_get_replacements_includes_supersessions():
     insert_identifier(conn, Identifier("c_test_a", "coleman", "7330G3351"))
     insert_identifier(conn, Identifier("c_test_b", "coleman", "9420-351"))
 
-    edge = Edge(type="supersedes", from_component_id="c_test_a", to_component_id="c_test_b")
+    edge = Edge(type=EDGE_TYPE_SUPERSEDES, from_component_id="c_test_a",
+                to_component_id="c_test_b")
     insert_edge(conn, edge)
     insert_supersession_detail(conn, EdgeSupersessionDetail(
         edge_id=edge.id, note="Coleman catalog names 9420-351 as the replacement"))
@@ -221,7 +223,8 @@ def test_get_replacements_omits_supersession_with_no_evidence():
     insert_identifier(conn, Identifier("c_test_a", "coleman", "7330G3351"))
     insert_identifier(conn, Identifier("c_test_b", "coleman", "9420-351"))
 
-    edge = Edge(type="supersedes", from_component_id="c_test_a", to_component_id="c_test_b")
+    edge = Edge(type=EDGE_TYPE_SUPERSEDES, from_component_id="c_test_a",
+                to_component_id="c_test_b")
     insert_edge(conn, edge)
     insert_supersession_detail(conn, EdgeSupersessionDetail(edge_id=edge.id, note="no evidence yet"))
 

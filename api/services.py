@@ -13,6 +13,7 @@ from interchange_store import (
     get_supersession_detail, search_identifiers,
 )
 from interchange_models import compute_confidence
+from edge_types import EDGE_TYPE_SUBSTITUTES, EDGE_TYPE_SUPERSEDES
 
 
 class IdentifierService:
@@ -79,7 +80,7 @@ class ReplacementService:
         _TIER_PRIORITY = {"Direct Fit": 0, "Fits With Modification": 1}
 
         candidates = []
-        for edge in get_edges_from(conn, component_id, type="substitutes"):
+        for edge in get_edges_from(conn, component_id, type=EDGE_TYPE_SUBSTITUTES):
             evidence = get_evidence_for_edge(conn, edge["id"])
             confidence = compute_confidence(evidence)
             fit = _tier_for_confidence(confidence)
@@ -106,7 +107,7 @@ class ReplacementService:
             rank += 1
 
         supersessions = []
-        for edge in get_edges_from(conn, component_id, type="supersedes"):
+        for edge in get_edges_from(conn, component_id, type=EDGE_TYPE_SUPERSEDES):
             evidence = get_evidence_for_edge(conn, edge["id"])
             confidence = compute_confidence(evidence)
             if confidence["value"] is None:

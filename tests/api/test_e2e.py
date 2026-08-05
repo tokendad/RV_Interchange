@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "Docs" / "Tools"))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from edge_resolver import build_database
+from edge_types import EDGE_TYPE_FITS
 from interchange_store import get_component_by_identifier, get_edges_from
 
 import api.main as main_module
@@ -103,7 +104,7 @@ def test_atwood_repair_part_is_served_from_the_persisted_database(client, persis
     try:
         component = get_component_by_identifier(conn, "atwood", "91230")
         assert component is not None
-        fits_edges = get_edges_from(conn, component.component_id, type="fits")
+        fits_edges = get_edges_from(conn, component.component_id, type=EDGE_TYPE_FITS)
         assert len(fits_edges) == 4
     finally:
         conn.close()

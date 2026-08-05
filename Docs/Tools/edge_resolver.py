@@ -18,6 +18,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from resolver import normalize_extracted
 from suburban_parser import compare_models
+from edge_types import (
+    EDGE_TYPE_CONTROLS, EDGE_TYPE_FITS, EDGE_TYPE_SUBSTITUTES, EDGE_TYPE_SUPERSEDES,
+)
 from interchange_models import (
     Component, Identifier, ComponentAttribute, Edge, EdgeSubstitutionDetail,
     EdgeSupersessionDetail, EdgeControlsDetail, EdgeCaveat, EdgeRequiredPart,
@@ -330,7 +333,8 @@ def resolve_switch_controls_edge(conn, switch_id, water_heater_id):
     match — no confidence/evidence rows, matching ground-truth.yaml's
     controls edge (no confidence block at all, unlike substitutes/supersedes).
     """
-    edge = Edge(type="controls", from_component_id=switch_id, to_component_id=water_heater_id)
+    edge = Edge(type=EDGE_TYPE_CONTROLS, from_component_id=switch_id,
+                to_component_id=water_heater_id)
     insert_edge(conn, edge)
     insert_controls_detail(conn, EdgeControlsDetail(
         edge_id=edge.id,
@@ -756,7 +760,7 @@ def resolve_coleman_third_wave_supersession(conn, retailer_row, corroboration_ro
             f"MakariosRV chart missing 7330-E336 -> 7330F3361: {chart}")
 
     edge = Edge(
-        type="supersedes",
+        type=EDGE_TYPE_SUPERSEDES,
         from_component_id=from_component_id,
         to_component_id=to_component_id,
         group_key="coleman_e336_cool_only_replacement",
@@ -835,7 +839,7 @@ def coleman_9420_352_component_and_supersession(conn, catalog_row, component_id,
         insert_component_attribute(conn, attribute)
 
     edge = Edge(
-        type="supersedes",
+        type=EDGE_TYPE_SUPERSEDES,
         from_component_id=from_component_id,
         to_component_id=component_id,
         group_key="coleman_analog_cool_only_12v",
@@ -946,7 +950,7 @@ def coleman_9420a382_component_and_supersession(conn, catalog_row, component_id,
         insert_component_attribute(conn, attribute)
 
     edge = Edge(
-        type="supersedes",
+        type=EDGE_TYPE_SUPERSEDES,
         from_component_id=from_component_id,
         to_component_id=component_id,
         group_key="coleman_cool_only_digital_upgrade",
@@ -1132,7 +1136,7 @@ def atwood_repair_parts_and_fits(conn, catalog_row, host_component_ids):
         edge_ids = []
         for model in applies_to:
             edge = Edge(
-                type="fits",
+                type=EDGE_TYPE_FITS,
                 from_component_id=component_id,
                 to_component_id=host_component_ids[model],
                 group_key="atwood_pilot_repair_part",
@@ -1205,7 +1209,7 @@ def atwood_electronic_repair_parts_and_fits(conn, catalog_row, host_component_id
         edge_ids = []
         for model in applies_to:
             edge = Edge(
-                type="fits",
+                type=EDGE_TYPE_FITS,
                 from_component_id=component_id,
                 to_component_id=host_component_ids[model],
                 group_key="atwood_electronic_repair_part",
@@ -1269,7 +1273,8 @@ def resolve_substitution_pair(conn, from_id, from_model, to_id, to_model, group_
         ("a_to_b", from_id, to_id, "a_to_b"), ("b_to_a", to_id, from_id, "b_to_a"),
     ):
         verdict_info = cmp[cmp_key]
-        edge = Edge(type="substitutes", from_component_id=src_id, to_component_id=dst_id,
+        edge = Edge(type=EDGE_TYPE_SUBSTITUTES, from_component_id=src_id,
+                    to_component_id=dst_id,
                     group_key=group_key)
         insert_edge(conn, edge)
 
@@ -1315,7 +1320,7 @@ def resolve_cross_capacity_edge(conn, review_row, from_id, to_id, group_key):
 
     basis = "buyer_confirmed_install"
 
-    edge_forward = Edge(type="substitutes", from_component_id=from_id,
+    edge_forward = Edge(type=EDGE_TYPE_SUBSTITUTES, from_component_id=from_id,
                          to_component_id=to_id, group_key=group_key)
     insert_edge(conn, edge_forward)
     insert_substitution_detail(conn, EdgeSubstitutionDetail(
@@ -1336,7 +1341,7 @@ def resolve_cross_capacity_edge(conn, review_row, from_id, to_id, group_key):
         effect_alpha=3.0, effect_beta=0.0, occurred_at=now_iso(),
         source_observation_id=review_row["id"]))
 
-    edge_backward = Edge(type="substitutes", from_component_id=to_id,
+    edge_backward = Edge(type=EDGE_TYPE_SUBSTITUTES, from_component_id=to_id,
                           to_component_id=from_id, group_key=group_key)
     insert_edge(conn, edge_backward)
     insert_substitution_detail(conn, EdgeSubstitutionDetail(
@@ -1381,7 +1386,7 @@ def resolve_iw60rl_retrofit_edge(conn, manual_row, from_id, to_id, group_key,
         raise ValueError(
             f"IW60RL manual is missing the {required_part_value} replacement panel row")
 
-    edge = Edge(type="substitutes", from_component_id=from_id,
+    edge = Edge(type=EDGE_TYPE_SUBSTITUTES, from_component_id=from_id,
                 to_component_id=to_id, group_key=group_key)
     insert_edge(conn, edge)
     insert_substitution_detail(conn, EdgeSubstitutionDetail(
@@ -1477,7 +1482,7 @@ def resolve_coleman_supersessions(conn, replacement_row, retailer_rows, componen
     edge_ids = []
     for retired_model in ("7330G3351", "7330F3852"):
         edge = Edge(
-            type="supersedes",
+            type=EDGE_TYPE_SUPERSEDES,
             from_component_id=component_ids[retired_model],
             to_component_id=component_ids["9420-351"],
             group_key="coleman_analog_heat_cool_12v",
@@ -1518,7 +1523,7 @@ def _get_coleman_endpoint_supersessions(conn, component_ids):
         raise ValueError(f"expected three distinct Coleman endpoint IDs: {ids}")
     placeholders = ", ".join("?" for _ in ids)
     return conn.execute(
-        f"SELECT * FROM edges WHERE type = 'supersedes' "
+        f"SELECT * FROM edges WHERE type = '{EDGE_TYPE_SUPERSEDES}' "
         f"AND from_component_id IN ({placeholders}) "
         f"AND to_component_id IN ({placeholders}) ORDER BY id",
         (*ids, *ids)).fetchall()
@@ -2467,7 +2472,8 @@ def self_test(verbose=False):
     controls_row = store_conn.execute(
         "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
         (edge_switch_controls,)).fetchone()
-    if tuple(controls_row) != ("controls", "c_placeholder_wh_switch", "c_placeholder_wh_6del"):
+    if tuple(controls_row) != (
+            EDGE_TYPE_CONTROLS, "c_placeholder_wh_switch", "c_placeholder_wh_6del"):
         failures.append(f"switch controls edge mismatch: {tuple(controls_row)}")
 
     def persist_endpoints(conn):
@@ -2524,7 +2530,7 @@ def self_test(verbose=False):
                 f"Coleman supersession confidence mismatch: {edge_confidence}")
 
     insert_edge(store_conn, Edge(
-        type="supersedes",
+        type=EDGE_TYPE_SUPERSEDES,
         from_component_id=endpoint_ids["7330G3351"],
         to_component_id=endpoint_ids["7330F3852"],
         group_key="unexpected_coleman_group",
@@ -2799,7 +2805,7 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
             mismatches += 1
         thermostat_edges = conn.execute(
             "SELECT type FROM edges WHERE (from_component_id = ? OR to_component_id = ?) "
-            "AND type IN ('substitutes', 'supersedes')",
+            f"AND type IN ('{EDGE_TYPE_SUBSTITUTES}', '{EDGE_TYPE_SUPERSEDES}')",
             (thermostat.component_id, thermostat.component_id)).fetchall()
         if thermostat_edges:
             print(f"MISMATCH unsupported thermostat edges: {thermostat_edges}")
@@ -2966,7 +2972,7 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
             mismatches += 1
 
     placeholder_promotions = conn.execute(
-        "SELECT COUNT(*) FROM edges WHERE type = 'supersedes' "
+        f"SELECT COUNT(*) FROM edges WHERE type = '{EDGE_TYPE_SUPERSEDES}' "
         "AND (from_component_id = 'c_placeholder_tstat' "
         "OR to_component_id = 'c_placeholder_tstat')").fetchone()[0]
     if placeholder_promotions != 0:
@@ -2985,7 +2991,7 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
     fixture_component_ids = ("c_placeholder_tstat", *endpoint_ids.values())
     substitutes_placeholders = ", ".join("?" for _ in fixture_component_ids)
     coleman_substitutes = conn.execute(
-        f"SELECT COUNT(*) FROM edges WHERE type = 'substitutes' "
+        f"SELECT COUNT(*) FROM edges WHERE type = '{EDGE_TYPE_SUBSTITUTES}' "
         f"AND from_component_id IN ({substitutes_placeholders}) "
         f"AND to_component_id IN ({substitutes_placeholders})",
         (*fixture_component_ids, *fixture_component_ids)).fetchone()[0]
@@ -3080,7 +3086,8 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
     second_wave_substitutes_placeholders = ", ".join(
         "?" for _ in fixture_second_wave_component_ids)
     second_wave_edges = conn.execute(
-        f"SELECT COUNT(*) FROM edges WHERE type IN ('substitutes', 'supersedes') "
+        f"SELECT COUNT(*) FROM edges WHERE type IN "
+        f"('{EDGE_TYPE_SUBSTITUTES}', '{EDGE_TYPE_SUPERSEDES}') "
         f"AND (from_component_id IN ({second_wave_substitutes_placeholders}) "
         f"OR to_component_id IN ({second_wave_substitutes_placeholders}))",
         (*fixture_second_wave_component_ids,
