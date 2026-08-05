@@ -502,6 +502,8 @@ components:
       ignition_type: {value: pilot, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 12.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
   - component_id: c_placeholder_wh_atwood_g6a_7p
     part_type_id: 412
@@ -514,6 +516,8 @@ components:
       ignition_type: {value: pilot, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 12.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
       pilot_relight: {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
       status:       {value: discontinued, provenance: manufacturer_pdf, source_observation_id: 92}
 
@@ -528,6 +532,8 @@ components:
       ignition_type: {value: pilot, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 12.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
   - component_id: c_placeholder_wh_atwood_gc6aa_10e
     part_type_id: 412
@@ -540,6 +546,8 @@ components:
       ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 12.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
       availability: {value: oem_only, provenance: manufacturer_pdf, source_observation_id: 92}
 
   - component_id: c_placeholder_wh_atwood_gch6a_10e
@@ -553,6 +561,8 @@ components:
       ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 12.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
   - component_id: c_placeholder_wh_atwood_g6a_8e
     part_type_id: 412
@@ -565,6 +575,8 @@ components:
       ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 12.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
   - component_id: c_placeholder_wh_atwood_gh6_8e
     part_type_id: 412
@@ -577,6 +589,8 @@ components:
       ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 12.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
   - component_id: c_placeholder_wh_atwood_g9_ext
     part_type_id: 412
@@ -589,6 +603,8 @@ components:
       ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 12.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
   - component_id: c_placeholder_wh_atwood_ge9_ext
     part_type_id: 412
@@ -601,6 +617,8 @@ components:
       ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 12.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
   - component_id: c_placeholder_wh_atwood_geh9_ext
     part_type_id: 412
@@ -613,6 +631,8 @@ components:
       ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 12.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
   - component_id: c_placeholder_wh_atwood_g10_2
     part_type_id: 412
@@ -625,6 +645,8 @@ components:
       ignition_type: {value: pilot, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 15.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
   - component_id: c_placeholder_wh_atwood_gc10a_2
     part_type_id: 412
@@ -637,6 +659,8 @@ components:
       ignition_type: {value: pilot, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 15.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
   - component_id: c_placeholder_wh_atwood_g10_3e
     part_type_id: 412
@@ -649,6 +673,8 @@ components:
       ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 15.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
   - component_id: c_placeholder_wh_atwood_gh10_3e
     part_type_id: 412
@@ -661,6 +687,8 @@ components:
       ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 15.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
   - component_id: c_placeholder_wh_atwood_gc10a_4e
     part_type_id: 412
@@ -673,6 +701,8 @@ components:
       ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 15.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
   - component_id: c_placeholder_wh_atwood_gch10a_4e
     part_type_id: 412
@@ -685,6 +715,8 @@ components:
       ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 15.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
   - component_id: c_placeholder_wh_atwood_g16_ext
     part_type_id: 412
@@ -697,6 +729,8 @@ components:
       ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 15.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
   - component_id: c_placeholder_wh_atwood_ge16_ext
     part_type_id: 412
@@ -709,6 +743,8 @@ components:
       ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: false, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 15.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
   - component_id: c_placeholder_wh_atwood_geh16_ext
     part_type_id: 412
@@ -721,6 +757,8 @@ components:
       ignition_type: {value: electronic, provenance: manufacturer_pdf, source_observation_id: 92}
       heat_exchanger: {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
       exothermal:   {value: true, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_h:    {value: 15.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
+      opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
   # =========================================================================
   # 3. MONITOR PANEL — system-bound; assembly decomposition case

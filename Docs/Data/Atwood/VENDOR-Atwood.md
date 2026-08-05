@@ -158,9 +158,9 @@ Ready-to-do next work, in rough priority order:
    Coleman-Mach's D→E→G/F letter progression).
 3. `capacity_gal`/`opening_h`/`opening_w` cross-comparison against the existing Suburban
    `opening_families` fixture data (§4's `part_types` block, `Docs/Inital_Design/
-   ground-truth.yaml`) — none of these 19 components assert cutout/opening dimensions yet,
-   since the manual's catalog table doesn't give them; that would need either the manual's
-   own dimensional pages (not yet captured) or a separate retailer spec source.
+   ground-truth.yaml`) — resolved. The Atwood brochure cutout spec gives the two family
+   openings directly, so all 19 endpoint components now carry `opening_h`/`opening_w`
+   assertions in the resolver and fixture.
 4. The 6 remaining EXT-family models (`G9-EXT`, `GE9-EXT`, `GEH9-EXT`, `G16-EXT`,
    `GE16-EXT`, `GEH16-EXT`) don't appear in either Pilot or Electronic Ignition
    "Replacement Part Reference" table — the manual covers them under a separate "XT Water

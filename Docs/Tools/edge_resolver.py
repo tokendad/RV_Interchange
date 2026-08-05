@@ -61,6 +61,8 @@ ATWOOD_ELECTRONIC_PARTS_RESOLVER_VERSION = "atwood_fits_v2"
 ATWOOD_ELECTRONIC_PARTS_TARGET_MODELS = (
     "GH6-8E", "G6A-8E", "G10-3E", "GH10-3E", "GCH6A-10E", "GC6AA-10E", "GC10A-4E", "GCH10A-4E",
 )
+ATWOOD_6_GAL_OPENING = (12.625, 16.25)
+ATWOOD_10_GAL_OPENING = (15.625, 16.25)
 COLEMAN_VISUAL_MATCH_CANDIDATE = {
     "candidate": {"ns": "coleman", "value": "8330-3362"},
     "comparison_source_observation_id": 45,
@@ -1061,6 +1063,18 @@ def atwood_endpoint_components(catalog_row, component_ids):
             component_id, name, "manufacturer_pdf", catalog_row["id"], value_boolean=value,
             resolver_version=ATWOOD_ENDPOINT_RESOLVER_VERSION)
 
+    def opening_attrs(component_id, capacity_gal):
+        if capacity_gal == 6:
+            opening_h, opening_w = ATWOOD_6_GAL_OPENING
+        elif capacity_gal == 10:
+            opening_h, opening_w = ATWOOD_10_GAL_OPENING
+        else:
+            raise ValueError(f"unexpected Atwood capacity for opening attrs: {capacity_gal}")
+        return [
+            number_attr(component_id, "opening_h", opening_h, unit="in"),
+            number_attr(component_id, "opening_w", opening_w, unit="in"),
+        ]
+
     results = []
     for model in ATWOOD_ENDPOINT_MODELS:
         spec = models[model]
@@ -1074,6 +1088,7 @@ def atwood_endpoint_components(catalog_row, component_ids):
             bool_attr(component_id, "heat_exchanger", spec["heat_exchanger"]),
             bool_attr(component_id, "exothermal", spec["exothermal"]),
         ]
+        attributes.extend(opening_attrs(component_id, spec["capacity_gal"]))
         if "pilot_relight" in spec:
             attributes.append(bool_attr(component_id, "pilot_relight", spec["pilot_relight"]))
         if "status" in spec:
@@ -2025,7 +2040,8 @@ def self_test(verbose=False):
     }
     if spot_check_values != {
             "capacity_gal": 10.0, "power_type": "gas_electric",
-            "ignition_type": "electronic", "heat_exchanger": True, "exothermal": True}:
+            "ignition_type": "electronic", "heat_exchanger": True, "exothermal": True,
+            "opening_h": 15.625, "opening_w": 16.25}:
         failures.append(f"Atwood GCH10A-4E attributes mismatch: {spot_check_values}")
 
     invalid_atwood_inputs = (
