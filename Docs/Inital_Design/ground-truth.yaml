@@ -899,6 +899,15 @@ components:
     attributes:
       description: {value: "Kit Service Optical Control Replacement", provenance: manufacturer_pdf, source_observation_id: 109}
 
+  - component_id: c_placeholder_norcold_part_630762
+    part_type_id: 603
+    interchange_code: null
+    identifiers:
+      - {ns: norcold, value: "630762", visibility: board_marking}
+      - {ns: norcold, value: "1172-321", visibility: board_marking}
+    attributes:
+      description: {value: "Optical display/control board (\"eyebrow board\"), Norcold N61X/N81X family", provenance: retailer_page, source_observation_id: 110}
+
   # =========================================================================
   # 3. MONITOR PANEL — system-bound; assembly decomposition case
   # =========================================================================

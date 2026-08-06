@@ -1664,6 +1664,49 @@ def norcold_optical_control_supersession(conn, catalog_row):
            (new_component, new_identifiers, new_attributes), edge.id
 
 
+def norcold_630762_component(dealer_row, component_id):
+    """
+    Build Norcold `630762`/`1172-321` as a standalone repair-part component --
+    a dealer's board photograph (obs #110, Tim's RV/eBay) shows both numbers
+    printed on the same physical board, corroborated by a second listing.
+    Same "photo confirms co-location" evidence standard that resolved
+    Coleman-Mach's AR7815/7330F3858 case (obs #104).
+
+    Deliberately NOT connected to c_placeholder_refrigerator_n811 or to the
+    official parts catalog's optical-control lineage (621988/628979/636105/
+    629079, see norcold_optical_control_supersession()) by any edge: `630762`
+    is absent from the current official parts list entirely, and the research
+    pass that found it explicitly calls its relationship to that lineage
+    unresolved, not merely under-evidenced -- "fits all N611/N811" and
+    "replaces 621988/628979/637775" claims appear only in aftermarket
+    listings. See Docs/Data/Norcold/VENDOR-Norcold.md sec 4.
+    """
+    _validate_observation_source(dealer_row, 110, "retailer_photo", 3, "630762 board photo")
+    dealer = _normalized_attributes(dealer_row)
+    relation = dealer.get("sku_relationship")
+    models = dealer.get("model_spec_table")
+    if not isinstance(relation, dict) or relation.get("type") != \
+            "photographed_product_label":
+        raise ValueError(f"observation #{dealer_row['id']} has no label-photo claim")
+    values = relation.get("identifiers")
+    if values != ["630762", "1172-321"] or not isinstance(models, dict):
+        raise ValueError(f"unexpected identifier-equivalence claim: {relation}")
+    namespaces = {value: models.get(value, {}).get("namespace") for value in values}
+    if namespaces != {"630762": "norcold", "1172-321": "norcold"}:
+        raise ValueError(f"unexpected identifier namespaces: {namespaces}")
+
+    component = Component(component_id, NORCOLD_REPAIR_PART_TYPE, None)
+    identifiers = [
+        Identifier(component_id, "norcold", "630762", "board_marking"),
+        Identifier(component_id, "norcold", "1172-321", "board_marking"),
+    ]
+    attributes = [ComponentAttribute(
+        component_id, "description", "retailer_page", dealer_row["id"],
+        value_text=dealer["product_type"], resolver_version=NORCOLD_PARTS_RESOLVER_VERSION)]
+
+    return component, identifiers, attributes
+
+
 def identifier_candidate_from_observation(obs_row):
     attrs = _normalized_attributes(obs_row)
     relation = attrs.get("sku_relationship")
@@ -4255,6 +4298,44 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
             print(f"MISMATCH optical control supersedes edge: resolved={tuple(edge_row)} "
                   f"fixture=({fixture_optical_edge['type']}, {fixture_optical_edge['from']}, "
                   f"{fixture_optical_edge['to']})")
+            mismatches += 1
+
+    obs110 = load_observation(obs_db_path, 110)
+    part_630762_id = "c_placeholder_norcold_part_630762"
+    part_630762_component, part_630762_identifiers, part_630762_attributes = \
+        norcold_630762_component(obs110, part_630762_id)
+    insert_component(conn, part_630762_component)
+    for identifier in part_630762_identifiers:
+        insert_identifier(conn, identifier)
+    for attribute in part_630762_attributes:
+        insert_component_attribute(conn, attribute)
+
+    fixture_630762 = next(
+        (c for c in components_doc if c.get("component_id") == part_630762_id), None)
+    if fixture_630762 is None:
+        print(f"MISMATCH fixture is missing component: {part_630762_id}")
+        mismatches += 1
+    else:
+        resolved_630762_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (part_630762_id,)).fetchall()
+        }
+        fixture_630762_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_630762["identifiers"]
+        }
+        if resolved_630762_identifiers != fixture_630762_identifiers:
+            print(f"MISMATCH 630762 identifiers: resolved={resolved_630762_identifiers} "
+                  f"fixture={fixture_630762_identifiers}")
+            mismatches += 1
+        no_edges = conn.execute(
+            "SELECT COUNT(*) FROM edges WHERE from_component_id = ? OR to_component_id = ?",
+            (part_630762_id, part_630762_id)).fetchone()[0]
+        if no_edges:
+            print(f"MISMATCH 630762 has {no_edges} edge(s), expected none "
+                  f"(fitment/supersession unresolved)")
             mismatches += 1
 
     print(f"Norcold repair parts: "

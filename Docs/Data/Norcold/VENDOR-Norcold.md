@@ -124,13 +124,33 @@ currently installed. Three other serial/color-scoped pairs exist in the same cat
 table (`621988`→`637774`, `636105`→`637776`, `629079`→`637777`) — not built, since
 they don't match the in-hand unit's known refrigerator-serial cohort as cleanly.
 
+## 4.1 `630762`/`1172-321` — confirmed alias, deliberately unconnected
+
+A follow-up research pass (`Docs/Data/Norcold/630762-Research.md`, obs #110) upgraded
+`630762` from the earlier "unverified single marketplace claim" status: three
+independent named dealers (Dads Marine, RV Yard, Young Farts RV Parts) confirm it as a
+genuine, discontinued Norcold optical/"eyebrow" control board, and a board photograph
+(Tim's RV/eBay, corroborated by a second listing) shows an additional printed marking,
+`1172-321`, on the same physical board — the same "photo confirms co-location"
+evidence standard that resolved Coleman-Mach's `AR7815`/`7330F3858` case. Built as
+`c_placeholder_norcold_part_630762` with both identifiers merged onto one component.
+
+**Deliberately given zero edges.** `630762` is absent from the official parts catalog
+(obs #109) entirely, and the research pass itself calls its relationship to that
+catalog's optical-control lineage (`621988`/`628979`/`636105`/`629079`) *unresolved*,
+not merely under-evidenced — "fits all N611/N811" and "replaces 621988/628979/637775"
+claims appear only in aftermarket listings, explicitly called out as unsupported. So
+unlike `628674`/`628979`→`637775` (§4), this component gets no `fits`/`supersedes`
+edge to anything. `--check-fixture` asserts this directly (fails if any edge is ever
+attached to it), so a future change can't silently promote the connection without
+updating this reasoning first.
+
 ## 5. Not yet done
 
-- The online research report's near-match leads (`N8X`/`N8DC` as dealer-claimed direct
-  replacements — vague line names, not verified exact catalog model numbers; `630762`
-  optical board — unverified single marketplace claim) remain observation-only. Same
-  bar this project has applied elsewhere (Coleman-Mach's `8330-3362`/`1C26-10`): no
-  edge without either a manufacturer statement or a second independent source.
+- `N8X`/`N8DC` (vague line names, not verified exact catalog model numbers) remain
+  observation-only. Same bar this project has applied elsewhere (Coleman-Mach's
+  `8330-3362`/`1C26-10`): no edge without either a manufacturer statement or a second
+  independent source.
 - The catalog's other three optical-control supersession pairs (§4) and its AC-heater,
   gas-valve-bracket, and drain-hose serial-scoped tables (obs #109's `quoted_text`/the
   research report's §5) are real but not yet built — same evidentiary bar as `628674`,
@@ -153,6 +173,8 @@ they don't match the in-hand unit's known refrigerator-serial cohort as cleanly.
 - obs #109 — Norcold/Thetford Official Parts List, N61/N81 Series (623421, dated
   2022-02-21), `Docs/Data/Norcold/Norcold-Thetford-N61-N81-Parts-List-623421.pdf`
   (mirror: thetford.com), p.6 Optical Control & p.9 Base/Power Board tables
+- obs #110 — `630762`/`1172-321` board-photo research pass (Dads Marine, RV Yard,
+  Young Farts RV Parts, Tim's RV/eBay), `Docs/Data/Norcold/630762-Research.md`
 - `Docs/Data/Norcold/Norcold N811RT Research Report.md` — broader online research pass
   (manuals, parts catalog, recall status, near-match interchange leads), not yet
   individually logged as observations
