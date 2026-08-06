@@ -61,6 +61,10 @@ ATWOOD_ELECTRONIC_PARTS_RESOLVER_VERSION = "atwood_fits_v2"
 ATWOOD_ELECTRONIC_PARTS_TARGET_MODELS = (
     "GH6-8E", "G6A-8E", "G10-3E", "GH10-3E", "GCH6A-10E", "GC6AA-10E", "GC10A-4E", "GCH10A-4E",
 )
+SUBURBAN_FURNACE_PART_TYPE = 416
+SUBURBAN_FURNACE_REPAIR_PART_TYPE = 417
+SUBURBAN_COOKTOP_PART_TYPE = 601
+SUBURBAN_FURNACE_COOKTOP_RESOLVER_VERSION = "suburban_furnace_cooktop_v1"
 ATWOOD_6_GAL_OPENING = (12.625, 16.25)
 ATWOOD_10_GAL_OPENING = (15.625, 16.25)
 COLEMAN_VISUAL_MATCH_CANDIDATE = {
@@ -1245,6 +1249,205 @@ def atwood_electronic_repair_parts_and_fits(conn, catalog_row, host_component_id
             edge_ids.append(edge.id)
         results.append((component, identifiers, attributes, edge_ids))
     return results
+
+
+def suburban_furnace_cooktop_components(furnace_dataplate_row, furnace_manual_row,
+                                         catalog_row, cooktop_dataplate_row,
+                                         cooktop_clearance_row, cooktop_manual_row,
+                                         component_ids):
+    """
+    Build the Suburban SF-30FQ furnace and SRNA3SBBM cooktop/range as exact
+    endpoint components -- the owner's current-coach in-hand data plates
+    (obs #97/#98/#99), cross-checked against matching manufacturer
+    installation manuals the owner confirmed match their units (obs
+    #101/#102), plus the 2025 catalog's parallel SF-30VHFQ/SF-30VHQ BTU
+    listing (obs #100) for the furnace's btu_rating -- this unit's own plate
+    does not print a BTU figure the way the cooktop's does, so that one
+    attribute is provenance-flagged as inferred, not read. See
+    docs/superpowers/specs/2026-08-05-suburban-furnace-cooktop-design.md.
+
+    No `conn` argument: like atwood_endpoint_components(), this only builds
+    and returns data -- the caller inserts it and, separately, calls
+    suburban_furnace_core_module() (which DOES take conn, because it also
+    creates the fits edge) to build the repair part.
+    """
+    _validate_observation_source(furnace_dataplate_row, 97, "dataplate_photo", 2,
+                                  "furnace dataplate")
+    _validate_observation_source(furnace_manual_row, 101, "manufacturer_pdf", 1,
+                                  "furnace installation manual")
+    _validate_observation_source(catalog_row, 100, "manufacturer_pdf", 1,
+                                  "furnace core module catalog")
+    _validate_observation_source(cooktop_dataplate_row, 98, "dataplate_photo", 2,
+                                  "cooktop dataplate")
+    _validate_observation_source(cooktop_clearance_row, 99, "dataplate_photo", 2,
+                                  "cooktop clearance dataplate")
+    _validate_observation_source(cooktop_manual_row, 102, "manufacturer_pdf", 1,
+                                  "cooktop installation manual")
+
+    furnace_plate = _normalized_attributes(furnace_dataplate_row)
+    if furnace_plate.get("model") != "SF-30FQ":
+        raise ValueError(f"unexpected furnace dataplate model: {furnace_plate.get('model')}")
+    furnace_manual = _normalized_attributes(furnace_manual_row)
+    if furnace_manual.get("model") != "SF-30FQ":
+        raise ValueError(f"unexpected furnace manual model: {furnace_manual.get('model')}")
+    catalog = _normalized_attributes(catalog_row)
+    fitment = catalog.get("repair_part_fitment_table")
+    if not isinstance(fitment, dict) or "2608A" not in fitment:
+        raise ValueError(f"catalog observation missing 2608A fitment row: {fitment}")
+    applies_to = fitment["2608A"].get("applies_to")
+    if set(applies_to or []) != {"SF-25FQ", "SF-30FQ"}:
+        raise ValueError(
+            f"2608A must apply to exactly SF-25FQ and SF-30FQ, got: {applies_to}")
+
+    cooktop_plate = _normalized_attributes(cooktop_dataplate_row)
+    if cooktop_plate.get("model") != "SRNA3SBBM":
+        raise ValueError(f"unexpected cooktop dataplate model: {cooktop_plate.get('model')}")
+    cooktop_clearance = _normalized_attributes(cooktop_clearance_row)
+    cooktop_manual = _normalized_attributes(cooktop_manual_row)
+
+    def text_attr(component_id, name, value, source_row, provenance="manufacturer_pdf"):
+        return ComponentAttribute(
+            component_id, name, provenance, source_row["id"], value_text=value,
+            resolver_version=SUBURBAN_FURNACE_COOKTOP_RESOLVER_VERSION)
+
+    def number_attr(component_id, name, value, source_row, unit=None,
+                     provenance="manufacturer_pdf"):
+        return ComponentAttribute(
+            component_id, name, provenance, source_row["id"], value_number=value,
+            unit=unit, resolver_version=SUBURBAN_FURNACE_COOKTOP_RESOLVER_VERSION)
+
+    furnace_id = component_ids["furnace"]
+    furnace = Component(furnace_id, SUBURBAN_FURNACE_PART_TYPE, None)
+    furnace_identifiers = [Identifier(furnace_id, "suburban", "SF-30FQ", "exterior_plate")]
+    furnace_attributes = [
+        number_attr(furnace_id, "btu_rating", float(catalog["input_btuh"]), catalog_row,
+                    unit="BTU/h", provenance="manufacturer_pdf_inferred"),
+        text_attr(furnace_id, "stock_no", furnace_plate["sku"], furnace_dataplate_row,
+                   provenance="dataplate_photo"),
+        text_attr(furnace_id, "serial", furnace_plate["serial_number"], furnace_dataplate_row,
+                   provenance="dataplate_photo"),
+    ]
+    for name in ("clearance_front_in", "clearance_left_in", "clearance_right_in",
+                 "clearance_top_in", "clearance_bottom_in", "clearance_back_in"):
+        furnace_attributes.append(
+            number_attr(furnace_id, name, float(furnace_manual[name]), furnace_manual_row,
+                        unit="in"))
+    furnace_attributes.append(number_attr(
+        furnace_id, "cabinet_cutout_h_in", float(furnace_manual["cabinet_cutout_h_in"]),
+        furnace_manual_row, unit="in"))
+    furnace_attributes.append(number_attr(
+        furnace_id, "cabinet_cutout_w_in", float(furnace_manual["cabinet_cutout_w_in"]),
+        furnace_manual_row, unit="in"))
+
+    cooktop_id = component_ids["cooktop"]
+    cooktop = Component(cooktop_id, SUBURBAN_COOKTOP_PART_TYPE, None)
+    cooktop_identifiers = [Identifier(cooktop_id, "suburban", "SRNA3SBBM", "exterior_plate")]
+    cooktop_attributes = [
+        number_attr(cooktop_id, "burner_count", 3.0, cooktop_dataplate_row,
+                    provenance="dataplate_photo"),
+        number_attr(cooktop_id, "btu_rating", float(cooktop_plate["burner_btu_front"]),
+                    cooktop_dataplate_row, unit="BTU/h", provenance="dataplate_photo"),
+        number_attr(cooktop_id, "oven_btu_rating", float(cooktop_plate["oven_btu"]),
+                    cooktop_dataplate_row, unit="BTU/h", provenance="dataplate_photo"),
+        number_attr(cooktop_id, "manifold_pressure_wc",
+                    float(cooktop_plate["manifold_pressure_wc"]), cooktop_dataplate_row,
+                    unit="in_wc", provenance="dataplate_photo"),
+        text_attr(cooktop_id, "stock_no", cooktop_plate["sku"], cooktop_dataplate_row,
+                   provenance="dataplate_photo"),
+        text_attr(cooktop_id, "serial", cooktop_plate["serial_number"], cooktop_dataplate_row,
+                   provenance="dataplate_photo"),
+    ]
+    for name in ("clearance_below_counter_in", "clearance_right_sidewall_in",
+                 "clearance_left_sidewall_in", "clearance_backwall_in", "clearance_vertical_in"):
+        cooktop_attributes.append(
+            number_attr(cooktop_id, name, float(cooktop_clearance[name]), cooktop_clearance_row,
+                        unit="in", provenance="dataplate_photo"))
+    for name in ("cutout_a_in", "cutout_b_in", "cutout_c_in", "cutout_d_in", "cutout_e_in"):
+        cooktop_attributes.append(
+            number_attr(cooktop_id, name, float(cooktop_manual[name]), cooktop_manual_row,
+                        unit="in"))
+
+    return [
+        (furnace, furnace_identifiers, furnace_attributes),
+        (cooktop, cooktop_identifiers, cooktop_attributes),
+    ]
+
+
+def suburban_furnace_core_module(conn, catalog_row, retailer_row, furnace_component_id):
+    """
+    Build the Suburban 2608A furnace core replacement module and its `fits`
+    edge to SF-30FQ -- a single-part case of the same many-to-many "fits"
+    relationship Atwood's repair-parts tables use (see
+    atwood_repair_parts_and_fits()'s docstring), sourced to the 2025 catalog
+    (obs #100, manufacturer-primary) and independently corroborated by a
+    retailer page (obs #103) that also supplies the core module's own model
+    designation, RP-30FQ, not present in the catalog. See
+    docs/superpowers/specs/2026-08-05-suburban-furnace-cooktop-design.md
+    sec 2/4/5.
+    """
+    _validate_observation_source(catalog_row, 100, "manufacturer_pdf", 1,
+                                  "furnace core module catalog")
+    _validate_observation_source(retailer_row, 103, "retailer_page", 7,
+                                  "furnace core module retailer")
+
+    catalog = _normalized_attributes(catalog_row)
+    fitment = catalog.get("repair_part_fitment_table", {}).get("2608A")
+    if fitment is None or set(fitment.get("applies_to", [])) != {"SF-25FQ", "SF-30FQ"}:
+        raise ValueError(f"unexpected 2608A catalog fitment: {fitment}")
+
+    retailer = _normalized_attributes(retailer_row)
+    retailer_fitment = retailer.get("repair_part_fitment_table", {}).get("2608A")
+    if retailer_fitment is None or "SF-30FQ" not in retailer_fitment.get("applies_to", []):
+        raise ValueError(f"retailer observation does not corroborate 2608A/SF-30FQ: "
+                          f"{retailer_fitment}")
+    retailer_identifiers = retailer.get("physical_identifiers", [])
+    rp_30fq = next(
+        (i for i in retailer_identifiers if i.get("ns") == "suburban"
+         and i.get("value") == "RP-30FQ"), None)
+    if rp_30fq is None:
+        raise ValueError(f"retailer observation missing RP-30FQ identifier: "
+                          f"{retailer_identifiers}")
+
+    component_id = "c_placeholder_furnace_part_2608a"
+    component = Component(component_id, SUBURBAN_FURNACE_REPAIR_PART_TYPE, None)
+    identifiers = [
+        Identifier(component_id, "suburban", "2608A", "catalog"),
+        Identifier(component_id, "suburban", "RP-30FQ", "retailer_page"),
+    ]
+    attributes = [ComponentAttribute(
+        component_id, "description", "manufacturer_pdf", catalog_row["id"],
+        value_text=fitment["description"],
+        resolver_version=SUBURBAN_FURNACE_COOKTOP_RESOLVER_VERSION)]
+
+    insert_component(conn, component)
+    for identifier in identifiers:
+        insert_identifier(conn, identifier)
+    for attribute in attributes:
+        insert_component_attribute(conn, attribute)
+
+    edge = Edge(
+        type=EDGE_TYPE_FITS,
+        from_component_id=component_id,
+        to_component_id=furnace_component_id,
+        group_key="suburban_furnace_core_module",
+        status="candidate",
+        resolver_version=SUBURBAN_FURNACE_COOKTOP_RESOLVER_VERSION,
+        notes="Suburban's 2025 catalog names 2608A as the furnace core replacement "
+              "module for SF-25FQ and SF-30FQ; unitedrvparts.com independently "
+              "corroborates the SF-30FQ/2608A pairing and supplies the module's own "
+              "model designation, RP-30FQ.",
+    )
+    insert_edge(conn, edge)
+    for event_type, alpha, beta, source_id in (
+        ("attribute_prior", 1.0, 1.0, None),
+        ("manufacturer_assertion", 2.0, 0.0, catalog_row["id"]),
+        ("retailer_cross_reference", 1.0, 0.0, retailer_row["id"]),
+    ):
+        insert_evidence(conn, RelationshipEvidence(
+            edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+            effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+
+    return component, identifiers, attributes, [edge.id]
 
 
 def identifier_candidate_from_observation(obs_row):
@@ -3543,6 +3746,130 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
                 mismatches += 1
 
     print(f"Atwood endpoints: {mismatches - atwood_mismatches_before} mismatch(es)")
+
+    suburban_furnace_cooktop_mismatches_before = mismatches
+    obs97 = load_observation(obs_db_path, 97)
+    obs98 = load_observation(obs_db_path, 98)
+    obs99 = load_observation(obs_db_path, 99)
+    obs100 = load_observation(obs_db_path, 100)
+    obs101 = load_observation(obs_db_path, 101)
+    obs102 = load_observation(obs_db_path, 102)
+    suburban_furnace_cooktop_ids = {
+        "furnace": "c_placeholder_furnace_sf30fq",
+        "cooktop": "c_placeholder_cooktop_srna3sbbm",
+    }
+    suburban_furnace_cooktop = suburban_furnace_cooktop_components(
+        obs97, obs101, obs100, obs98, obs99, obs102, suburban_furnace_cooktop_ids)
+    for component, identifiers, attributes in suburban_furnace_cooktop:
+        insert_component(conn, component)
+        for identifier in identifiers:
+            insert_identifier(conn, identifier)
+        for attribute in attributes:
+            insert_component_attribute(conn, attribute)
+
+    for component_id in suburban_furnace_cooktop_ids.values():
+        fixture_component = next(
+            (c for c in components_doc if c.get("component_id") == component_id), None)
+        if fixture_component is None:
+            print(f"MISMATCH fixture is missing component: {component_id}")
+            mismatches += 1
+            continue
+        resolved_component = conn.execute(
+            "SELECT * FROM components WHERE component_id = ?", (component_id,)).fetchone()
+        if (resolved_component["part_type_id"], resolved_component["interchange_code"]) != (
+                fixture_component["part_type_id"], fixture_component["interchange_code"]):
+            print(f"MISMATCH Suburban furnace/cooktop component: "
+                  f"resolved={dict(resolved_component)} fixture={fixture_component}")
+            mismatches += 1
+
+        resolved_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (component_id,)).fetchall()
+        }
+        expected_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_component["identifiers"]
+        }
+        if resolved_identifiers != expected_identifiers:
+            print(f"MISMATCH Suburban furnace/cooktop identifiers for {component_id}: "
+                  f"resolved={resolved_identifiers} fixture={expected_identifiers}")
+            mismatches += 1
+
+        resolved_attribute_rows = get_component_attributes(conn, component_id)
+        resolved_attributes = {}
+        for attribute in resolved_attribute_rows:
+            value = attribute.value_text if attribute.value_text is not None else (
+                attribute.value_number if attribute.value_number is not None
+                else attribute.value_boolean)
+            resolved_attributes[attribute.name] = (
+                value, attribute.provenance, attribute.source_observation_id)
+        expected_attributes = {
+            name: (definition["value"], definition["provenance"],
+                   definition["source_observation_id"])
+            for name, definition in fixture_component["attributes"].items()
+        }
+        if (len(resolved_attribute_rows) != len(expected_attributes)
+                or resolved_attributes != expected_attributes):
+            print(f"MISMATCH Suburban furnace/cooktop attributes for {component_id}: "
+                  f"resolved={resolved_attributes} fixture={expected_attributes}")
+            mismatches += 1
+
+    print(f"Suburban furnace/cooktop endpoints: "
+          f"{mismatches - suburban_furnace_cooktop_mismatches_before} mismatch(es)")
+
+    obs103 = load_observation(obs_db_path, 103)
+    core_module, core_ids, core_attrs, core_edge_ids = suburban_furnace_core_module(
+        conn, obs100, obs103, suburban_furnace_cooktop_ids["furnace"])
+
+    fixture_core_module = next(
+        (c for c in components_doc
+         if c.get("component_id") == "c_placeholder_furnace_part_2608a"), None)
+    if fixture_core_module is None:
+        print("MISMATCH fixture is missing component: c_placeholder_furnace_part_2608a")
+        mismatches += 1
+    else:
+        resolved_core_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                ("c_placeholder_furnace_part_2608a",)).fetchall()
+        }
+        expected_core_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_core_module["identifiers"]
+        }
+        if resolved_core_identifiers != expected_core_identifiers:
+            print(f"MISMATCH 2608A identifiers: resolved={resolved_core_identifiers} "
+                  f"fixture={expected_core_identifiers}")
+            mismatches += 1
+
+    fixture_fits_edge = next(
+        (e for e in edges_doc if e.get("type") == "fits"
+         and e.get("group") == "suburban_furnace_core_module"), None)
+    if fixture_fits_edge is None:
+        print("MISMATCH ground-truth.yaml has no suburban_furnace_core_module fits edge")
+        mismatches += 1
+    else:
+        edge_row = conn.execute(
+            "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
+            (core_edge_ids[0],)).fetchone()
+        if tuple(edge_row) != (
+                "fits", fixture_fits_edge["from"], fixture_fits_edge["to"]):
+            print(f"MISMATCH 2608A fits edge: resolved={tuple(edge_row)} "
+                  f"fixture=({fixture_fits_edge['type']}, {fixture_fits_edge['from']}, "
+                  f"{fixture_fits_edge['to']})")
+            mismatches += 1
+        resolved_value = compute_confidence(get_evidence_for_edge(conn, core_edge_ids[0]))["value"]
+        if round(resolved_value, 3) != fixture_fits_edge["confidence"]["value"]:
+            print(f"MISMATCH 2608A fits edge confidence: resolved={resolved_value} "
+                  f"fixture={fixture_fits_edge['confidence']['value']}")
+            mismatches += 1
+
+    print(f"Suburban furnace core module: "
+          f"{mismatches - suburban_furnace_cooktop_mismatches_before} "
+          f"mismatch(es) (cumulative with furnace/cooktop endpoints above)")
 
     suburban_remainder_mismatches_before = mismatches
     obs11 = load_observation(obs_db_path, 11)

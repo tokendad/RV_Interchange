@@ -94,6 +94,45 @@ part_types:
     tags: [plumbing, lp_gas, electrical, appliance, repair_part]
     pcdb_term_id: null
 
+  - id: 416
+    label: furnace
+    compat_mode: attribute
+    critical_attributes: [btu_rating, ignition_type, clearance_front_in, clearance_left_in,
+                           clearance_right_in, clearance_top_in, clearance_bottom_in,
+                           clearance_back_in]
+    secondary_attributes: [cabinet_cutout_h_in, cabinet_cutout_w_in]
+    tags: [climate, lp_gas, appliance]
+    pcdb_term_id: null
+    # cabinet_cutout_h/w is SECONDARY: the installation manual states it once for
+    # the whole SF-FQ family tied to one installation method (against the outer
+    # skin), not confirmed SF-30FQ-specific the way the clearance table is. See
+    # docs/superpowers/specs/2026-08-05-suburban-furnace-cooktop-design.md sec 3.
+    # ignition_type is left unpopulated on SF-30FQ (see that design's sec 4) --
+    # the current VH-series is documented as direct-spark, the legacy pre-VH
+    # SF-30FQ is not independently confirmed to share it.
+
+  - id: 417
+    label: furnace repair/service part
+    compat_mode: fits_bracket
+    critical_attributes: [description]
+    tags: [climate, lp_gas, appliance, repair_part]
+    pcdb_term_id: null
+    # Mirrors 413 (water heater repair/service part) for the furnace host category.
+
+  - id: 601
+    label: cooktop/range
+    compat_mode: attribute
+    critical_attributes: [burner_count, btu_rating, cutout_a_in, cutout_b_in, cutout_c_in,
+                           cutout_d_in, cutout_e_in]
+    secondary_attributes: [oven_btu_rating, manifold_pressure_wc, clearance_below_counter_in,
+                            clearance_right_sidewall_in, clearance_left_sidewall_in,
+                            clearance_backwall_in, clearance_vertical_in]
+    tags: [appliance, lp_gas]
+    pcdb_term_id: null
+    # cutout_a..e_in are the manual's own Figure 2 dimension labels, recorded
+    # without further interpretation. First part type in the "appliances" (600s)
+    # block per ARCHITECTURE-Interchange_Core.md sec 6.
+
 ---
 
 components:
@@ -760,6 +799,56 @@ components:
       opening_h:    {value: 15.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
       opening_w:    {value: 16.25, unit: in, provenance: manufacturer_pdf, source_observation_id: 92}
 
+  - component_id: c_placeholder_furnace_sf30fq
+    part_type_id: 416
+    interchange_code: null
+    identifiers:
+      - {ns: suburban, value: "SF-30FQ", visibility: exterior_plate}
+    attributes:
+      btu_rating:          {value: 30000, unit: "BTU/h", provenance: manufacturer_pdf_inferred, source_observation_id: 100}
+      stock_no:             {value: "2391", provenance: dataplate_photo, source_observation_id: 97}
+      serial:                {value: "122103492", provenance: dataplate_photo, source_observation_id: 97}
+      clearance_front_in:   {value: 1, unit: in, provenance: manufacturer_pdf, source_observation_id: 101}
+      clearance_left_in:    {value: 0, unit: in, provenance: manufacturer_pdf, source_observation_id: 101}
+      clearance_right_in:   {value: 0, unit: in, provenance: manufacturer_pdf, source_observation_id: 101}
+      clearance_top_in:     {value: 0, unit: in, provenance: manufacturer_pdf, source_observation_id: 101}
+      clearance_bottom_in:  {value: 0, unit: in, provenance: manufacturer_pdf, source_observation_id: 101}
+      clearance_back_in:    {value: 0, unit: in, provenance: manufacturer_pdf, source_observation_id: 101}
+      cabinet_cutout_h_in:  {value: 8, unit: in, provenance: manufacturer_pdf, source_observation_id: 101}
+      cabinet_cutout_w_in:  {value: 17.75, unit: in, provenance: manufacturer_pdf, source_observation_id: 101}
+
+  - component_id: c_placeholder_cooktop_srna3sbbm
+    part_type_id: 601
+    interchange_code: null
+    identifiers:
+      - {ns: suburban, value: "SRNA3SBBM", visibility: exterior_plate}
+    attributes:
+      burner_count:                 {value: 3, provenance: dataplate_photo, source_observation_id: 98}
+      btu_rating:                   {value: 9000, unit: "BTU/h", provenance: dataplate_photo, source_observation_id: 98}
+      oven_btu_rating:              {value: 7100, unit: "BTU/h", provenance: dataplate_photo, source_observation_id: 98}
+      manifold_pressure_wc:         {value: 10.0, unit: in_wc, provenance: dataplate_photo, source_observation_id: 98}
+      stock_no:                     {value: "2863", provenance: dataplate_photo, source_observation_id: 98}
+      serial:                        {value: "122109479", provenance: dataplate_photo, source_observation_id: 98}
+      clearance_below_counter_in:   {value: 0, unit: in, provenance: dataplate_photo, source_observation_id: 99}
+      clearance_right_sidewall_in:  {value: 6, unit: in, provenance: dataplate_photo, source_observation_id: 99}
+      clearance_left_sidewall_in:   {value: 6, unit: in, provenance: dataplate_photo, source_observation_id: 99}
+      clearance_backwall_in:        {value: 9, unit: in, provenance: dataplate_photo, source_observation_id: 99}
+      clearance_vertical_in:        {value: 24, unit: in, provenance: dataplate_photo, source_observation_id: 99}
+      cutout_a_in:                  {value: 18.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 102}
+      cutout_b_in:                  {value: 16, unit: in, provenance: manufacturer_pdf, source_observation_id: 102}
+      cutout_c_in:                  {value: 2, unit: in, provenance: manufacturer_pdf, source_observation_id: 102}
+      cutout_d_in:                  {value: 20.625, unit: in, provenance: manufacturer_pdf, source_observation_id: 102}
+      cutout_e_in:                  {value: 0.875, unit: in, provenance: manufacturer_pdf, source_observation_id: 102}
+
+  - component_id: c_placeholder_furnace_part_2608a
+    part_type_id: 417
+    interchange_code: null
+    identifiers:
+      - {ns: suburban, value: "2608A", visibility: catalog}
+      - {ns: suburban, value: "RP-30FQ", visibility: retailer_page}
+    attributes:
+      description: {value: "Furnace Core Replacement Module", provenance: manufacturer_pdf, source_observation_id: 100}
+
   # =========================================================================
   # 3. MONITOR PANEL — system-bound; assembly decomposition case
   # =========================================================================
@@ -1177,6 +1266,17 @@ edges:
       verdict: not_observed
       caveats: []
       note: "Reverse direction not documented, same reasoning as the Suburban edges."
+
+  - type: fits
+    from: c_placeholder_furnace_part_2608a
+    to: c_placeholder_furnace_sf30fq
+    group: suburban_furnace_core_module
+    status: candidate
+    confidence: {alpha: 4, beta: 1, value: 0.8, certainty: 5}
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 100}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 103}
 
 
 identifier_equivalence_candidates:
