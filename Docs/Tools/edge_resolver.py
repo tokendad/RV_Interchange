@@ -67,6 +67,8 @@ SUBURBAN_COOKTOP_PART_TYPE = 601
 SUBURBAN_FURNACE_COOKTOP_RESOLVER_VERSION = "suburban_furnace_cooktop_v1"
 NORCOLD_REFRIGERATOR_PART_TYPE = 602
 NORCOLD_ENDPOINT_RESOLVER_VERSION = "norcold_endpoint_v1"
+NORCOLD_REPAIR_PART_TYPE = 603
+NORCOLD_PARTS_RESOLVER_VERSION = "norcold_parts_v1"
 ATWOOD_6_GAL_OPENING = (12.625, 16.25)
 ATWOOD_10_GAL_OPENING = (15.625, 16.25)
 COLEMAN_VISUAL_MATCH_CANDIDATE = {
@@ -1536,6 +1538,130 @@ def norcold_n811_component(dataplate_row, grammar_row, family_spec_row, componen
     ]
 
     return component, identifiers, attributes
+
+
+def norcold_base_board_fits(conn, catalog_row, host_component_ids):
+    """
+    Build the Norcold `628674` base/power board as a repair-part component and
+    its `fits` edge to the in-hand N811 refrigerator -- same many-to-many
+    "fits" shape as Atwood's repair-parts tables (see
+    atwood_repair_parts_and_fits()'s docstring), sourced to the official
+    Thetford/Norcold parts catalog (obs #109, PL_N61N81_623421). The catalog
+    lists two serial-scoped board revisions (`618186` for serial 9056491 and
+    below, `628674` for 9056492 and above); the in-hand unit's own
+    refrigerator serial (15605897, obs #105) is well above that breakpoint,
+    so only `628674` is built -- `618186` is out of scope for this unit, not
+    a supersession target.
+    """
+    _validate_observation_source(catalog_row, 109, "manufacturer_pdf", 2, "parts catalog")
+    catalog = _normalized_attributes(catalog_row)
+    parts = catalog.get("repair_part_fitment_table")
+    if not isinstance(parts, dict) or "628674" not in parts:
+        raise ValueError(f"obs #109 catalog missing 628674 fitment row: {parts}")
+    spec = parts["628674"]
+    if spec.get("applies_to") != ["N811"]:
+        raise ValueError(f"unexpected 628674 applies_to: {spec.get('applies_to')}")
+
+    component_id = "c_placeholder_norcold_part_628674"
+    component = Component(component_id, NORCOLD_REPAIR_PART_TYPE, None)
+    identifiers = [Identifier(component_id, "norcold", "628674", "catalog")]
+    attributes = [ComponentAttribute(
+        component_id, "description", "manufacturer_pdf", catalog_row["id"],
+        value_text=spec["description"], resolver_version=NORCOLD_PARTS_RESOLVER_VERSION)]
+    insert_component(conn, component)
+    for identifier in identifiers:
+        insert_identifier(conn, identifier)
+    for attribute in attributes:
+        insert_component_attribute(conn, attribute)
+
+    edge = Edge(
+        type=EDGE_TYPE_FITS,
+        from_component_id=component_id,
+        to_component_id=host_component_ids["N811"],
+        group_key="norcold_base_board",
+        status="candidate",
+        resolver_version=NORCOLD_PARTS_RESOLVER_VERSION,
+        notes="Thetford/Norcold's official N61/N81 parts catalog (623421) names "
+              "628674 as the base/power board for serial 9056492 and above, "
+              "confirmed applicable to N811 by column position; the in-hand "
+              "unit's serial (15605897) is above that breakpoint.",
+    )
+    insert_edge(conn, edge)
+    for event_type, alpha, beta, source_id in (
+        ("attribute_prior", 1.0, 1.0, None),
+        ("manufacturer_assertion", 2.0, 0.0, catalog_row["id"]),
+    ):
+        insert_evidence(conn, RelationshipEvidence(
+            edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+            effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+
+    return component, identifiers, attributes, [edge.id]
+
+
+def norcold_optical_control_supersession(conn, catalog_row):
+    """
+    Build the Norcold `628979`/`637775` optical-control-board pair and the
+    `supersedes` edge between them -- family-level catalog evidence, not a
+    claim about which exact board is on the in-hand unit (the control
+    board's own color and internal serial were never photographed; see
+    Docs/Data/Norcold/VENDOR-Norcold.md sec 4). Sourced to obs #109, whose
+    own "(USE 637775)" wording is the same explicit supersession convention
+    already used elsewhere in this project's Suburban/Coleman-Mach catalogs.
+    Not attached to c_placeholder_refrigerator_n811 by any edge.
+    """
+    _validate_observation_source(catalog_row, 109, "manufacturer_pdf", 2, "parts catalog")
+    catalog = _normalized_attributes(catalog_row)
+    chart = catalog.get("replacement_chart_entries")
+    if not isinstance(chart, dict) or chart.get("628979") != "637775":
+        raise ValueError(f"obs #109 catalog missing 628979 -> 637775: {chart}")
+
+    old_id, new_id = "c_placeholder_norcold_part_628979", "c_placeholder_norcold_part_637775"
+    old_component = Component(old_id, NORCOLD_REPAIR_PART_TYPE, None)
+    new_component = Component(new_id, NORCOLD_REPAIR_PART_TYPE, None)
+    old_identifiers = [Identifier(old_id, "norcold", "628979", "catalog")]
+    new_identifiers = [Identifier(new_id, "norcold", "637775", "catalog")]
+    old_attributes = [ComponentAttribute(
+        old_id, "description", "manufacturer_pdf", catalog_row["id"],
+        value_text="Control Assy-Optical/Black (Serial # 9056492 & Above)",
+        resolver_version=NORCOLD_PARTS_RESOLVER_VERSION)]
+    new_attributes = [ComponentAttribute(
+        new_id, "description", "manufacturer_pdf", catalog_row["id"],
+        value_text="Kit Service Optical Control Replacement",
+        resolver_version=NORCOLD_PARTS_RESOLVER_VERSION)]
+    for component, identifiers, attributes in (
+            (old_component, old_identifiers, old_attributes),
+            (new_component, new_identifiers, new_attributes)):
+        insert_component(conn, component)
+        for identifier in identifiers:
+            insert_identifier(conn, identifier)
+        for attribute in attributes:
+            insert_component_attribute(conn, attribute)
+
+    edge = Edge(
+        type=EDGE_TYPE_SUPERSEDES,
+        from_component_id=old_id,
+        to_component_id=new_id,
+        group_key="norcold_optical_control_black",
+        status="candidate",
+        resolver_version=NORCOLD_PARTS_RESOLVER_VERSION,
+        notes="Thetford/Norcold's official N61/N81 parts catalog (623421) names "
+              "637775 as the current replacement kit for 628979 ('USE 637775').",
+    )
+    insert_edge(conn, edge)
+    insert_supersession_detail(conn, EdgeSupersessionDetail(
+        edge_id=edge.id,
+        note="Catalog's own '(USE 637775)' wording for the black optical control "
+             "board, serial 9056492 and above."))
+    for event_type, alpha, beta, source_id in (
+        ("attribute_prior", 1.0, 1.0, None),
+        ("manufacturer_assertion", 2.0, 0.0, catalog_row["id"]),
+    ):
+        insert_evidence(conn, RelationshipEvidence(
+            edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+            effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+
+    return (old_component, old_identifiers, old_attributes), \
+           (new_component, new_identifiers, new_attributes), edge.id
 
 
 def identifier_candidate_from_observation(obs_row):
@@ -4062,6 +4188,77 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
             mismatches += 1
 
     print(f"Norcold endpoint: {mismatches - norcold_mismatches_before} mismatch(es)")
+
+    norcold_parts_mismatches_before = mismatches
+    obs109 = load_observation(obs_db_path, 109)
+    base_board_component, base_board_ids, base_board_attrs, base_board_edge_ids = \
+        norcold_base_board_fits(conn, obs109, {"N811": norcold_component_id})
+    (optical_old, optical_old_ids, optical_old_attrs), \
+        (optical_new, optical_new_ids, optical_new_attrs), optical_edge_id = \
+        norcold_optical_control_supersession(conn, obs109)
+
+    for component_id in (
+        "c_placeholder_norcold_part_628674",
+        "c_placeholder_norcold_part_628979",
+        "c_placeholder_norcold_part_637775",
+    ):
+        fixture_part = next(
+            (c for c in components_doc if c.get("component_id") == component_id), None)
+        if fixture_part is None:
+            print(f"MISMATCH fixture is missing component: {component_id}")
+            mismatches += 1
+            continue
+        resolved_part_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (component_id,)).fetchall()
+        }
+        fixture_part_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_part["identifiers"]
+        }
+        if resolved_part_identifiers != fixture_part_identifiers:
+            print(f"MISMATCH Norcold part identifiers for {component_id}: "
+                  f"resolved={resolved_part_identifiers} fixture={fixture_part_identifiers}")
+            mismatches += 1
+
+    fixture_base_board_edge = next(
+        (e for e in edges_doc if e.get("type") == "fits"
+         and e.get("group") == "norcold_base_board"), None)
+    if fixture_base_board_edge is None:
+        print("MISMATCH ground-truth.yaml has no norcold_base_board fits edge")
+        mismatches += 1
+    else:
+        edge_row = conn.execute(
+            "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
+            (base_board_edge_ids[0],)).fetchone()
+        if tuple(edge_row) != (
+                "fits", fixture_base_board_edge["from"], fixture_base_board_edge["to"]):
+            print(f"MISMATCH 628674 fits edge: resolved={tuple(edge_row)} "
+                  f"fixture=({fixture_base_board_edge['type']}, "
+                  f"{fixture_base_board_edge['from']}, {fixture_base_board_edge['to']})")
+            mismatches += 1
+
+    fixture_optical_edge = next(
+        (e for e in edges_doc if e.get("type") == "supersedes"
+         and e.get("group") == "norcold_optical_control_black"), None)
+    if fixture_optical_edge is None:
+        print("MISMATCH ground-truth.yaml has no norcold_optical_control_black supersedes edge")
+        mismatches += 1
+    else:
+        edge_row = conn.execute(
+            "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
+            (optical_edge_id,)).fetchone()
+        if tuple(edge_row) != (
+                "supersedes", fixture_optical_edge["from"], fixture_optical_edge["to"]):
+            print(f"MISMATCH optical control supersedes edge: resolved={tuple(edge_row)} "
+                  f"fixture=({fixture_optical_edge['type']}, {fixture_optical_edge['from']}, "
+                  f"{fixture_optical_edge['to']})")
+            mismatches += 1
+
+    print(f"Norcold repair parts: "
+          f"{mismatches - norcold_parts_mismatches_before} mismatch(es)")
 
     suburban_remainder_mismatches_before = mismatches
     obs11 = load_observation(obs_db_path, 11)

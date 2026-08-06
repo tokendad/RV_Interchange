@@ -875,6 +875,30 @@ components:
       rough_opening_w_in:    {value: 23.5, unit: in, provenance: manufacturer_pdf, source_observation_id: 108}
       rough_opening_d_in:    {value: 24, unit: in, provenance: manufacturer_pdf, source_observation_id: 108}
 
+  - component_id: c_placeholder_norcold_part_628674
+    part_type_id: 603
+    interchange_code: null
+    identifiers:
+      - {ns: norcold, value: "628674", visibility: catalog}
+    attributes:
+      description: {value: "Base-Power Board (Serial # 9056492 & Above)", provenance: manufacturer_pdf, source_observation_id: 109}
+
+  - component_id: c_placeholder_norcold_part_628979
+    part_type_id: 603
+    interchange_code: null
+    identifiers:
+      - {ns: norcold, value: "628979", visibility: catalog}
+    attributes:
+      description: {value: "Control Assy-Optical/Black (Serial # 9056492 & Above)", provenance: manufacturer_pdf, source_observation_id: 109}
+
+  - component_id: c_placeholder_norcold_part_637775
+    part_type_id: 603
+    interchange_code: null
+    identifiers:
+      - {ns: norcold, value: "637775", visibility: catalog}
+    attributes:
+      description: {value: "Kit Service Optical Control Replacement", provenance: manufacturer_pdf, source_observation_id: 109}
+
   # =========================================================================
   # 3. MONITOR PANEL — system-bound; assembly decomposition case
   # =========================================================================
@@ -1303,6 +1327,24 @@ edges:
       - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
       - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 100}
       - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 103}
+
+  - type: fits
+    from: c_placeholder_norcold_part_628674
+    to: c_placeholder_refrigerator_n811
+    group: norcold_base_board
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 109}
+
+  - type: supersedes
+    from: c_placeholder_norcold_part_628979
+    to: c_placeholder_norcold_part_637775
+    group: norcold_optical_control_black
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 109}
 
 
 identifier_equivalence_candidates:

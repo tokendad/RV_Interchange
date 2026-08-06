@@ -1,7 +1,9 @@
 # VENDOR — Norcold (Thetford)
 
 **Status:** exact endpoint component built (`c_placeholder_refrigerator_n811`,
-part_type_id `602`, resolver version `norcold_endpoint_v1`)
+part_type_id `602`, resolver version `norcold_endpoint_v1`); one `fits` repair-part edge
+and one `supersedes` repair-part chain built (part_type_id `603`, resolver version
+`norcold_parts_v1`)
 **Vendor position:** 4th Stage 1 vendor (after Suburban, Coleman-Mach, Atwood)
 
 ## 1. In-hand unit
@@ -93,17 +95,51 @@ and not itself a build source.
 property of how this unit was originally packed, not a lasting physical feature of the
 installed refrigerator.
 
-## 4. Not yet done
+## 4. Fits and supersedes — official parts catalog (obs #109)
 
-- No `fits`/`supersedes` edges. The online research report's near-match leads
-  (`N8X`/`N8DC` as dealer-claimed direct replacements, `630762` optical board —
-  unverified marketplace claim, serial-dependent service parts) are logged there, not
-  yet promoted to any graph edge.
+Fetched Thetford/Norcold's own official N61/N81 parts catalog (`PL_N61N81_623421`,
+dated 2022-02-21) — the same tier of manufacturer-primary evidence that unlocked
+Coleman-Mach's and Suburban's supersession edges. Column alignment confirmed with
+`pdftotext -bbox` (same coordinate-precise method as Atwood's repair-parts tables),
+not eyeballed.
+
+**`fits` — base/power board (`c_placeholder_norcold_part_628674`):** the catalog lists
+two serial-scoped board revisions for a shared bracket of models including N811 (its
+own footnote: "N811 SERIES INCLUDES N814F2 AND N811 MODELS") — `618186` for
+refrigerator serial 9056491 and below, `628674` for 9056492 and above. The in-hand
+unit's own serial (`15605897`, obs #105) is well above that breakpoint, so only
+`628674` is built as a `fits` edge to `c_placeholder_refrigerator_n811`; `618186` is
+out of scope for this unit (not a supersession target — the catalog doesn't say one
+replaces the other, just which one to use per serial cohort).
+
+**`supersedes` — optical control board (`628979` → `637775`):** the same catalog
+uses explicit "(USE 637775)" wording for the black optical control assembly, serial
+9056492 and above — the same supersession-language convention already established
+elsewhere in this project (Suburban/Coleman-Mach catalogs). Built as a **family-level**
+`supersedes` edge between the two repair-part components, deliberately **not**
+attached to `c_placeholder_refrigerator_n811` by any edge: the control board's own
+color and internal serial were never photographed on the in-hand unit, so this
+documents the catalog's real supersession fact without claiming which exact board is
+currently installed. Three other serial/color-scoped pairs exist in the same catalog
+table (`621988`→`637774`, `636105`→`637776`, `629079`→`637777`) — not built, since
+they don't match the in-hand unit's known refrigerator-serial cohort as cleanly.
+
+## 5. Not yet done
+
+- The online research report's near-match leads (`N8X`/`N8DC` as dealer-claimed direct
+  replacements — vague line names, not verified exact catalog model numbers; `630762`
+  optical board — unverified single marketplace claim) remain observation-only. Same
+  bar this project has applied elsewhere (Coleman-Mach's `8330-3362`/`1C26-10`): no
+  edge without either a manufacturer statement or a second independent source.
+- The catalog's other three optical-control supersession pairs (§4) and its AC-heater,
+  gas-valve-bracket, and drain-hose serial-scoped tables (obs #109's `quoted_text`/the
+  research report's §5) are real but not yet built — same evidentiary bar as `628674`,
+  just not yet worked through column-by-column.
 - Recall status checked (research report only, not a logged observation) — `N811`/
   `N811RT` absent from Thetford's current model-list pages reviewed, but that's not
   conclusive without a serial-specific check.
 
-## 5. Sources
+## 6. Sources
 
 - obs #105 — in-hand data plate, warranty sticker, and cooling-unit tag photographs
 - obs #106 — Norcold Refrigerator Service Manual, N611v/N811v Models (636355A),
@@ -114,6 +150,9 @@ installed refrigerator.
 - obs #108 — Norcold Refrigerator Service Manual, N6XX/N8XX Models (619394EFP),
   `Docs/Data/Norcold/Norcold-N6XX-N8XX-Service-Manual-619394E.pdf` (mirror: bryantrv.com),
   p.3–4 Specifications & Model Identification — primary build source
+- obs #109 — Norcold/Thetford Official Parts List, N61/N81 Series (623421, dated
+  2022-02-21), `Docs/Data/Norcold/Norcold-Thetford-N61-N81-Parts-List-623421.pdf`
+  (mirror: thetford.com), p.6 Optical Control & p.9 Base/Power Board tables
 - `Docs/Data/Norcold/Norcold N811RT Research Report.md` — broader online research pass
   (manuals, parts catalog, recall status, near-match interchange leads), not yet
   individually logged as observations
