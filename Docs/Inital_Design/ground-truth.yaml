@@ -1284,16 +1284,22 @@ identifier_equivalence_candidates:
   - a: {ns: icm, value: AR7815}
     b: {ns: coleman, value: 7330F3858}
     status: open
-    basis: retailer_cross_reference
-    source: "obs #43"
+    basis: retailer_cross_reference, teardown_co_occurrence
+    source: "obs #43, obs #104"
     confidence:
-      alpha: 2
+      alpha: 5
       beta: 1
       note: >
         One used-parts retailer presents AR7815 and 7330F3858 as the same
-        thermostat. Neither identifier appears on the in-hand AP7862 /
-        7330G335 unit, so this remains a separate open candidate rather than
-        a confirmed alias or component identifier.
+        thermostat (obs #43). A photograph of the physical product label
+        (obs #104, Forest River Forums, saved as
+        Docs/Data/Coleman_Mach/Thermostat/IMG_9829.jpg) shows both
+        identifiers printed on the same label -- Part No: AR7815, Date
+        Code: L16, RVP No: 7330F3858 -- confirming the identity claim.
+        Neither identifier appears on the in-hand AP7862 / 7330G335 unit,
+        which is a separate physical thermostat, so this remains an open
+        candidate (no component_id of ours to merge into) rather than a
+        component identifier on our fixture's thermostat.
 
 
 ---

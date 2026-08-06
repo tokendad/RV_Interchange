@@ -53,6 +53,23 @@ the breakdown as text, the way `suburbanrvparts.com/suburban-water-heater-sw12de
 did for water heaters. If the same authoring pattern holds, this whole section becomes
 unnecessary — confirmed text beats re-squinting at a screenshot.
 
+### 2.1 Manufacturer-confirmed: `F`, `V`, `H`, `Q` (2026-08-06)
+
+Highest-trust source yet — a direct reply from Suburban's own support (see
+`Gmail-FVHQ-code.pdf` in this folder; also recorded in GitHub issue #26, closed):
+
+- **`F`** = front gas — gas inlet is on the front of the unit.
+- **`V`** = vertical mounting.
+- **`H`** = horizontal mounting — combined with `V` (i.e. `VH`), means the unit can be
+  mounted either way.
+- **`Q`** = quiet.
+
+This confirms (and outranks) the informal `irv2.com` forum theory and the
+`suburbanrvparts.com` SFQ-series page grammar mentioned in issue #26. Still unconfirmed by
+this manufacturer reply: the sail-switch/spark-ignition/ducted-blower letters noted above,
+and the two cooktop-era grammars in §3 — this only resolves the furnace `F`/`V`/`H`/`Q`
+suffix letters.
+
 ---
 
 ## 3. Cooktops — two charts, likely two grammars

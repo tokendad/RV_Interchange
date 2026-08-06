@@ -1472,6 +1472,31 @@ def identifier_candidate_from_observation(obs_row):
     return candidate, evidence
 
 
+def identifier_candidate_evidence_from_label_photo(obs_row):
+    """
+    Second evidence event for the AR7815/7330F3858 candidate: a photograph of the
+    physical product label showing both identifiers printed on the same unit
+    (obs #104), independent of and stronger than the single-retailer claim in
+    identifier_candidate_from_observation (obs #43).
+    """
+    attrs = _normalized_attributes(obs_row)
+    relation = attrs.get("sku_relationship")
+    models = attrs.get("model_spec_table")
+    if not isinstance(relation, dict) or relation.get("type") != \
+            "photographed_product_label":
+        raise ValueError(f"observation #{obs_row['id']} has no label-photo claim")
+    values = relation.get("identifiers")
+    if values != ["AR7815", "7330F3858"] or not isinstance(models, dict):
+        raise ValueError(f"unexpected identifier-equivalence claim: {relation}")
+    namespaces = {value: models.get(value, {}).get("namespace") for value in values}
+    if namespaces != {"AR7815": "icm", "7330F3858": "coleman"}:
+        raise ValueError(f"unexpected identifier namespaces: {namespaces}")
+    return IdentifierEquivalenceEvidence(
+        candidate_id=None, event_type="teardown_co_occurrence",
+        effect_alpha=3.0, effect_beta=0.0, occurred_at=now_iso(),
+        source_observation_id=obs_row["id"])
+
+
 def resolve_substitution_pair(conn, from_id, from_model, to_id, to_model, group_key):
     """
     Derive the two directed substitutes edges between from_id and to_id
@@ -1764,6 +1789,7 @@ def self_test(verbose=False):
     obs48 = load_observation(obs_db, 48)  # 7330G3351 retailer replacement
     obs49 = load_observation(obs_db, 49)  # 7330F3852 retailer replacement
     obs50 = load_observation(obs_db, 50)  # observation-only visual candidate
+    obs104 = load_observation(obs_db, 104)  # AR7815/7330F3858 label photo
 
     thermostat, thermostat_ids, thermostat_attrs = thermostat_from_observations(
         obs44, obs45, obs46, obs47, "c_placeholder_tstat")
@@ -2362,6 +2388,14 @@ def self_test(verbose=False):
             "retailer_cross_reference", 2.0, 1.0, 43):
         failures.append(f"identifier candidate evidence mismatch: {candidate_evidence}")
 
+    label_photo_evidence = identifier_candidate_evidence_from_label_photo(obs104)
+    if (label_photo_evidence.event_type, label_photo_evidence.effect_alpha,
+            label_photo_evidence.effect_beta,
+            label_photo_evidence.source_observation_id) != (
+            "teardown_co_occurrence", 3.0, 0.0, 104):
+        failures.append(
+            f"identifier candidate label-photo evidence mismatch: {label_photo_evidence}")
+
     comp_6del, ids_6del = component_from_observation(
         obs1, "c_placeholder_wh_6del", WATER_HEATER_PART_TYPE)
     comp_6de, ids_6de = component_from_observation(
@@ -2920,6 +2954,7 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
         obs45 = load_observation(obs_db_path, 45)
         obs46 = load_observation(obs_db_path, 46)
         obs47 = load_observation(obs_db_path, 47)
+        obs104 = load_observation(obs_db_path, 104)
         thermostat, thermostat_ids, thermostat_attrs = thermostat_from_observations(
             obs44, obs45, obs46, obs47, "c_placeholder_tstat")
         insert_component(conn, thermostat)
@@ -2987,6 +3022,9 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
         insert_identifier_equivalence_candidate(conn, candidate)
         candidate_evidence.candidate_id = candidate.id
         insert_identifier_equivalence_evidence(conn, candidate_evidence)
+        label_photo_evidence = identifier_candidate_evidence_from_label_photo(obs104)
+        label_photo_evidence.candidate_id = candidate.id
+        insert_identifier_equivalence_evidence(conn, label_photo_evidence)
         candidates = get_identifier_equivalence_candidates(conn, status="open")
         fixture_candidates = next(
             (d.get("identifier_equivalence_candidates", []) for d in docs
@@ -3009,10 +3047,13 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
                 mismatches += 1
             evidence = get_identifier_equivalence_evidence(conn, candidates[0].id)
             expected_confidence = fixture_candidate["confidence"]
-            if len(evidence) != 1 or (evidence[0].effect_alpha,
-                    evidence[0].effect_beta, evidence[0].source_observation_id) != (
+            resolved_alpha = sum(e.effect_alpha for e in evidence)
+            resolved_beta = sum(e.effect_beta for e in evidence)
+            resolved_sources = sorted(e.source_observation_id for e in evidence)
+            if (len(evidence) != 2 or resolved_sources != [43, 104] or
+                    (resolved_alpha, resolved_beta) != (
                     float(expected_confidence["alpha"]),
-                    float(expected_confidence["beta"]), 43):
+                    float(expected_confidence["beta"]))):
                 print(f"MISMATCH identifier candidate evidence: {evidence}")
                 mismatches += 1
 

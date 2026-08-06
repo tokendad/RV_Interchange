@@ -59,3 +59,18 @@ Docs/Data/Current RV - DO NOT COMMIT THIS FOLDER/
 
 # Resolver output db — rebuildable from observations.db, not source of truth
 Docs/Tools/components.db
+
+# Claude Code project instructions — local only, not shared via git
+CLAUDE.md
+
+# Images — going forward, evidence photos get hand-transcribed into observations.db
+# instead of committed as binary files. Already-tracked images as of 2026-08-06 are
+# unaffected (git keeps tracking files added before a gitignore rule existed).
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tiff
+*.webp
+*.heic

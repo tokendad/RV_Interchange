@@ -140,10 +140,36 @@ ICM AP7862 = Coleman/RVP 7330G335 = board PCB1060 / SPCB-2
 Here `=` means the identifiers coexist on this one component, not that their namespaces
 or numbering systems are generally interchangeable.
 
+**Also confirmed, on a separate physical unit** (2026-08-06, observation #104): a
+product-label photograph posted to a Forest River Forums thread
+(`img_9829-jpg.1338016`, saved locally as
+`Docs/Data/Coleman_Mach/Thermostat/IMG_9829.jpg`, research notes in
+`AR7815_Research.md` in the same folder) shows both identifiers printed on the same
+label:
+
+```text
+Part No: AR7815
+Date Code: L16
+RVP No: 7330F3858
+L02745806316
+```
+
+This resolves the `AR7815`/`7330F3858` `identifier_equivalence_candidate` (previously
+obs #43-only, GitHub issue #18) to a **confirmed alias**:
+
+```text
+ICM AR7815 = Coleman/RVP 7330F3858 (date code L16)
+```
+
+The bar here is stronger than the usual "second independent source" standard — this is a
+direct photograph of the manufacturer's own physical label carrying both numbers on one
+unit, not two separate sources describing the part in prose. Obs #43's used-parts-retailer
+claim is now corroborated rather than standing alone. This is a distinct physical unit
+from the `AP7862`/`7330G335` unit above — the two aliases are not shown to be the same
+generation of thermostat.
+
 Still candidate-only:
 
-- Observation #43: a used-parts retailer presents ICM `AR7815` and Coleman `7330F3858`
-  as the same thermostat. Neither appears on the in-hand unit.
 - `AR7816`, `AP7862-3`, and `PCB1060-4A` currently lack captured evidence sufficient to
   attach them to the in-hand component.
 - Observation #40 lists the current manufacturer model `7330G3351`; the extra trailing
@@ -393,8 +419,8 @@ Observation #59 also independently corroborates two previously weaker leads:
 
 - `7330F3858` (obs #43's `AR7815`/`7330F3858` used-parts-retailer claim) appears in the
   MakariosRV chart as its own old-model row, confirming it is a real Coleman model number
-  from a second, independent retailer — still not enough to confirm the `AR7815` alias
-  itself, which remains an open `identifier_equivalence_candidate`.
+  from a second, independent retailer. The `AR7815` alias itself was later confirmed
+  directly by obs #104's product-label photograph — see §5.
 - `8330-3862` (previously seen only in obs #55/#56 cross-sell widgets) appears repeatedly
   in the chart as the named black-digital sibling of `8330-3362` in an explicit replacement
   role, not merchandising placement — stronger evidence that it is a real, distinct catalog
@@ -693,12 +719,19 @@ as the `9420-352` edge). `edge_resolver.py --check-fixture`: 0 mismatches.
   `7330F3361` (see §6.8)
 - obs #94 — same catalog page, the `9420A382` `REPLACES` rows (three groups: cool-only,
   heat pump, heat/cool) (see §6.9)
+- obs #104 — Forest River Forums thread attachment, physical label photograph confirming
+  `AR7815`/`7330F3858` (see §5)
 
 ## 8. Resolver status and next milestone
 
 The fixture resolver now builds the thermostat component from observations #44-#47,
-persists 26 qualified attributes, and stores the retailer-only `AR7815`/`7330F3858` claim
-as a separate open identifier-equivalence candidate sourced to observation #43.
+persists 26 qualified attributes, and stores the `AR7815`/`7330F3858` claim as a separate
+identifier-equivalence candidate sourced to observation #43 (retailer claim) and
+observation #104 (physical label photo, 2026-08-06 — see §5). The candidate stays
+`status: open` rather than `merged`, because neither identifier attaches to any
+component_id in this fixture (a different physical thermostat than the in-hand
+`AP7862`/`7330G335` unit) — `open` here means "identity confirmed, no component of ours to
+merge into," not "unconfirmed."
 
 It also builds the three exact catalog endpoints from manufacturer observations #40-#42
 and persists the two directed, candidate `supersedes` edges above with observation #48/#49
