@@ -1549,3 +1549,7 @@ Concretely:
 
 Findings consolidate into `VENDOR-Reference_RV_Components.md`, mirroring the structure of
 the existing `VENDOR-Reference_Election_Tech.md`.
+
+- **2026-08-05:** Furnace (`SF-30FQ`) and cooktop/range (`SRNA3SBBM`) added as exact
+  endpoint components — see `VENDOR-Suburban-Furnace_Cooktop.md` sec 0 and
+  `docs/superpowers/specs/2026-08-05-suburban-furnace-cooktop-design.md`.

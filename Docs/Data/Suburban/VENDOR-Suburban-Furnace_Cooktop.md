@@ -8,6 +8,20 @@ two cooktop eras). No text version found yet for these two families.
 
 ---
 
+## 0. Update 2026-08-05 — exact endpoint components built
+
+The owner's in-hand furnace (`SF-30FQ`) and cooktop/range (`SRNA3SBBM`) are now built as
+exact fixture components, sourced from in-hand data-plate photographs and matching
+manufacturer installation manuals the owner confirmed match their units — see
+`docs/superpowers/specs/2026-08-05-suburban-furnace-cooktop-design.md`. The furnace also has
+a `fits` edge to its `2608A` core replacement module (catalog + retailer corroborated).
+
+This is identity/dimension data for these two specific in-hand models, built independently
+of the letter-by-letter grammar question below, which remains open. Do not treat this
+section as resolving anything in sections 1–4.
+
+---
+
 ## 1. Trust level — read this before using anything below
 
 Everything in this document comes from **OCR/visual transcription of a compressed
