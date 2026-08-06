@@ -849,6 +849,32 @@ components:
     attributes:
       description: {value: "Furnace Core Replacement Module", provenance: manufacturer_pdf, source_observation_id: 100}
 
+  - component_id: c_placeholder_refrigerator_n811
+    part_type_id: 602
+    interchange_code: null
+    identifiers:
+      - {ns: norcold, value: "N811", visibility: spec_plate_interior_upper_right}
+      - {ns: norcold, value: "N811RT", visibility: warranty_registration_sticker}
+    attributes:
+      serial:               {value: "15605897", provenance: dataplate_photo, source_observation_id: 105}
+      group_code:            {value: "120601", provenance: dataplate_photo, source_observation_id: 105}
+      input_btuh:            {value: 1420, unit: "BTU/h", provenance: dataplate_photo, source_observation_id: 105}
+      refrigerant:           {value: "R717", provenance: dataplate_photo, source_observation_id: 105}
+      refrigerant_lbs:       {value: 0.66, unit: lb, provenance: dataplate_photo, source_observation_id: 105}
+      ac_voltage_v:          {value: 120, unit: V, provenance: dataplate_photo, source_observation_id: 105}
+      ac_amperage_a:         {value: 2.5, unit: A, provenance: dataplate_photo, source_observation_id: 105}
+      ac_watts_w:            {value: 300, unit: W, provenance: dataplate_photo, source_observation_id: 105}
+      dc_voltage_v:          {value: 12, unit: V, provenance: dataplate_photo, source_observation_id: 105}
+      dc_amperage_a:         {value: 0.8, unit: A, provenance: dataplate_photo, source_observation_id: 105}
+      dc_watts_w:            {value: 10, unit: W, provenance: dataplate_photo, source_observation_id: 105}
+      cooling_unit_model:    {value: "8W1006", provenance: dataplate_photo, source_observation_id: 105}
+      cooling_unit_serial:   {value: "15597729", provenance: dataplate_photo, source_observation_id: 105}
+      door_swing:            {value: "R", provenance: manufacturer_pdf_inferred, source_observation_id: 106}
+      storage_volume_cu_ft:  {value: 7.5, unit: ft3, provenance: manufacturer_pdf, source_observation_id: 108}
+      rough_opening_h_in:    {value: 59.875, unit: in, provenance: manufacturer_pdf, source_observation_id: 108}
+      rough_opening_w_in:    {value: 23.5, unit: in, provenance: manufacturer_pdf, source_observation_id: 108}
+      rough_opening_d_in:    {value: 24, unit: in, provenance: manufacturer_pdf, source_observation_id: 108}
+
   # =========================================================================
   # 3. MONITOR PANEL — system-bound; assembly decomposition case
   # =========================================================================

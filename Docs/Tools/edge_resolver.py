@@ -65,6 +65,8 @@ SUBURBAN_FURNACE_PART_TYPE = 416
 SUBURBAN_FURNACE_REPAIR_PART_TYPE = 417
 SUBURBAN_COOKTOP_PART_TYPE = 601
 SUBURBAN_FURNACE_COOKTOP_RESOLVER_VERSION = "suburban_furnace_cooktop_v1"
+NORCOLD_REFRIGERATOR_PART_TYPE = 602
+NORCOLD_ENDPOINT_RESOLVER_VERSION = "norcold_endpoint_v1"
 ATWOOD_6_GAL_OPENING = (12.625, 16.25)
 ATWOOD_10_GAL_OPENING = (15.625, 16.25)
 COLEMAN_VISUAL_MATCH_CANDIDATE = {
@@ -1448,6 +1450,92 @@ def suburban_furnace_core_module(conn, catalog_row, retailer_row, furnace_compon
             effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
 
     return component, identifiers, attributes, [edge.id]
+
+
+def norcold_n811_component(dataplate_row, grammar_row, family_spec_row, component_id):
+    """
+    Build the owner's in-hand Norcold refrigerator as an exact endpoint
+    component -- the 4th Stage 1 vendor. See Docs/Data/Norcold/VENDOR-Norcold.md.
+
+    Identity is two identifiers on one physical unit, not a conflict: the
+    permanent spec plate reads `N811` (obs #105) while a same-door warranty
+    sticker reads `N811RT` (obs #105) -- both namespace `norcold`. The
+    Service Manual's own model-identification grammar (obs #106, scoped to
+    the later N611v/N811v models) decodes position 10 (door swing: L/R) and
+    position 12 (packaging type: blank/T/M6), so `N811RT` = base `N811` + `R`
+    (right-hand door swing, a real physical attribute) + `T` (returnable
+    packaging tray, a shipping/batch attribute -- deliberately NOT asserted
+    as a component attribute here, since it isn't a lasting physical
+    feature of the installed unit).
+
+    Specs come from obs #108 (Service Manual, N6XX/N8XX Models -- the plain,
+    non-`v` family that actually matches this in-hand unit), not obs #106/
+    #107's `v`-scoped documents, which are corroboration only.
+    """
+    _validate_observation_source(dataplate_row, 105, "dataplate_photo", 2,
+                                  "refrigerator dataplate")
+    _validate_observation_source(grammar_row, 106, "manufacturer_pdf", 2,
+                                  "model-ID grammar")
+    _validate_observation_source(family_spec_row, 108, "manufacturer_pdf", 2,
+                                  "N6XX/N8XX family specifications")
+
+    plate = _normalized_attributes(dataplate_row)
+    plate_ids = {(i["ns"], i["value"]) for i in plate["physical_identifiers"]}
+    if plate_ids != {("norcold", "N811"), ("norcold", "N811RT")}:
+        raise ValueError(f"unexpected refrigerator identifiers: {plate_ids}")
+
+    grammar = _normalized_attributes(grammar_row)
+    positions = grammar.get("model_grammar_positions")
+    if not isinstance(positions, dict) or "right-hand door swing" not in positions.get("10", ""):
+        raise ValueError(f"model-ID grammar missing expected door-swing decode: {positions}")
+
+    family_spec = _normalized_attributes(family_spec_row)
+    if family_spec.get("compatibility_statement") != \
+            "N61X/N81X Models (plain, non-v -- matches in-hand N811)":
+        raise ValueError(
+            f"unexpected family-spec scope: {family_spec.get('compatibility_statement')}")
+
+    def text_attr(name, value, source_row, provenance="dataplate_photo"):
+        return ComponentAttribute(
+            component_id, name, provenance, source_row["id"], value_text=value,
+            resolver_version=NORCOLD_ENDPOINT_RESOLVER_VERSION)
+
+    def number_attr(name, value, source_row, unit=None, provenance="dataplate_photo"):
+        return ComponentAttribute(
+            component_id, name, provenance, source_row["id"], value_number=value,
+            unit=unit, resolver_version=NORCOLD_ENDPOINT_RESOLVER_VERSION)
+
+    component = Component(component_id, NORCOLD_REFRIGERATOR_PART_TYPE, None)
+    identifiers = [
+        Identifier(component_id, "norcold", "N811", "spec_plate_interior_upper_right"),
+        Identifier(component_id, "norcold", "N811RT", "warranty_registration_sticker"),
+    ]
+    attributes = [
+        text_attr("serial", plate["serial_number"], dataplate_row),
+        text_attr("group_code", plate["group_code"], dataplate_row),
+        number_attr("input_btuh", float(plate["input_btuh"]), dataplate_row, unit="BTU/h"),
+        text_attr("refrigerant", plate["refrigerant"], dataplate_row),
+        number_attr("refrigerant_lbs", float(plate["refrigerant_lbs"]), dataplate_row, unit="lb"),
+        number_attr("ac_voltage_v", float(plate["ac_voltage_v"]), dataplate_row, unit="V"),
+        number_attr("ac_amperage_a", float(plate["ac_amperage_a"]), dataplate_row, unit="A"),
+        number_attr("ac_watts_w", float(plate["ac_watts_w"]), dataplate_row, unit="W"),
+        number_attr("dc_voltage_v", float(plate["dc_voltage_v"]), dataplate_row, unit="V"),
+        number_attr("dc_amperage_a", float(plate["dc_amperage_a"]), dataplate_row, unit="A"),
+        number_attr("dc_watts_w", float(plate["dc_watts_w"]), dataplate_row, unit="W"),
+        text_attr("cooling_unit_model", plate["cooling_unit_model"], dataplate_row),
+        text_attr("cooling_unit_serial", plate["cooling_unit_serial_number"], dataplate_row),
+        text_attr("door_swing", "R", grammar_row, provenance="manufacturer_pdf_inferred"),
+        number_attr("storage_volume_cu_ft", float(family_spec["storage_volume_cu_ft"]),
+                    family_spec_row, unit="ft3", provenance="manufacturer_pdf"),
+        number_attr("rough_opening_h_in", float(family_spec["rough_opening_h_in"]),
+                    family_spec_row, unit="in", provenance="manufacturer_pdf"),
+        number_attr("rough_opening_w_in", float(family_spec["rough_opening_w_in"]),
+                    family_spec_row, unit="in", provenance="manufacturer_pdf"),
+        number_attr("rough_opening_d_in", float(family_spec["rough_opening_d_in"]),
+                    family_spec_row, unit="in", provenance="manufacturer_pdf"),
+    ]
+
+    return component, identifiers, attributes
 
 
 def identifier_candidate_from_observation(obs_row):
@@ -3911,6 +3999,69 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
     print(f"Suburban furnace core module: "
           f"{mismatches - suburban_furnace_cooktop_mismatches_before} "
           f"mismatch(es) (cumulative with furnace/cooktop endpoints above)")
+
+    norcold_mismatches_before = mismatches
+    obs105 = load_observation(obs_db_path, 105)
+    obs106 = load_observation(obs_db_path, 106)
+    obs108 = load_observation(obs_db_path, 108)
+    norcold_component_id = "c_placeholder_refrigerator_n811"
+    norcold_component, norcold_identifiers, norcold_attributes = norcold_n811_component(
+        obs105, obs106, obs108, norcold_component_id)
+    insert_component(conn, norcold_component)
+    for identifier in norcold_identifiers:
+        insert_identifier(conn, identifier)
+    for attribute in norcold_attributes:
+        insert_component_attribute(conn, attribute)
+
+    fixture_norcold = next(
+        (c for c in components_doc if c.get("component_id") == norcold_component_id), None)
+    if fixture_norcold is None:
+        print(f"MISMATCH fixture is missing component: {norcold_component_id}")
+        mismatches += 1
+    else:
+        resolved_norcold = conn.execute(
+            "SELECT * FROM components WHERE component_id = ?", (norcold_component_id,)).fetchone()
+        if (resolved_norcold["part_type_id"], resolved_norcold["interchange_code"]) != (
+                fixture_norcold["part_type_id"], fixture_norcold["interchange_code"]):
+            print(f"MISMATCH Norcold component: "
+                  f"resolved={dict(resolved_norcold)} fixture={fixture_norcold}")
+            mismatches += 1
+
+        resolved_norcold_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (norcold_component_id,)).fetchall()
+        }
+        expected_norcold_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_norcold["identifiers"]
+        }
+        if resolved_norcold_identifiers != expected_norcold_identifiers:
+            print(f"MISMATCH Norcold identifiers: resolved={resolved_norcold_identifiers} "
+                  f"fixture={expected_norcold_identifiers}")
+            mismatches += 1
+
+        resolved_norcold_attribute_rows = get_component_attributes(conn, norcold_component_id)
+        resolved_norcold_attributes = {}
+        for attribute in resolved_norcold_attribute_rows:
+            value = attribute.value_text if attribute.value_text is not None else (
+                attribute.value_number if attribute.value_number is not None
+                else attribute.value_boolean)
+            resolved_norcold_attributes[attribute.name] = (
+                value, attribute.provenance, attribute.source_observation_id)
+        expected_norcold_attributes = {
+            name: (definition["value"], definition["provenance"],
+                   definition["source_observation_id"])
+            for name, definition in fixture_norcold["attributes"].items()
+        }
+        if (len(resolved_norcold_attribute_rows) != len(expected_norcold_attributes)
+                or resolved_norcold_attributes != expected_norcold_attributes):
+            print(f"MISMATCH Norcold attributes: resolved={resolved_norcold_attributes} "
+                  f"fixture={expected_norcold_attributes}")
+            mismatches += 1
+
+    print(f"Norcold endpoint: {mismatches - norcold_mismatches_before} mismatch(es)")
 
     suburban_remainder_mismatches_before = mismatches
     obs11 = load_observation(obs_db_path, 11)

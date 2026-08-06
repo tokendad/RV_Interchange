@@ -198,6 +198,28 @@ CANONICAL = {
     "cabinet_cutout_h_in":       "furnace inner-wall cabinet cut-out height, in (method-A install, family-level)",
     "cabinet_cutout_w_in":       "furnace inner-wall cabinet cut-out width, in (method-A install, family-level)",
 
+    # refrigerator (2026-08-06) — Norcold N811/N811RT, 4th Stage 1 vendor. See
+    # Docs/Data/Norcold/VENDOR-Norcold.md.
+    "group_code":                "manufacturer group/lot code physically observed on a data plate",
+    "refrigerant":                "refrigerant type documented or observed (e.g. R717 ammonia)",
+    "refrigerant_lbs":            "documented refrigerant charge, lb",
+    "ac_voltage_v":               "documented nominal AC supply voltage, V",
+    "ac_amperage_a":              "documented AC supply amperage, A",
+    "ac_watts_w":                 "documented AC supply wattage, W",
+    "dc_voltage_v":               "documented nominal DC supply voltage, V",
+    "dc_amperage_a":              "documented DC supply amperage, A",
+    "dc_watts_w":                 "documented DC supply wattage, W",
+    "cooling_unit_model":         "model/part number physically observed on a separate cooling-unit component's own tag",
+    "cooling_unit_serial_number": "serial number physically observed on a separate cooling-unit component's own tag, distinct from the main unit's own serial",
+    "door_swing":                 "documented or decoded door-hinge orientation (e.g. L/R)",
+    "storage_volume_cu_ft":       "nominal storage volume, cubic feet",
+    "rough_opening_h_in":         "manufacturer-documented framed rough-opening height, in",
+    "rough_opening_w_in":         "manufacturer-documented framed rough-opening width, in",
+    "rough_opening_d_in":         "manufacturer-documented framed rough-opening depth, in",
+    "model_grammar_positions":    "structured decode of a documented model-number-string position/letter grammar",
+    "example_model_string":       "a source's own example model-number string illustrating its grammar",
+    "document_publication_number": "manual's own publication/part number (e.g. Norcold Pub. 619394E)",
+
     # dimensions — mechanically derived, see _derive_opening / _derive_product
     "opening_h":                 "framed installation opening height, in — 2D only",
     "opening_w":                 "framed installation opening width, in — 2D only",
@@ -401,6 +423,27 @@ ALIASES = {
     "clearance_back_in": "clearance_back_in",
     "cabinet_cutout_h_in": "cabinet_cutout_h_in",
     "cabinet_cutout_w_in": "cabinet_cutout_w_in",
+
+    # refrigerator (2026-08-06) — Norcold N811/N811RT
+    "group_code": "group_code",
+    "refrigerant": "refrigerant",
+    "refrigerant_lbs": "refrigerant_lbs",
+    "ac_voltage_v": "ac_voltage_v",
+    "ac_amperage_a": "ac_amperage_a",
+    "ac_watts_w": "ac_watts_w",
+    "dc_voltage_v": "dc_voltage_v",
+    "dc_amperage_a": "dc_amperage_a",
+    "dc_watts_w": "dc_watts_w",
+    "cooling_unit_model": "cooling_unit_model",
+    "cooling_unit_serial_number": "cooling_unit_serial_number",
+    "door_swing": "door_swing",
+    "storage_volume_cu_ft": "storage_volume_cu_ft",
+    "rough_opening_h_in": "rough_opening_h_in",
+    "rough_opening_w_in": "rough_opening_w_in",
+    "rough_opening_d_in": "rough_opening_d_in",
+    "model_grammar_positions": "model_grammar_positions",
+    "example_model_string": "example_model_string",
+    "document_part_number": "document_publication_number",
 
     # dimensions — plain product envelope (opening/cutout handled specially)
     "product_size_in": "product_hwd",
