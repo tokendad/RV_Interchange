@@ -8,6 +8,20 @@ two cooktop eras). No text version found yet for these two families.
 
 ---
 
+## 0. Update 2026-08-05 — exact endpoint components built
+
+The owner's in-hand furnace (`SF-30FQ`) and cooktop/range (`SRNA3SBBM`) are now built as
+exact fixture components, sourced from in-hand data-plate photographs and matching
+manufacturer installation manuals the owner confirmed match their units — see
+`docs/superpowers/specs/2026-08-05-suburban-furnace-cooktop-design.md`. The furnace also has
+a `fits` edge to its `2608A` core replacement module (catalog + retailer corroborated).
+
+This is identity/dimension data for these two specific in-hand models, built independently
+of the letter-by-letter grammar question below, which remains open. Do not treat this
+section as resolving anything in sections 1–4.
+
+---
+
 ## 1. Trust level — read this before using anything below
 
 Everything in this document comes from **OCR/visual transcription of a compressed
@@ -38,6 +52,23 @@ Same "grammar, not labels" pattern as the water heaters:
 the breakdown as text, the way `suburbanrvparts.com/suburban-water-heater-sw12delc-.../`
 did for water heaters. If the same authoring pattern holds, this whole section becomes
 unnecessary — confirmed text beats re-squinting at a screenshot.
+
+### 2.1 Manufacturer-confirmed: `F`, `V`, `H`, `Q` (2026-08-06)
+
+Highest-trust source yet — a direct reply from Suburban's own support (see
+`Gmail-FVHQ-code.pdf` in this folder; also recorded in GitHub issue #26, closed):
+
+- **`F`** = front gas — gas inlet is on the front of the unit.
+- **`V`** = vertical mounting.
+- **`H`** = horizontal mounting — combined with `V` (i.e. `VH`), means the unit can be
+  mounted either way.
+- **`Q`** = quiet.
+
+This confirms (and outranks) the informal `irv2.com` forum theory and the
+`suburbanrvparts.com` SFQ-series page grammar mentioned in issue #26. Still unconfirmed by
+this manufacturer reply: the sail-switch/spark-ignition/ducted-blower letters noted above,
+and the two cooktop-era grammars in §3 — this only resolves the furnace `F`/`V`/`H`/`Q`
+suffix letters.
 
 ---
 
