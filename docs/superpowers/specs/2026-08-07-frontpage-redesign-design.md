@@ -179,11 +179,23 @@ Behavior:
 Compact footer (recommendations doc §17): "RV Interchange", current manufacturer coverage
 line ("Currently covering Suburban, Coleman-Mach, Atwood, and Norcold" — this is where that
 line moves to, having been removed from the hero), a link to the GitHub repository, a "Report
-missing or incorrect data" link, and the disclaimer text verbatim from the recommendations doc:
+missing or incorrect data" link, a "Contact" link (stubbed, see below), and the disclaimer
+text verbatim from the recommendations doc:
 
 > Compatibility information is provided as a research aid. Verify dimensions, connections,
 > electrical requirements, fuel type, and installation instructions before purchasing or
 > installing a replacement part.
+
+### D.1 "Coming soon" stub pages
+
+Three links point at content that doesn't exist yet: **Data Coverage** and **How It Works**
+(header nav) and **Contact** (footer). Rather than link to nothing (404) or omit the links
+(which would make the nav/footer feel incomplete against the recommendations doc's structure),
+each gets a minimal static stub page — same header/footer chrome as the main site, a heading
+matching the link text, and one line of body copy: "This page is coming soon." No form, no
+content, no backend involvement (a plain additional static HTML file per stub, e.g.
+`web/coverage.html`, `web/how-it-works.html`, `web/contact.html`). Filling these in with real
+content is a follow-up, not part of this pass.
 
 ## E. Accessibility & mobile
 
@@ -212,10 +224,6 @@ missing or incorrect data" link, and the disclaimer text verbatim from the recom
   longer-term option) — the query-string approach (`?q=...&part=...`) is sufficient for this
   pass and avoids server-side routing changes (the site is served as static files by nginx).
 - `web/admin.html` — no changes; stays reachable only by direct URL, no link from public nav.
-- Data Coverage and How It Works as separate pages — the header nav links to them but their
-  content is out of scope here; they can 404 or be stubbed as "coming soon" placeholders
-  until a follow-up gives them content (implementation plan should flag this explicitly
-  rather than silently link to nothing).
 - Any framework migration — plain HTML/CSS/JS, matching the current stack.
 - Backend/API changes of any kind — this redesign consumes the existing `/public/v1/*`
   contract as-is.
