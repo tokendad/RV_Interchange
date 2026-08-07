@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>RV Interchange — How It Works</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="public-page">
+  <div id="header-slot"></div>
+  <main class="stub-page">
+    <h1>How It Works</h1>
+    <p>This page is coming soon.</p>
+  </main>
+  <div id="footer-slot"></div>
+  <script src="chrome.js"></script>
+  <script>
+    document.getElementById("header-slot").replaceWith(renderHeader("how-it-works"));
+    document.getElementById("footer-slot").replaceWith(renderFooter());
+  </script>
+</body>
+</html>

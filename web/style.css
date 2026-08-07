@@ -44,67 +44,6 @@ button {
   cursor: pointer;
 }
 
-#search-form input#search-input {
-  flex: 1;
-  min-width: 16rem;
-}
-
-.result-list {
-  list-style: none;
-  padding: 0;
-  margin: 1rem 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.result-card {
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-}
-
-.result-card:hover {
-  background: #f5f5f5;
-}
-
-.result-label {
-  font-weight: bold;
-  font-size: 1.05rem;
-}
-
-.result-meta {
-  color: #666;
-  font-size: 0.85rem;
-  margin-top: 0.15rem;
-}
-
-.identifier-pills {
-  margin-top: 0.4rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.pill {
-  background: #eee;
-  border-radius: 999px;
-  padding: 0.15rem 0.6rem;
-  font-size: 0.8rem;
-}
-
-.tier-section,
-.supersession-section {
-  border-left: 3px solid #ccc;
-  padding-left: 1rem;
-  margin-top: 1rem;
-}
-
-.supersession-section {
-  border-left-color: #b8860b;
-}
-
 .admin-panel {
   border: 1px solid #ddd;
   border-radius: 0.5rem;
@@ -129,4 +68,89 @@ pre {
 .error {
   color: #b00020;
   font-weight: bold;
+}
+
+/* ---- Public pages (index.html, coverage/how-it-works/contact.html) ---- */
+
+body.public-page {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  color: #1f2937;
+  background: #f4f5f7;
+}
+
+:focus-visible {
+  outline: 2px solid #d99a2b;
+  outline-offset: 2px;
+}
+
+.site-shell {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.site-header {
+  background: #0f1b2d;
+  padding: 0.9rem 1.5rem;
+}
+
+.site-nav {
+  max-width: 72rem;
+  margin: 0 auto;
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.nav-link {
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding-bottom: 2px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-link-active {
+  color: #fff;
+  border-bottom: 2px solid #d99a2b;
+}
+
+.site-footer {
+  max-width: 72rem;
+  margin: 2.5rem auto 0;
+  padding: 1.5rem;
+  font-size: 0.85rem;
+  color: #6b7280;
+  border-top: 1px solid #e5e7eb;
+}
+
+.footer-brand {
+  font-weight: 700;
+  color: #111827;
+}
+
+.footer-links {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0;
+}
+
+.footer-links a {
+  color: #0f1b2d;
+}
+
+.footer-disclaimer {
+  margin-top: 0.75rem;
+  max-width: 48rem;
+}
+
+.stub-page {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
 }
