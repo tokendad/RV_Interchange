@@ -23,8 +23,30 @@ def test_resolve_known_identifier():
     result = IdentifierService.resolve(conn, "suburban", "SW6DE")
     assert result == {
         "component_id": "c_test_a",
+        "manufacturer": "Suburban",
+        "part_type": "Water Heater",
         "identifiers": [{"ns": "suburban", "value": "SW6DE"}],
+        "attributes": [],
     }
+
+
+def test_resolve_includes_component_attributes():
+    from interchange_store import insert_component_attribute
+    from interchange_models import ComponentAttribute
+
+    conn = init_db(":memory:")
+    _seed_basic_component(conn)
+    insert_component_attribute(conn, ComponentAttribute(
+        component_id="c_test_a", name="capacity", provenance="manufacturer_pdf",
+        source_observation_id=1, value_number=6.0, unit="gal"))
+
+    result = IdentifierService.resolve(conn, "suburban", "SW6DE")
+    assert result["attributes"] == [
+        {"name": "capacity", "qualifier": "", "value": 6.0, "unit": "gal"},
+    ]
+    # provenance/source_observation_id must never leak into the response
+    assert "provenance" not in result["attributes"][0]
+    assert "source_observation_id" not in result["attributes"][0]
 
 
 def test_resolve_unknown_identifier():
@@ -163,6 +185,18 @@ def test_search_ranks_exact_match_first():
     assert [r["component_id"] for r in result["results"]] == ["c_test_a", "c_test_b"]
     assert result["results"][0]["label"] == "SW6DE"
     assert result["results"][0]["identifiers"] == [{"ns": "suburban", "value": "SW6DE"}]
+    assert result["results"][0]["manufacturer"] == "Suburban"
+    assert result["results"][0]["part_type"] == "Water Heater"
+
+
+def test_search_result_manufacturer_is_none_for_unmapped_namespace():
+    conn = init_db(":memory:")
+    insert_component(conn, Component("c_test_a", 415, "415-0001-A"))
+    insert_identifier(conn, Identifier("c_test_a", "icm", "PCB1060"))
+
+    result = SearchService.search(conn, "PCB1060")
+    assert result["results"][0]["manufacturer"] is None
+    assert result["results"][0]["part_type"] == "Wall Thermostat"
 
 
 def test_search_no_match_returns_empty_results():

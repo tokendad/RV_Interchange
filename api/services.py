@@ -8,12 +8,42 @@ at process start; tests do it per-file — see tests/api/test_services.py).
 """
 
 from interchange_store import (
-    get_component, get_component_by_identifier, get_edges_from,
-    get_caveats_for_edge, get_evidence_for_edge, get_identifiers_for_component,
+    get_component, get_component_attributes, get_component_by_identifier,
+    get_edges_from, get_caveats_for_edge, get_evidence_for_edge,
+    get_identifiers_for_component, get_required_parts_for_edge,
     get_supersession_detail, search_identifiers,
 )
 from interchange_models import compute_confidence
 from edge_types import EDGE_TYPE_SUBSTITUTES, EDGE_TYPE_SUPERSEDES
+from manufacturers import MANUFACTURER_NAMES
+from part_types import PART_TYPE_NAMES
+
+
+def _attribute_value(attribute):
+    if attribute.value_text is not None:
+        return attribute.value_text
+    if attribute.value_number is not None:
+        return attribute.value_number
+    return attribute.value_boolean
+
+
+def _format_attributes(conn, component_id):
+    return [
+        {
+            "name": attribute.name,
+            "qualifier": attribute.qualifier,
+            "value": _attribute_value(attribute),
+            "unit": attribute.unit,
+        }
+        for attribute in get_component_attributes(conn, component_id)
+    ]
+
+
+def _ns_for_label(identifiers, label):
+    for identifier in identifiers:
+        if identifier.value == label:
+            return identifier.ns
+    return identifiers[0].ns if identifiers else None
 
 
 class IdentifierService:
@@ -25,7 +55,10 @@ class IdentifierService:
         identifiers = get_identifiers_for_component(conn, component.component_id)
         return {
             "component_id": component.component_id,
+            "manufacturer": MANUFACTURER_NAMES.get(ns),
+            "part_type": PART_TYPE_NAMES.get(component.part_type_id),
             "identifiers": [{"ns": i.ns, "value": i.value} for i in identifiers],
+            "attributes": _format_attributes(conn, component.component_id),
         }
 
 
@@ -36,10 +69,15 @@ class SearchService:
         results = []
         for component_id, matched_value in matches:
             identifiers = get_identifiers_for_component(conn, component_id)
+            component = get_component(conn, component_id)
+            matched_ns = _ns_for_label(identifiers, matched_value)
             results.append({
                 "component_id": component_id,
                 "label": matched_value,
+                "manufacturer": MANUFACTURER_NAMES.get(matched_ns),
+                "part_type": PART_TYPE_NAMES.get(component.part_type_id) if component else None,
                 "identifiers": [{"ns": i.ns, "value": i.value} for i in identifiers],
+                "attributes": _format_attributes(conn, component_id),
             })
         return {"query": query, "results": results}
 
