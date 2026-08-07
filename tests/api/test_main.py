@@ -35,7 +35,10 @@ def test_resolve_endpoint(client):
     assert response.status_code == 200
     assert response.json() == {
         "component_id": "c_test_a",
+        "manufacturer": "Suburban",
+        "part_type": "Water Heater",
         "identifiers": [{"ns": "suburban", "value": "SW6DE"}],
+        "attributes": [],
     }
 
 
@@ -51,7 +54,8 @@ def test_replacements_endpoint(client):
     assert response.json() == {
         "source": "SW6DE",
         "replacements": [
-            {"part": "SW6DE", "fit": "Exact Match", "rank": 1, "summary": None},
+            {"part": "SW6DE", "fit": "Exact Match", "rank": 1,
+             "required_parts": [], "caveats": []},
         ],
         "supersessions": [],
     }
@@ -98,7 +102,10 @@ def test_search_endpoint(client):
         "query": "SW6DE",
         "results": [
             {"component_id": "c_test_a", "label": "SW6DE",
-             "identifiers": [{"ns": "suburban", "value": "SW6DE"}]},
+             "manufacturer": "Suburban",
+             "part_type": "Water Heater",
+             "identifiers": [{"ns": "suburban", "value": "SW6DE"}],
+             "attributes": []},
         ],
     }
 

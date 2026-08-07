@@ -49,8 +49,10 @@ def test_sw6de_and_sw6del_replacement_behavior_is_directional(client):
     assert sw6de.json() == {
         "source": "SW6DE",
         "replacements": [
-            {"part": "SW6DE", "fit": "Exact Match", "rank": 1, "summary": None},
-            {"part": "SW6DEL", "fit": "Fits With Modification", "rank": 2, "summary": None},
+            {"part": "SW6DE", "fit": "Exact Match", "rank": 1,
+             "required_parts": [], "caveats": []},
+            {"part": "SW6DEL", "fit": "Fits With Modification", "rank": 2,
+             "required_parts": [], "caveats": []},
         ],
         "supersessions": [],
     }
@@ -60,10 +62,12 @@ def test_sw6de_and_sw6del_replacement_behavior_is_directional(client):
     body = sw6del.json()
     assert body["source"] == "SW6DEL"
     assert body["replacements"][0] == {
-        "part": "SW6DEL", "fit": "Exact Match", "rank": 1, "summary": None,
+        "part": "SW6DEL", "fit": "Exact Match", "rank": 1,
+        "required_parts": [], "caveats": [],
     }
     assert any(
-        item["part"] == "SW6DE" and "12V relay" in (item["summary"] or "")
+        item["part"] == "SW6DE"
+        and any("12V relay" in c["text"] for c in item["caveats"])
         for item in body["replacements"]
     )
 
@@ -77,7 +81,8 @@ def test_coleman_supersession_chain_is_visible_through_api(client):
     body = response.json()
     assert body["source"] == "7330F3361"
     assert body["replacements"] == [
-        {"part": "7330F3361", "fit": "Exact Match", "rank": 1, "summary": None},
+        {"part": "7330F3361", "fit": "Exact Match", "rank": 1,
+         "required_parts": [], "caveats": []},
     ]
     assert {
         "part": "9420-352",
@@ -94,7 +99,13 @@ def test_atwood_repair_part_is_served_from_the_persisted_database(client, persis
             {
                 "component_id": "c_placeholder_wh_atwood_epart_91230",
                 "label": "91230",
+                "manufacturer": "Atwood",
+                "part_type": "Water Heater",
                 "identifiers": [{"ns": "atwood", "value": "91230"}],
+                "attributes": [
+                    {"name": "description", "qualifier": "",
+                     "value": "Switch 12 VDC - White Combo", "unit": None},
+                ],
             },
         ],
     }
