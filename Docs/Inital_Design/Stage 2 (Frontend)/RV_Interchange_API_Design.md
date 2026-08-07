@@ -6,7 +6,13 @@
 
 **Document Status:** Draft for Architecture Review
 
-**Version:** 2.0
+**Version:** 2.1
+
+---
+
+# 0. Current Priority (2026-08-06)
+
+The Dealer API and Marketplace described below remain the long-term direction, but neither is needed yet. The near-term goal is a public-facing lookup site to start collecting public feedback, so **Public API enrichment (§4, §11) is the priority track** — richer `/public/v1/search` and `/public/v1/replacements` responses (manufacturer display name, part type, attributes, caveats, evidence summary) — not new Dealer API endpoints. The Dealer API section remains as forward design, not active scope.
 
 ---
 
