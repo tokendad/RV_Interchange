@@ -98,10 +98,13 @@ def test_get_replacements_tiers_by_confidence():
 
     assert result["source"] == "SW6DE"
     assert result["replacements"] == [
-        {"part": "SW6DE", "fit": "Exact Match", "rank": 1, "summary": None},
-        {"part": "SW6DEL", "fit": "Direct Fit", "rank": 2, "summary": None},
+        {"part": "SW6DE", "fit": "Exact Match", "rank": 1,
+         "required_parts": [], "caveats": []},
+        {"part": "SW6DEL", "fit": "Direct Fit", "rank": 2,
+         "required_parts": [], "caveats": []},
         {"part": "SW12DEL", "fit": "Fits With Modification", "rank": 3,
-         "summary": "Requires switch kit"},
+         "required_parts": [],
+         "caveats": [{"text": "Requires switch kit", "blocking": True}]},
     ]
 
 
@@ -140,10 +143,13 @@ def test_get_replacements_rank_reflects_tier_not_insertion_order():
     result = ReplacementService.get_replacements(conn, "c_test_a")
 
     assert result["replacements"] == [
-        {"part": "SW6DE", "fit": "Exact Match", "rank": 1, "summary": None},
-        {"part": "SW6DEL", "fit": "Direct Fit", "rank": 2, "summary": None},
+        {"part": "SW6DE", "fit": "Exact Match", "rank": 1,
+         "required_parts": [], "caveats": []},
+        {"part": "SW6DEL", "fit": "Direct Fit", "rank": 2,
+         "required_parts": [], "caveats": []},
         {"part": "SW12DEL", "fit": "Fits With Modification", "rank": 3,
-         "summary": "Requires switch kit"},
+         "required_parts": [],
+         "caveats": [{"text": "Requires switch kit", "blocking": True}]},
     ]
 
 
@@ -163,7 +169,8 @@ def test_get_replacements_excludes_below_bar_and_unknown_component():
 
     result = ReplacementService.get_replacements(conn, "c_test_a")
     assert result["replacements"] == [
-        {"part": "SW6DE", "fit": "Exact Match", "rank": 1, "summary": None},
+        {"part": "SW6DE", "fit": "Exact Match", "rank": 1,
+         "required_parts": [], "caveats": []},
     ]
 
     assert ReplacementService.get_replacements(conn, "c_does_not_exist") is None
@@ -264,3 +271,31 @@ def test_get_replacements_omits_supersession_with_no_evidence():
 
     result = ReplacementService.get_replacements(conn, "c_test_a")
     assert result["supersessions"] == []
+
+
+def test_get_replacements_includes_required_parts():
+    from interchange_store import insert_required_part
+    from interchange_models import EdgeRequiredPart
+
+    conn = init_db(":memory:")
+    insert_component(conn, Component("c_test_a", 412, "412-0001-A"))
+    insert_component(conn, Component("c_test_b", 412, "412-0001-B"))
+    insert_identifier(conn, Identifier("c_test_a", "suburban", "SW6DE"))
+    insert_identifier(conn, Identifier("c_test_b", "suburban", "SW6DEL"))
+
+    edge = Edge(type=EDGE_TYPE_SUBSTITUTES, from_component_id="c_test_a",
+                to_component_id="c_test_b")
+    insert_edge(conn, edge)
+    for _ in range(8):
+        insert_evidence(conn, RelationshipEvidence(
+            edge_id=edge.id, event_type="buyer_confirmed_install",
+            effect_alpha=3.0, effect_beta=0.0, occurred_at=_now()))
+    insert_required_part(conn, EdgeRequiredPart(
+        edge_id=edge.id, ns="suburban", value="6276APW", role="replacement_panel"))
+
+    result = ReplacementService.get_replacements(conn, "c_test_a")
+    match = next(r for r in result["replacements"] if r["part"] == "SW6DEL")
+    assert match["required_parts"] == [
+        {"ns": "suburban", "value": "6276APW", "role": "replacement_panel",
+         "manufacturer": "Suburban"},
+    ]

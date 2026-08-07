@@ -93,6 +93,22 @@ def _label_for(conn, component_id, ns=None):
     return identifiers[0].value
 
 
+def _format_required_parts(conn, edge_id):
+    return [
+        {
+            "ns": part.ns,
+            "value": part.value,
+            "role": part.role,
+            "manufacturer": MANUFACTURER_NAMES.get(part.ns),
+        }
+        for part in get_required_parts_for_edge(conn, edge_id)
+    ]
+
+
+def _format_caveats(caveats):
+    return [{"text": c.text, "blocking": c.blocking} for c in caveats]
+
+
 def _tier_for_confidence(confidence):
     if confidence["value"] is None:
         return None
@@ -112,7 +128,8 @@ class ReplacementService:
 
         source_label = _label_for(conn, component_id, ns)
         replacements = [
-            {"part": source_label, "fit": "Exact Match", "rank": 1, "summary": None},
+            {"part": source_label, "fit": "Exact Match", "rank": 1,
+             "required_parts": [], "caveats": []},
         ]
 
         _TIER_PRIORITY = {"Direct Fit": 0, "Fits With Modification": 1}
@@ -125,11 +142,11 @@ class ReplacementService:
             if fit is None:
                 continue
             caveats = get_caveats_for_edge(conn, edge["id"])
-            summary = "; ".join(c.text for c in caveats) if caveats else None
             candidates.append({
                 "part": _label_for(conn, edge["to_component_id"], ns),
                 "fit": fit,
-                "summary": summary,
+                "required_parts": _format_required_parts(conn, edge["id"]),
+                "caveats": _format_caveats(caveats),
                 "_confidence_value": confidence["value"],
             })
 
