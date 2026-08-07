@@ -1,9 +1,9 @@
 async function walkSupersessionChain(ns, value, initialSupersessions) {
   const visited = new Set([`${ns}:${value}`]);
 
-  async function buildNode(nodeValue, children) {
+  async function buildNode(nodeValue, children, unverified) {
     if (!children || children.length === 0) {
-      return { value: nodeValue, current: true, children: [] };
+      return { value: nodeValue, current: !unverified, unverified: !!unverified, children: [] };
     }
 
     const showAttributes = children.length > 1;
@@ -19,6 +19,7 @@ async function walkSupersessionChain(ns, value, initialSupersessions) {
 
       const replacementsResult = await rviFetch(
         `/public/v1/replacements?ns=${encodeURIComponent(ns)}&identifier=${encodeURIComponent(child.part)}`);
+      const replacementsFetchFailed = !replacementsResult.ok;
       const nextSupersessions =
         replacementsResult.ok && replacementsResult.body ? replacementsResult.body.supersessions : [];
 
@@ -31,7 +32,7 @@ async function walkSupersessionChain(ns, value, initialSupersessions) {
         }
       }
 
-      const childNode = await buildNode(child.part, nextSupersessions);
+      const childNode = await buildNode(child.part, nextSupersessions, replacementsFetchFailed);
       childNode.attributes = attributes;
       childNodes.push(childNode);
     }
@@ -71,7 +72,8 @@ function renderChainNode(node, isRoot, onNodeClick) {
 
   const nodeButton = document.createElement("button");
   nodeButton.type = "button";
-  nodeButton.className = "chain-node" + (node.current ? " chain-node-current" : "");
+  nodeButton.className = "chain-node" +
+    (node.unverified ? " chain-node-unverified" : node.current ? " chain-node-current" : "");
   nodeButton.addEventListener("click", () => onNodeClick(node.value));
 
   const numberSpan = document.createElement("span");
@@ -83,7 +85,7 @@ function renderChainNode(node, isRoot, onNodeClick) {
   tagSpan.className = "chain-node-tag";
   tagSpan.textContent = isRoot
     ? "(this part)"
-    : node.current ? "— current" : "(also discontinued)";
+    : node.unverified ? "— couldn't verify" : node.current ? "— current" : "(also discontinued)";
   nodeButton.appendChild(tagSpan);
 
   if (node.attributes && node.attributes.length > 0) {

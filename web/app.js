@@ -77,12 +77,7 @@ async function runSearch(query, { pushUrl, thenOpenPart }) {
   if (pushUrl) pushUrlState({ q: query, part: null });
 
   if (thenOpenPart) {
-    const matched = body.results
-      .flatMap((r) => r.identifiers.map((i) => ({ i })))
-      .find(({ i }) => i.ns === thenOpenPart.ns && i.value === thenOpenPart.value);
-    if (matched) {
-      await openDetail(thenOpenPart.ns, thenOpenPart.value, { pushUrl: false });
-    }
+    await openDetail(thenOpenPart.ns, thenOpenPart.value, { pushUrl: false });
   }
 }
 
@@ -118,6 +113,12 @@ async function openDetail(ns, value, { pushUrl }) {
 
   if (!resolveResult.ok || !replacementsResult.ok) {
     contentEl.innerHTML = "";
+    if (resolveResult.status === 404 || replacementsResult.status === 404) {
+      contentEl.appendChild(renderErrorState(
+        "We couldn't find that part number.",
+        "The link you followed may be outdated, or the part number may be mistyped."));
+      return;
+    }
     const detail = resolveResult.error || replacementsResult.error || "lookup failed";
     contentEl.appendChild(renderErrorState(
       "The lookup service is temporarily unavailable. Please try the search again.", detail));
