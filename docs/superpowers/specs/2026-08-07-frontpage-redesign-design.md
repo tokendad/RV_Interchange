@@ -115,10 +115,52 @@ Layout, top to bottom:
   entirely, not shown empty), each card showing the tier pill (per §A), the replacement
   `part` number, and its `caveats[].text` joined as supporting copy (present today —
   `required_parts` display is **out of scope for this pass**, see "Explicitly out of scope").
-- "Supersession History" section (only rendered when `supersessions` is non-empty, matching
-  the existing `renderDetail` behavior): a simple timeline row, `<source> → superseded by
-  <part>` (`note` shown as supporting text when present).
+- "Discontinued" section (renamed from "Supersession History" — confirmed with the user that
+  "supersession" reads as manufacturer jargon; "Discontinued" is the public-facing label).
+  Only rendered when the current part has at least one outgoing `supersedes` edge. See §B.1
+  below for the full behavior — this isn't a single-hop line, it's a walked chain.
 - Copy-link button (copies the current `/?q=...&part=...` URL to the clipboard).
+
+### B.1 "Discontinued" section — full chain walk, not single hop
+
+The existing `/public/v1/replacements` endpoint only returns the **immediate** outgoing
+`supersedes` edge(s) for the queried part (`api/services.py:168-178`,
+`get_edges_from(conn, component_id, type=EDGE_TYPE_SUPERSEDES)` — one hop, no traversal).
+Real data already has a 2-hop case that branches: `7330E336 → 7330F3361 → {9420-352,
+9420A382}` (`7330F3361` supersedes to two different current parts — an analog cool-only
+thermostat and a digital multi-mode thermostat; confirmed via `edge_resolver.py` docstrings
+that these are genuinely different products, not equivalent alternates, and there is no edge
+between them). Confirmed with the user: the page should walk the **full chain to every
+current endpoint**, not just show one hop, so a user searching the oldest part number in a
+chain isn't left thinking `7330F3361` (itself discontinued) is the final answer.
+
+Behavior:
+
+- After the initial `/public/v1/replacements` call, for every part in the returned
+  `supersessions` list, recursively call `/public/v1/replacements?ns=<same ns>&identifier=<that
+  part>` and keep following `supersessions` until a part has none — that's a "current"
+  endpoint. No backend change; this is repeated calls to the existing endpoint. Depth is
+  small in practice (deepest known chain today is 2 hops); no explicit depth cap needed for
+  this pass, but the walk must terminate on a part already visited in this walk (cycle guard)
+  since nothing in the schema prevents one being introduced later.
+- Rendered as a vertical chain: `this part → replaced by → next part → ...`, ending in one or
+  more boxes tagged "current" (green outline) when a hop branches into multiple parts.
+- Every node in the chain — including "this part" — is a link. Clicking any node navigates to
+  *that* part's own detail view (re-running the detail flow rooted on the clicked part,
+  including its own URL update), not an inline expansion. This reuses the existing detail
+  view/URL-sync machinery; no new view type.
+- When a hop branches (2+ target parts), each branch endpoint shows up to 2 of its own
+  `attributes` (from that part's `resolve` response — one extra `/public/v1/resolve` call per
+  branch endpoint during the walk) as a short line under its part number, so the user can tell
+  the branches apart (e.g. "Analog · Cool only" vs "Digital · Heat/cool, multi-mode"). This is
+  generic attribute rendering — no part-type-specific logic in the frontend, since different
+  part types (thermostats, water heaters, fridges) expose different attribute names. A
+  single-target hop doesn't show this line — nothing to disambiguate.
+- Non-branching intermediate nodes stay compact (part number + "(also discontinued)" only, no
+  attribute line) to keep the common case readable.
+- A future idea, **not in scope for this pass**: a product photo next to the part
+  name/number at the top of the detail view (confirmed placement: beside the heading, not
+  below the attributes list, if/when this is picked up).
 
 ## C. URL / browser history sync
 
@@ -177,15 +219,21 @@ missing or incorrect data" link, and the disclaimer text verbatim from the recom
 - Any framework migration — plain HTML/CSS/JS, matching the current stack.
 - Backend/API changes of any kind — this redesign consumes the existing `/public/v1/*`
   contract as-is.
+- Product photos in the part detail view (confirmed future placement: beside the part
+  name/number heading) — not built this pass, no image data exists in the catalog yet.
 
 ## Testing
 
 - No JS test framework introduced, consistent with the existing project precedent (phase 2
   frontend work also shipped without one). Verification is manual: exercise the full flow
   against the running Docker stack — search → click a result → view tiered replacements and
-  (when present) supersessions → back to results → browser Back/Forward → reload a shared
-  `/?q=...&part=...` URL directly and confirm it reproduces the same view.
+  (when present) the Discontinued chain → back to results → browser Back/Forward → reload a
+  shared `/?q=...&part=...` URL directly and confirm it reproduces the same view.
+- Confirm the Discontinued chain walk specifically: search `7330E336` (Coleman-Mach namespace)
+  and verify the chain renders both hops and both branch endpoints (`9420-352`, `9420A382`)
+  with their disambiguating attribute lines; click each chain node and confirm it opens that
+  part's own detail view with a correctly updated URL.
 - Confirm no-result and error states render their new copy (trigger via a nonsense query and
   a temporarily-stopped API container, respectively).
 - Confirm keyboard-only navigation: tab through header nav, example chips, search, result
-  cards, and detail-view controls; confirm Enter/Space activate result cards.
+  cards, detail-view controls, and Discontinued chain nodes; confirm Enter/Space activate them.
