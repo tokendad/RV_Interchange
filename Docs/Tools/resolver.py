@@ -286,6 +286,13 @@ CANONICAL = {
     "source_pdf_page_stats":     "PDF text-layer stats used to decide whether OCR was needed",
     "source_extraction_method_detail": "detail on how text was pulled (e.g. OCR pipeline used)",
     "source_capture_method":     "how the document was captured (e.g. via a mirror/archive)",
+
+    # Atwood GH6-6E in-hand teardown anchor (2026-08-07) — see
+    # Docs/Data/Atwood/VENDOR-Atwood.md.
+    "spec_no":                   "Atwood-assigned spec number physically observed on a data plate",
+    "min_gas_pressure_in_wc":    "documented minimum gas supply pressure, inches water column",
+    "max_working_pressure_psi":  "documented maximum tank working pressure, psi",
+    "test_pressure_psi":         "documented factory test pressure, psi",
 }
 
 # --------------------------------------------------------------------------
@@ -518,6 +525,16 @@ ALIASES = {
     "was": "correction_previous_value",
     "now": "correction_replacement_value",
     "reason": "correction_reason",
+
+    # Atwood GH6-6E in-hand teardown anchor (2026-08-07)
+    "spec_no": "spec_no",
+    "serial": "serial_number",
+    "input_btu_hr": "input_btuh",
+    "recovery_gal_hr": "recovery_gas_only_gph",
+    "min_gas_pressure_in_wc": "min_gas_pressure_in_wc",
+    "manifold_pressure_in_wc": "manifold_pressure_wc",
+    "max_working_pressure_psi": "max_working_pressure_psi",
+    "test_pressure_psi": "test_pressure_psi",
 }
 
 # --------------------------------------------------------------------------

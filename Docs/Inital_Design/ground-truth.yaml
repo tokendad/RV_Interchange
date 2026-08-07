@@ -908,6 +908,33 @@ components:
     attributes:
       description: {value: "Optical display/control board (\"eyebrow board\"), Norcold N61X/N81X family", provenance: retailer_page, source_observation_id: 110}
 
+  - component_id: c_placeholder_wh_atwood_gh6_6e
+    part_type_id: 412
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "GH6-6E", visibility: data_plate}
+    attributes:
+      spec_no:                  {value: "266038", provenance: dataplate_photo, source_observation_id: 111}
+      serial:                   {value: "96266000345", provenance: dataplate_photo, source_observation_id: 111}
+      capacity_gal:              {value: 6, unit: gal, provenance: dataplate_photo, source_observation_id: 111}
+      power_type:                {value: "gas_only", provenance: dataplate_photo, source_observation_id: 111}
+      ignition_type:              {value: "electronic", provenance: dataplate_photo, source_observation_id: 111}
+      heat_exchanger:             {value: true, provenance: dataplate_photo, source_observation_id: 111}
+      input_btu_hr:               {value: 8800, unit: "BTU/h", provenance: dataplate_photo, source_observation_id: 111}
+      recovery_gal_hr:            {value: 7.4, unit: "gal/h", provenance: dataplate_photo, source_observation_id: 111}
+      min_gas_pressure_in_wc:     {value: 11, unit: in_wc, provenance: dataplate_photo, source_observation_id: 111}
+      manifold_pressure_in_wc:    {value: 10, unit: in_wc, provenance: dataplate_photo, source_observation_id: 111}
+      max_working_pressure_psi:   {value: 150, unit: psi, provenance: dataplate_photo, source_observation_id: 111}
+      test_pressure_psi:          {value: 300, unit: psi, provenance: dataplate_photo, source_observation_id: 111}
+
+  - component_id: c_placeholder_wh_atwood_part_91642
+    part_type_id: 413
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "91642", visibility: catalog}
+    attributes:
+      description: {value: "TANK-INNER - FRONT MOUNT - GH6-4E & 6E (Winnebago part 051391-04-704)", provenance: manufacturer_pdf, source_observation_id: 112}
+
   # =========================================================================
   # 3. MONITOR PANEL — system-bound; assembly decomposition case
   # =========================================================================
@@ -1354,6 +1381,15 @@ edges:
     evidence:
       - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
       - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 109}
+
+  - type: fits
+    from: c_placeholder_wh_atwood_part_91642
+    to: c_placeholder_wh_atwood_gh6_6e
+    group: atwood_gh6_6e_tank
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 112}
 
 
 identifier_equivalence_candidates:

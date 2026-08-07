@@ -1,10 +1,11 @@
 # VENDOR — Atwood / Atwood Mobile Products
 
-**Status:** endpoint components + repair-parts cross-reference built (catalog-only, no
-in-hand teardown anchor yet)
-**Updated:** 2026-08-05 — Electronic Ignition repair-parts cross-reference (obs #96, 47
-parts, 248 `fits` edges) built alongside the existing Pilot one (obs #95), for combined
-totals of 19 endpoint components + 87 repair-part components + 367 `fits` edges. See §7.
+**Status:** endpoint components + repair-parts cross-reference built, plus one in-hand
+teardown anchor (GH6-6E)
+**Updated:** 2026-08-07 — In-hand teardown anchor GH6-6E built (obs #111 data plate, obs
+#112 Winnebago OEM catalog), resolving the "no in-hand teardown anchor yet" gap noted
+above (issue #13) and issue #33. See §8. Totals now: 20 endpoint components + 88
+repair-part components + 368 `fits` edges.
 
 ## 1. Why this adapter
 
@@ -273,3 +274,47 @@ the other, or genuinely both; the manual's own bracket says both, so both get th
 `edge_resolver.py --check-fixture`: 0 mismatches (47 parts, 248 edges, all 4 spot-checks
 pass). `pytest`: 25/25 green. Combined Atwood repair-parts total across both tables: **87
 components, 367 `fits` edges.**
+
+## 8. Fourth wave: GH6-6E in-hand teardown anchor (obs #111, #112) — issue #33
+
+The first Atwood component built from an owner-photographed physical unit rather than
+catalog text alone — the gap explicitly called out in the header above and in issue #13.
+
+**Identity settled only after two rounds of independent verification.** The GitHub issue
+was opened as "GH6-GE" and an attached AI-generated research report (`GH6-6E-Research.md`)
+claimed the true reading was `GH6-6E`, flagging `GH6-GE` as a probable
+misreading. `GH6-GE` doesn't fit Atwood's own Pilot/Electronic model-number grammar (§3 —
+no digit precedes the terminal `E`), and a web search found zero independent hits for the
+literal string. The owner re-examined the physical data-plate photo directly and confirmed
+`GH6-6E` is correct — matching the attached report, not the issue title. The report's Spec
+number (`260038`) was also independently re-verified against the photo and corrected to
+`266038`. Settled plate values: **model `GH6-6E`, spec `266038`, serial `96266000345`**,
+6 gal, 8,800 BTU/h input, 7.40 gal/h recovery, 11 in wc min gas pressure, 10 in wc manifold
+pressure, 150 psi max working pressure, 300 psi test pressure — all obs #111
+(`dataplate_photo`, tier 2).
+
+**Corroborating evidence came from a primary source, not the attached report's secondhand
+quotes.** The report cited a 1994 Winnebago WF424RC parts catalog; rather than trust that
+citation, the actual PDF was located and read directly (obs #112, `manufacturer_pdf`, tier
+2 — a genuinely independent third-party OEM catalog, not Atwood's own literature). It
+confirms Winnebago part `051393-01-000` = "WATER HEATER-W/MOTOR AID-PILOTLESS
+IGNITION(GH6-3E,GH6-4E OR GH6-6E)" (corroborating the report's model-family claim) and
+names Atwood part `91642` as the front-mount inner tank for "GH6-4E & 6E" (Winnebago part
+`051391-04-704`).
+
+**Built now:** the GH6-6E endpoint component (`atwood_gh6_6e_component()`, resolver version
+`atwood_gh6_6e_v1`) and tank `91642` as a repair-part `fits` edge
+(`atwood_gh6_6e_tank_91642_fits()`, resolver version `atwood_gh6_6e_parts_v1`) — **1
+endpoint component, 1 repair-part component, 1 `fits` edge.**
+
+**Deliberately NOT built now** (scoped out — anchor + high-confidence parts only, per an
+explicit scope decision): the report's remaining ~15 Atwood part numbers under the same
+catalog heading, several with supersession-chain or disputed claims that are single-source
+or internally contradictory in the report itself — circuit board (`91420` →
+`93867`/`93865` → `91367`), electrode (`91606` → `93868`), gas valve (`91605` → `93870` →
+`93844`+`94787`), orifice (`92742` → `92743`), drain plug (`91561` → `91857`), a disputed
+thermostat (`91470`) calibration claim (120°F vs 130°F), and a contradictory electric-element
+(`91580`) listing. Spun off to a follow-up GitHub issue for dedicated research rather than
+built on this pass's evidence.
+
+`edge_resolver.py --check-fixture`: 0 mismatches. `pytest`: all green.
