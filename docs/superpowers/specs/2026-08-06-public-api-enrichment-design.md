@@ -102,7 +102,7 @@ class Manufacturer:
 
 MANUFACTURERS = (
     Manufacturer(ns="suburban", display_name="Suburban"),
-    Manufacturer(ns="coleman_mach", display_name="Coleman-Mach"),
+    Manufacturer(ns="coleman", display_name="Coleman-Mach"),
     Manufacturer(ns="atwood", display_name="Atwood"),
     Manufacturer(ns="norcold", display_name="Norcold"),
 )
@@ -110,10 +110,16 @@ MANUFACTURERS = (
 MANUFACTURER_NAMES = {m.ns: m.display_name for m in MANUFACTURERS}
 ```
 
-Not every `ns` in `identifiers` is a manufacturer namespace (e.g. `icm` in the phase-2
-frontend spec looks like a component/subassembly namespace, not a vendor) — `services.py`
-looks up `MANUFACTURER_NAMES.get(ns)` and treats a miss as "no manufacturer name to show,"
-not an error.
+**Correction during implementation planning:** the recommendations doc's namespace table
+said `coleman_mach`, but the real `ns` value used throughout `edge_resolver.py` (e.g.
+lines 539, 647, 724, 838) and `ground-truth.yaml` is `coleman` — `coleman_mach` appears
+nowhere in the actual data. Fixed here and in the recommendations doc's table.
+
+Not every `ns` in `identifiers` is a manufacturer namespace — `ground-truth.yaml` also
+uses `icm`, `dwin`, `kib` (sub-component/control-board namespaces) and `silkscreen` (a
+physical-marking identifier type, not a vendor at all). `services.py` looks up
+`MANUFACTURER_NAMES.get(ns)` and treats a miss as "no manufacturer name to show," not an
+error.
 
 ## B. Schema changes (`interchange_schema.py`)
 
@@ -132,35 +138,41 @@ CREATE TABLE IF NOT EXISTS manufacturers (
 );
 ```
 
-Both are seeded as a straight projection of `PART_TYPES` / `MANUFACTURERS` during
-`edge_resolver.py --build`'s existing temp-db-then-swap rebuild (same path used for
-`components`/`edges` today — see `edge_resolver.py` `~4537-4557`), not hand-inserted.
-These tables exist for self-description / future SQL consumers; `api/services.py` reads
-the registries' Python dicts directly rather than querying these tables (matching how
-`edge_types.py` constants are already imported directly, not read back from the DB).
+**Correction during implementation planning:** rather than seeding via
+`edge_resolver.py --build`, both tables are seeded directly inside
+`interchange_schema.init_db` (via `INSERT OR IGNORE`, right after
+`executescript(SCHEMA)`), as a straight projection of `PART_TYPES` / `MANUFACTURERS`.
+`init_db` already tolerates being called twice on the same file (`CREATE TABLE IF NOT
+EXISTS`); `INSERT OR IGNORE` extends that idempotency to the seed rows. This covers every
+caller of `init_db` uniformly — the real `--build` path and every test that opens
+`init_db(":memory:")` directly — without adding a seeding step to `build_database`/
+`check_fixture` specifically. These tables exist for self-description / future SQL
+consumers; `api/services.py` reads the registries' Python dicts directly rather than
+querying these tables (matching how `edge_types.py` constants are already imported
+directly, not read back from the DB).
 
 ## C. Sync tests
 
 `tests/tools/test_part_types.py` and `tests/tools/test_manufacturers.py`, mirroring
-`tests/tools/test_edge_types.py`: reflect over `edge_resolver.py`'s module globals for
-`*_PART_TYPE` names, assert every one has a matching `PART_TYPES` entry and vice versa;
-assert the seeded `part_types`/`manufacturers` tables (after a `--build` run against the
-test fixture) match the registry tuples exactly.
+`tests/tools/test_edge_types.py`'s structural-assertion style (that file asserts the
+registry tuple's contents directly; it does not reflect over other modules). Since
+`edge_resolver.py` will *import* its part-type constants from `part_types.py` rather than
+redefine them (§A), there is no second copy to drift out of sync — the sync test's job is
+to assert `part_types.py` is internally well-formed: every `*_PART_TYPE` constant the
+module exports appears exactly once in `PART_TYPES`, and `PART_TYPE_NAMES` is exactly
+`{pt.id: pt.display_name for pt in PART_TYPES}`. Same shape for `manufacturers.py`. Also
+assert (via `interchange_schema.init_db(":memory:")`) that the seeded `part_types` /
+`manufacturers` tables match the registry tuples exactly.
 
 ## D. Store layer (`interchange_store.py`)
 
-Two new read helpers, following the existing `get_caveats_for_edge` /
-`get_evidence_for_edge` pattern:
-
-```python
-def get_attributes_for_component(conn, component_id):
-    # SELECT name, qualifier, value_text, value_number, value_boolean, unit
-    # FROM component_attributes WHERE component_id = ?
-    # Never selects provenance or source_observation_id (internal-only).
-
-def get_required_parts_for_edge(conn, edge_id):
-    # SELECT ns, value, role FROM edge_required_part WHERE edge_id = ?
-```
+**Correction during implementation planning:** no new store code is needed here.
+`get_component_attributes(conn, component_id, name=None)` and
+`get_required_parts_for_edge(conn, edge_id)` already exist (`interchange_store.py:111`
+and `:258`) and already return exactly the fields needed — `api/services.py` calls them
+directly. `get_component_attributes` returns `ComponentAttribute` objects that include
+`provenance`/`source_observation_id`; the service layer (§E), not the store layer, is
+responsible for dropping those two fields before they reach `api/schemas.py`.
 
 ## E. Service layer (`api/services.py`)
 
@@ -238,8 +250,12 @@ consumers to keep the old field alive for.
 ## Testing
 
 - `tests/tools/test_part_types.py`, `tests/tools/test_manufacturers.py` (new, per §C).
-- `tests/tools/test_interchange_store.py`: coverage for the two new read helpers (§D) —
-  empty case, multiple rows, correct exclusion of `provenance`/`source_observation_id`.
+- No new `interchange_store.py` test file — §D found the two read helpers already exist
+  and are already covered by `interchange_store.py`'s own `self_test()` (its
+  `--self-test` entry point, the project's existing convention for `Docs/Tools` module
+  self-checks — see `interchange_schema.py:188` for the same pattern). The exclusion of
+  `provenance`/`source_observation_id` from the *public response* is a service-layer
+  concern and is covered by the `test_services.py` assertions below instead.
 - `tests/api/test_services.py`: `manufacturer`/`part_type`/`attributes` present on search
   and resolve results; `required_parts`/`caveats` present and correctly structured on
   replacements; unknown `ns` (no manufacturer match) degrades to `None` rather than

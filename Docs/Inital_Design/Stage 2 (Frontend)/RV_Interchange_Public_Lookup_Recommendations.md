@@ -189,7 +189,7 @@ Examples:
 
 | Internal Value | Display Value |
 |---|---|
-| `coleman_mach` | Coleman-Mach |
+| `coleman` | Coleman-Mach |
 | `suburban` | Suburban |
 | `atwood` | Atwood |
 | `norcold` | Norcold |
