@@ -5,19 +5,78 @@
   <title>RV Interchange — Parts Lookup</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <h1>RV Interchange — Parts Lookup</h1>
+<body class="public-page">
+  <div id="header-slot"></div>
 
-  <form id="search-form">
-    <input id="search-input" type="text" placeholder="Enter a part number, model, or SKU" autocomplete="off">
-    <button type="submit">Search</button>
-  </form>
+  <main class="site-shell">
+    <section class="hero">
+      <h1>RV Interchange</h1>
+      <p class="hero-subtitle">
+        Search by manufacturer part number, model number, SKU, or known alternate number.
+      </p>
 
-  <div id="search-status"></div>
-  <ul id="search-results" class="result-list"></ul>
-  <div id="detail-view"></div>
+      <form id="search-form" class="search-form">
+        <label for="search-input" class="visually-hidden">Search for a part</label>
+        <input
+          id="search-input"
+          type="text"
+          placeholder="Try SW6DE, 7330G335, or 630762..."
+          autocomplete="off">
+        <button type="submit">Search</button>
+      </form>
+
+      <div class="example-chips">
+        <span class="example-chips-label">Examples:</span>
+        <button type="button" class="example-chip" data-example="SW6DEL">SW6DEL</button>
+        <button type="button" class="example-chip" data-example="7330G335">7330G335</button>
+        <button type="button" class="example-chip" data-example="AP7862">AP7862</button>
+        <button type="button" class="example-chip" data-example="2608A">2608A</button>
+      </div>
+    </section>
+
+    <div id="search-status" aria-live="polite"></div>
+
+    <div id="content">
+      <div class="info-cards">
+        <div class="info-card">
+          <h2>Search Any Known Number</h2>
+          <p>Use an OEM number, model number, SKU, retailer number, or known alternate
+            identifier.</p>
+        </div>
+        <div class="info-card">
+          <h2>Understand the Fit</h2>
+          <p>Results distinguish exact replacements, direct-fit replacements, and parts that
+            require modification.</p>
+        </div>
+        <div class="info-card">
+          <h2>Evidence-Backed Data</h2>
+          <p>Compatibility information is built from manufacturer literature, source
+            documents, and captured research evidence.</p>
+        </div>
+      </div>
+
+      <div class="tier-explainer">
+        <h2>Understanding compatibility tiers</h2>
+        <ul>
+          <li><strong>Exact Match</strong> — matches the original part's fit and intended
+            function.</li>
+          <li><strong>Direct Fit</strong> — installs without physical modification, but
+            specifications should still be reviewed.</li>
+          <li><strong>Fits With Modification</strong> — may require wiring, adapters,
+            installation changes, or additional parts.</li>
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer-slot"></div>
 
   <script src="api-client.js"></script>
+  <script src="chrome.js"></script>
+  <script src="url-state.js"></script>
+  <script src="results.js"></script>
+  <script src="detail.js"></script>
+  <script src="discontinued.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
