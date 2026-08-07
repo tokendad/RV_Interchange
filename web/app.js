@@ -52,6 +52,14 @@ function renderResults(results) {
     label.textContent = result.label;
     li.appendChild(label);
 
+    if (result.manufacturer || result.part_type) {
+      const meta = document.createElement("div");
+      meta.className = "result-meta";
+      meta.textContent = [result.manufacturer, result.part_type]
+        .filter(Boolean).join(" — ");
+      li.appendChild(meta);
+    }
+
     const idList = document.createElement("div");
     idList.className = "identifier-pills";
     for (const identifier of result.identifiers) {
@@ -122,7 +130,10 @@ function renderDetail(data) {
     const list = document.createElement("ul");
     for (const item of items) {
       const li = document.createElement("li");
-      li.textContent = item.summary ? `${item.part} — ${item.summary}` : item.part;
+      const caveatText = item.caveats && item.caveats.length
+        ? item.caveats.map((c) => c.text).join("; ")
+        : null;
+      li.textContent = caveatText ? `${item.part} — ${caveatText}` : item.part;
       list.appendChild(li);
     }
     section.appendChild(list);

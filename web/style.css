@@ -74,6 +74,12 @@ button {
   font-size: 1.05rem;
 }
 
+.result-meta {
+  color: #666;
+  font-size: 0.85rem;
+  margin-top: 0.15rem;
+}
+
 .identifier-pills {
   margin-top: 0.4rem;
   display: flex;
