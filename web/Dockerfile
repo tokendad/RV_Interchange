@@ -10,5 +10,6 @@ COPY admin.html /usr/share/nginx/html/admin.html
 COPY admin.js /usr/share/nginx/html/admin.js
 COPY api-client.js /usr/share/nginx/html/api-client.js
 COPY results.js /usr/share/nginx/html/results.js
+COPY detail.js /usr/share/nginx/html/detail.js
 COPY style.css /usr/share/nginx/html/style.css
 EXPOSE 80
