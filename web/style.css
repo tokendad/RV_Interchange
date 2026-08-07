@@ -471,3 +471,69 @@ body.public-page {
   border-radius: 6px;
   min-height: 44px;
 }
+
+.discontinued-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1.2rem;
+}
+
+.chain-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.chain-node {
+  display: block;
+  text-align: left;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  min-height: 44px;
+  font-size: 0.95rem;
+  color: #111827;
+}
+
+.chain-node-current {
+  border: 2px solid #16a34a;
+  background: #f0fdf4;
+  font-weight: 600;
+}
+
+.chain-node-tag {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  margin-left: 6px;
+}
+
+.chain-node-current .chain-node-tag {
+  color: #166534;
+}
+
+.chain-node-attributes {
+  font-size: 0.78rem;
+  color: #4b5563;
+  margin-top: 3px;
+}
+
+.chain-arrow {
+  color: #d99a2b;
+  padding: 2px 0 2px 20px;
+  font-size: 0.85rem;
+}
+
+.chain-children {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.discontinued-loading {
+  color: #6b7280;
+  font-size: 0.85rem;
+  margin-top: 1rem;
+}
