@@ -12,6 +12,9 @@ substitution direction, append-only relationship_evidence).
 import sqlite3
 import sys
 
+from manufacturers import MANUFACTURERS
+from part_types import PART_TYPES
+
 DEFAULT_DB = "components.db"
 
 SCHEMA = """
@@ -173,6 +176,17 @@ CREATE TABLE IF NOT EXISTS identifier_equivalence_evidence (
 );
 CREATE INDEX IF NOT EXISTS idx_ident_equiv_evidence_candidate
     ON identifier_equivalence_evidence(candidate_id);
+
+CREATE TABLE IF NOT EXISTS part_types (
+    id            INTEGER PRIMARY KEY,
+    display_name  TEXT NOT NULL,
+    description   TEXT
+);
+
+CREATE TABLE IF NOT EXISTS manufacturers (
+    ns            TEXT PRIMARY KEY,
+    display_name  TEXT NOT NULL
+);
 """
 
 
@@ -181,6 +195,12 @@ def init_db(path):
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA)
+    conn.executemany(
+        "INSERT OR IGNORE INTO part_types (id, display_name, description) VALUES (?, ?, ?)",
+        [(pt.id, pt.display_name, pt.description or None) for pt in PART_TYPES])
+    conn.executemany(
+        "INSERT OR IGNORE INTO manufacturers (ns, display_name) VALUES (?, ?)",
+        [(m.ns, m.display_name) for m in MANUFACTURERS])
     conn.commit()
     return conn
 
@@ -196,6 +216,7 @@ def self_test(verbose=False):
         "edge_supersession_detail", "edge_shared_subassembly_detail",
         "edge_aftermarket_replaces_detail", "relationship_evidence",
         "identifier_equivalence_candidate", "identifier_equivalence_evidence",
+        "part_types", "manufacturers",
     }
     missing = expected - tables
     if missing:
@@ -235,6 +256,20 @@ def self_test(verbose=False):
                 missing.add("component_attributes_value_check")
             except sqlite3.IntegrityError:
                 pass
+
+    seeded_part_types = {r["id"]: r["display_name"] for r in conn.execute(
+        "SELECT id, display_name FROM part_types")}
+    if seeded_part_types != {pt.id: pt.display_name for pt in PART_TYPES}:
+        print(f"FAIL: seeded part_types table does not match PART_TYPES registry: "
+              f"{seeded_part_types}")
+        missing.add("part_types_seed_mismatch")
+
+    seeded_manufacturers = {r["ns"]: r["display_name"] for r in conn.execute(
+        "SELECT ns, display_name FROM manufacturers")}
+    if seeded_manufacturers != {m.ns: m.display_name for m in MANUFACTURERS}:
+        print(f"FAIL: seeded manufacturers table does not match MANUFACTURERS registry: "
+              f"{seeded_manufacturers}")
+        missing.add("manufacturers_seed_mismatch")
     # calling init_db twice on the same file must not raise (IF NOT EXISTS)
     init_db(":memory:")
     if missing or missing_indexes:
