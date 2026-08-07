@@ -49,6 +49,31 @@ def test_resolve_includes_component_attributes():
     assert "source_observation_id" not in result["attributes"][0]
 
 
+def test_resolve_excludes_instance_serial_attributes():
+    from interchange_store import insert_component_attribute
+    from interchange_models import ComponentAttribute
+
+    conn = init_db(":memory:")
+    _seed_basic_component(conn)
+    insert_component_attribute(conn, ComponentAttribute(
+        component_id="c_test_a", name="serial", provenance="dataplate_photo",
+        source_observation_id=1, value_text="ABC123"))
+    insert_component_attribute(conn, ComponentAttribute(
+        component_id="c_test_a", name="cooling_unit_serial", provenance="dataplate_photo",
+        source_observation_id=2, value_text="XYZ789"))
+    insert_component_attribute(conn, ComponentAttribute(
+        component_id="c_test_a", name="capacity", provenance="manufacturer_pdf",
+        source_observation_id=3, value_number=6.0, unit="gal"))
+
+    result = IdentifierService.resolve(conn, "suburban", "SW6DE")
+    assert result["attributes"] == [
+        {"name": "capacity", "qualifier": "", "value": 6.0, "unit": "gal"},
+    ]
+    names = [attribute["name"] for attribute in result["attributes"]]
+    assert "serial" not in names
+    assert "cooling_unit_serial" not in names
+
+
 def test_resolve_unknown_identifier():
     conn = init_db(":memory:")
     _seed_basic_component(conn)

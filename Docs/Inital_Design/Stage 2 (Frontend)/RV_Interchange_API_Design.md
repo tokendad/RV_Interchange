@@ -164,16 +164,22 @@ Example Response
   "replacements":[
     {
       "part":"SW6DEL",
-      "fit":"Direct Fit",
-      "rank":1
+      "fit":"Exact Match",
+      "rank":1,
+      "required_parts":[],
+      "caveats":[]
     },
     {
       "part":"SW12DEL",
       "fit":"Fits With Modification",
       "rank":2,
-      "summary":"Requires switch kit"
+      "required_parts":[],
+      "caveats":[
+        {"text":"Requires switch kit","blocking":true}
+      ]
     }
-  ]
+  ],
+  "supersessions":[]
 }
 ```
 

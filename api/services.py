@@ -27,6 +27,9 @@ def _attribute_value(attribute):
     return attribute.value_boolean
 
 
+_INTERNAL_ATTRIBUTE_NAMES = {"serial", "cooling_unit_serial"}
+
+
 def _format_attributes(conn, component_id):
     return [
         {
@@ -36,6 +39,7 @@ def _format_attributes(conn, component_id):
             "unit": attribute.unit,
         }
         for attribute in get_component_attributes(conn, component_id)
+        if attribute.name not in _INTERNAL_ATTRIBUTE_NAMES
     ]
 
 
