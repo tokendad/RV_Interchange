@@ -1147,6 +1147,30 @@ components:
     attributes:
       description: {value: "TANK-INNER - FRONT MOUNT - GH6-4E & 6E (Winnebago part 051391-04-704)", provenance: manufacturer_pdf, source_observation_id: 112}
 
+  - component_id: c_placeholder_wh_atwood_part_91605
+    part_type_id: 413
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "91605", visibility: catalog}
+    attributes:
+      description: {value: "Gas valve (predecessor); Winnebago 1995 ICF23RC catalog: VALVE-GAS, WATER HEATER W/ELECTRIC IGNITION / G6A-7E section", provenance: retailer_page, source_observation_id: 115}
+
+  - component_id: c_placeholder_wh_atwood_part_93870
+    part_type_id: 413
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "93870", visibility: catalog}
+    attributes:
+      description: {value: "White Rodgers Valve (6 & 10 Gal.)", provenance: manufacturer_pdf, source_observation_id: 116}
+
+  - component_id: c_placeholder_wh_atwood_part_93844
+    part_type_id: 413
+    interchange_code: null
+    identifiers:
+      - {ns: atwood, value: "93844", visibility: catalog}
+    attributes:
+      description: {value: "White Rodgers Valve (6 & 10 Gal.)", provenance: manufacturer_pdf, source_observation_id: 116}
+
   # =========================================================================
   # 3. MONITOR PANEL — system-bound; assembly decomposition case
   # =========================================================================
@@ -1872,6 +1896,42 @@ edges:
     evidence:
       - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
       - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_wh_atwood_part_93870
+    to: c_placeholder_wh_atwood_gh6_6e
+    group: atwood_gh6_6e_gas_valve
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 116}
+
+  - type: fits
+    from: c_placeholder_wh_atwood_part_93844
+    to: c_placeholder_wh_atwood_gh6_6e
+    group: atwood_gh6_6e_gas_valve
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 116}
+
+  - type: supersedes
+    from: c_placeholder_wh_atwood_part_93870
+    to: c_placeholder_wh_atwood_part_93844
+    group: atwood_gh6_6e_gas_valve
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 116}
+
+  - type: supersedes
+    from: c_placeholder_wh_atwood_part_91605
+    to: c_placeholder_wh_atwood_part_93870
+    group: atwood_gh6_6e_gas_valve
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 115}
 
 
 identifier_equivalence_candidates:

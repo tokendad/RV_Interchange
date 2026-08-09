@@ -71,6 +71,7 @@ COLEMAN_AC_ENDPOINT_RESOLVER_VERSION = "coleman_ac_endpoint_v1"
 COLEMAN_AC_PARTS_RESOLVER_VERSION = "coleman_ac_parts_v1"
 ATWOOD_GH6_6E_RESOLVER_VERSION = "atwood_gh6_6e_v1"
 ATWOOD_GH6_6E_PARTS_RESOLVER_VERSION = "atwood_gh6_6e_parts_v1"
+ATWOOD_GH6_6E_VALVE_RESOLVER_VERSION = "atwood_gh6_6e_valve_v1"
 ATWOOD_6_GAL_OPENING = (12.625, 16.25)
 ATWOOD_10_GAL_OPENING = (15.625, 16.25)
 COLEMAN_VISUAL_MATCH_CANDIDATE = {
@@ -1982,6 +1983,181 @@ def atwood_gh6_6e_tank_91642_fits(conn, catalog_row, host_component_id):
             effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
 
     return component, identifiers, attributes, [edge.id]
+
+
+def atwood_gh6_6e_gas_valve_chain(conn, catalog_row, host_component_id):
+    """
+    Build the `93870` -> `93844` White Rodgers gas-valve supersession and
+    both valves' `fits` edges to the in-hand GH6-6E water heater -- issue
+    #42, split from the deferred #35 gas-valve item ("91605 -> 93870 ->
+    93844 + 94787"). Sourced to a direct read of Atwood's own January 2014
+    "Replacement Part Reference" table (obs #116), which combines both part
+    numbers into a single row ("93870/93844 White Rodgers Valve (6&10
+    Gal.)") with GH6-6E checked -- cross-checked against the January 2007
+    edition, which lists only 93870 (checked for GH6-6E) and does not yet
+    name 93844, confirming the combined listing is a later revision rather
+    than an extraction artifact.
+
+    The `94787` one-piece bracket named in the same issue's attached AI
+    research report is deliberately NOT built here: column-by-column
+    verification of all three local Atwood manuals (2003, 2007, Jan 2014)
+    shows `94787` is never checked for GH6-6E in any edition -- the
+    report's `93243 -> 94787` bracket chain comes from other models'
+    parts lists, over-generalized to GH6-6E. See issue #42 review comment.
+    """
+    _validate_observation_source(catalog_row, 116, "manufacturer_pdf", 2,
+                                  "Jan 2014 Replacement Part Reference table")
+    catalog = _normalized_attributes(catalog_row)
+    parts = catalog.get("repair_part_fitment_table")
+    if not isinstance(parts, dict) or not parts:
+        raise ValueError(f"obs #116 catalog has no repair_part_fitment_table: {parts}")
+
+    results = []
+    component_ids_by_part = {}
+    for part_number, spec in parts.items():
+        if not isinstance(spec, dict) or "description" not in spec or "applies_to" not in spec:
+            raise ValueError(f"gas valve {part_number} missing required fields: {spec}")
+        if spec["applies_to"] != ["GH6-6E"]:
+            raise ValueError(f"gas valve {part_number} has unexpected applies_to: "
+                              f"{spec['applies_to']}")
+
+        component_id = f"c_placeholder_wh_atwood_part_{part_number}"
+        component_ids_by_part[part_number] = component_id
+        component = Component(component_id, ATWOOD_PART_TYPE, None)
+        identifiers = [Identifier(component_id, "atwood", part_number, "catalog")]
+        attributes = [ComponentAttribute(
+            component_id, "description", "manufacturer_pdf", catalog_row["id"],
+            value_text=spec["description"], resolver_version=ATWOOD_GH6_6E_VALVE_RESOLVER_VERSION)]
+        insert_component(conn, component)
+        for identifier in identifiers:
+            insert_identifier(conn, identifier)
+        for attribute in attributes:
+            insert_component_attribute(conn, attribute)
+
+        edge = Edge(
+            type=EDGE_TYPE_FITS,
+            from_component_id=component_id,
+            to_component_id=host_component_id,
+            group_key="atwood_gh6_6e_gas_valve",
+            status="candidate",
+            resolver_version=ATWOOD_GH6_6E_VALVE_RESOLVER_VERSION,
+            notes="Atwood's own January 2014 Replacement Part Reference table names "
+                  f"{part_number} as fitting GH6-6E (combined '93870/93844' row, "
+                  "cross-checked against the Jan 2007 edition's 93870-only row).",
+        )
+        insert_edge(conn, edge)
+        for event_type, alpha, beta, source_id in (
+            ("attribute_prior", 1.0, 1.0, None),
+            ("manufacturer_assertion", 2.0, 0.0, catalog_row["id"]),
+        ):
+            insert_evidence(conn, RelationshipEvidence(
+                edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+                effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+        results.append((component, identifiers, attributes, [edge.id]))
+
+    old_valve, new_valve = "93870", "93844"
+    if parts.get(old_valve, {}).get("superseded_by") != new_valve:
+        raise ValueError(f"expected {old_valve} to name {new_valve} as its replacement")
+    supersession_edge = Edge(
+        type=EDGE_TYPE_SUPERSEDES,
+        from_component_id=component_ids_by_part[old_valve],
+        to_component_id=component_ids_by_part[new_valve],
+        group_key="atwood_gh6_6e_gas_valve",
+        status="candidate",
+        resolver_version=ATWOOD_GH6_6E_VALVE_RESOLVER_VERSION,
+        notes="Atwood's Jan 2014 Replacement Part Reference table combines 93870 and "
+              "93844 into a single row, absent from the separately-confirmed Jan 2007 "
+              "edition's 93870-only listing -- read as 93844 superseding 93870.",
+    )
+    insert_edge(conn, supersession_edge)
+    insert_supersession_detail(conn, EdgeSupersessionDetail(
+        edge_id=supersession_edge.id,
+        note="Jan 2014 table's combined '93870/93844' row for GH6-6E, absent from the "
+             "Jan 2007 edition's 93870-only row for the same model."))
+    for event_type, alpha, beta, source_id in (
+        ("attribute_prior", 1.0, 1.0, None),
+        ("manufacturer_assertion", 2.0, 0.0, catalog_row["id"]),
+    ):
+        insert_evidence(conn, RelationshipEvidence(
+            edge_id=supersession_edge.id, event_type=event_type, effect_alpha=alpha,
+            effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+
+    return results, supersession_edge.id
+
+
+def atwood_91605_93870_supersession(conn, catalog_row):
+    """
+    Build the `91605` -> `93870` gas-valve supersession -- the predecessor
+    step ahead of `atwood_gh6_6e_gas_valve_chain()`'s 93870 -> 93844 -- as
+    a standalone component pair with a weaker evidence tier than that
+    manufacturer-sourced chain, since no Atwood factory document names
+    91605 at all (checked all three local service manuals; zero hits).
+
+    Sourced to obs #115: Leisure Vehicle Services' 2012 Atwood spares list
+    ("91605 Replaced by 93870"), a distributor/retailer document, cross-
+    checked against a direct read of the 1995 Winnebago ICF23RC Parts
+    Catalog PDF (not secondhand from the attached AI research report),
+    which lists 91605 as "VALVE-GAS" under its "WATER HEATER W/ELECTRIC
+    IGNITION" (G6A-7E) section and 93870 as "SOLENOID VALVE AND BRACKET"
+    under its "WATER HEATER W/MOTOR AID" (GH6-7E) section, both at the
+    identical Winnebago-internal key part number (051393-01-726). That
+    catalog alone -- two adjacent model sections rather than one model's
+    revision history -- does not independently prove chronological
+    supersession; it corroborates without duplicating the LVS list's
+    explicit wording, per issue #42's "second document family" standard.
+
+    91605 is not built with a `fits` edge to GH6-6E: unlike 93870/93844
+    (obs #116, Atwood's own applicability matrix), no source here states
+    91605's model applicability directly -- only that it preceded 93870,
+    which does fit GH6-6E.
+    """
+    _validate_observation_source(catalog_row, 115, "retailer_page", 7,
+                                  "Atwood spares list / Winnebago catalog cross-check")
+    catalog = _normalized_attributes(catalog_row)
+    chart = catalog.get("replacement_chart_entries")
+    if not isinstance(chart, dict) or chart.get("91605") != "93870":
+        raise ValueError(f"obs #115 catalog missing 91605 -> 93870: {chart}")
+
+    old_id, new_id = "c_placeholder_wh_atwood_part_91605", "c_placeholder_wh_atwood_part_93870"
+    old_component = Component(old_id, ATWOOD_PART_TYPE, None)
+    old_identifiers = [Identifier(old_id, "atwood", "91605", "catalog")]
+    old_attributes = [ComponentAttribute(
+        old_id, "description", "retailer_page", catalog_row["id"],
+        value_text="Gas valve (predecessor); Winnebago 1995 ICF23RC catalog: "
+                    "VALVE-GAS, WATER HEATER W/ELECTRIC IGNITION / G6A-7E section",
+        resolver_version=ATWOOD_GH6_6E_VALVE_RESOLVER_VERSION)]
+    insert_component(conn, old_component)
+    for identifier in old_identifiers:
+        insert_identifier(conn, identifier)
+    for attribute in old_attributes:
+        insert_component_attribute(conn, attribute)
+
+    edge = Edge(
+        type=EDGE_TYPE_SUPERSEDES,
+        from_component_id=old_id,
+        to_component_id=new_id,
+        group_key="atwood_gh6_6e_gas_valve",
+        status="candidate",
+        resolver_version=ATWOOD_GH6_6E_VALVE_RESOLVER_VERSION,
+        notes="Leisure Vehicle Services' 2012 Atwood spares list states '91605 "
+              "Replaced by 93870', cross-checked against the 1995 Winnebago ICF23RC "
+              "catalog's parallel G6A-7E/GH6-7E valve listings at the same key part "
+              "number (051393-01-726).",
+    )
+    insert_edge(conn, edge)
+    insert_supersession_detail(conn, EdgeSupersessionDetail(
+        edge_id=edge.id,
+        note="Distributor spares list's own '91605 Replaced by 93870' wording; not an "
+             "Atwood factory document, so built at retailer-tier evidence."))
+    for event_type, alpha, beta, source_id in (
+        ("attribute_prior", 1.0, 1.0, None),
+        ("retailer_cross_reference", 1.0, 0.0, catalog_row["id"]),
+    ):
+        insert_evidence(conn, RelationshipEvidence(
+            edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+            effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+
+    return (old_component, old_identifiers, old_attributes), edge.id
 
 
 def identifier_candidate_from_observation(obs_row):
@@ -4840,6 +5016,119 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
 
     print(f"Atwood GH6-6E teardown anchor: "
           f"{mismatches - atwood_gh6_6e_mismatches_before} mismatch(es)")
+
+    atwood_gh6_6e_valve_mismatches_before = mismatches
+    obs116 = load_observation(obs_db_path, 116)
+    valve_results, valve_supersession_edge_id = atwood_gh6_6e_gas_valve_chain(
+        conn, obs116, gh6_6e_component_id)
+
+    for component, identifiers, attributes, edge_ids in valve_results:
+        component_id = component.component_id
+        fixture_part = next(
+            (c for c in components_doc if c.get("component_id") == component_id), None)
+        if fixture_part is None:
+            print(f"MISMATCH fixture is missing component: {component_id}")
+            mismatches += 1
+            continue
+        resolved_part_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (component_id,)).fetchall()
+        }
+        fixture_part_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_part["identifiers"]
+        }
+        if resolved_part_identifiers != fixture_part_identifiers:
+            print(f"MISMATCH gas valve identifiers for {component_id}: "
+                  f"resolved={resolved_part_identifiers} fixture={fixture_part_identifiers}")
+            mismatches += 1
+
+        fixture_fits_edge = next(
+            (e for e in edges_doc if e.get("type") == "fits"
+             and e.get("from") == component_id and e.get("to") == gh6_6e_component_id), None)
+        if fixture_fits_edge is None:
+            print(f"MISMATCH ground-truth.yaml has no fits edge for {component_id}")
+            mismatches += 1
+        else:
+            edge_row = conn.execute(
+                "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
+                (edge_ids[0],)).fetchone()
+            if tuple(edge_row) != ("fits", fixture_fits_edge["from"], fixture_fits_edge["to"]):
+                print(f"MISMATCH {component_id} fits edge: resolved={tuple(edge_row)} "
+                      f"fixture=({fixture_fits_edge['type']}, {fixture_fits_edge['from']}, "
+                      f"{fixture_fits_edge['to']})")
+                mismatches += 1
+
+    fixture_valve_supersession_edge = next(
+        (e for e in edges_doc if e.get("type") == "supersedes"
+         and e.get("from") == "c_placeholder_wh_atwood_part_93870"
+         and e.get("to") == "c_placeholder_wh_atwood_part_93844"), None)
+    if fixture_valve_supersession_edge is None:
+        print("MISMATCH ground-truth.yaml has no 93870->93844 supersedes edge")
+        mismatches += 1
+    else:
+        edge_row = conn.execute(
+            "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
+            (valve_supersession_edge_id,)).fetchone()
+        if tuple(edge_row) != ("supersedes", fixture_valve_supersession_edge["from"],
+                                fixture_valve_supersession_edge["to"]):
+            print(f"MISMATCH 93870->93844 supersedes edge: resolved={tuple(edge_row)} "
+                  f"fixture=({fixture_valve_supersession_edge['type']}, "
+                  f"{fixture_valve_supersession_edge['from']}, "
+                  f"{fixture_valve_supersession_edge['to']})")
+            mismatches += 1
+
+    print(f"Atwood GH6-6E gas valve chain (93870->93844): "
+          f"{mismatches - atwood_gh6_6e_valve_mismatches_before} mismatch(es)")
+
+    atwood_91605_mismatches_before = mismatches
+    obs115 = load_observation(obs_db_path, 115)
+    (component_91605, identifiers_91605, attributes_91605), edge_91605_id = \
+        atwood_91605_93870_supersession(conn, obs115)
+
+    fixture_91605 = next(
+        (c for c in components_doc
+         if c.get("component_id") == "c_placeholder_wh_atwood_part_91605"), None)
+    if fixture_91605 is None:
+        print("MISMATCH fixture is missing component: c_placeholder_wh_atwood_part_91605")
+        mismatches += 1
+    else:
+        resolved_91605_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                ("c_placeholder_wh_atwood_part_91605",)).fetchall()
+        }
+        fixture_91605_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_91605["identifiers"]
+        }
+        if resolved_91605_identifiers != fixture_91605_identifiers:
+            print(f"MISMATCH 91605 identifiers: resolved={resolved_91605_identifiers} "
+                  f"fixture={fixture_91605_identifiers}")
+            mismatches += 1
+
+    fixture_91605_edge = next(
+        (e for e in edges_doc if e.get("type") == "supersedes"
+         and e.get("from") == "c_placeholder_wh_atwood_part_91605"
+         and e.get("to") == "c_placeholder_wh_atwood_part_93870"), None)
+    if fixture_91605_edge is None:
+        print("MISMATCH ground-truth.yaml has no 91605->93870 supersedes edge")
+        mismatches += 1
+    else:
+        edge_row = conn.execute(
+            "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
+            (edge_91605_id,)).fetchone()
+        if tuple(edge_row) != ("supersedes", fixture_91605_edge["from"], fixture_91605_edge["to"]):
+            print(f"MISMATCH 91605->93870 supersedes edge: resolved={tuple(edge_row)} "
+                  f"fixture=({fixture_91605_edge['type']}, {fixture_91605_edge['from']}, "
+                  f"{fixture_91605_edge['to']})")
+            mismatches += 1
+
+    print(f"Atwood 91605->93870 supersession: "
+          f"{mismatches - atwood_91605_mismatches_before} mismatch(es)")
 
     suburban_remainder_mismatches_before = mismatches
     obs11 = load_observation(obs_db_path, 11)

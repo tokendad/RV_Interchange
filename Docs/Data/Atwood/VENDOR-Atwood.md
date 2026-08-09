@@ -1,7 +1,10 @@
 # VENDOR — Atwood / Atwood Mobile Products
 
 **Status:** endpoint components + repair-parts cross-reference built, plus one in-hand
-teardown anchor (GH6-6E)
+teardown anchor (GH6-6E) and its gas-valve supersession chain
+**Updated:** 2026-08-09 — GH6-6E gas-valve chain built (issue #42, split from #35): `91605
+-> 93870 -> 93844`, with `93870`/`93844` `fits` GH6-6E. See §9. Totals now: 20 endpoint +
+91 repair-part components, 370 `fits` + 2 `supersedes` edges.
 **Updated:** 2026-08-07 — In-hand teardown anchor GH6-6E built (obs #111 data plate, obs
 #112 Winnebago OEM catalog), resolving the "no in-hand teardown anchor yet" gap noted
 above (issue #13) and issue #33. See §8. Totals now: 20 endpoint components + 88
@@ -318,3 +321,50 @@ thermostat (`91470`) calibration claim (120°F vs 130°F), and a contradictory e
 built on this pass's evidence.
 
 `edge_resolver.py --check-fixture`: 0 mismatches. `pytest`: all green.
+
+## 9. Fifth wave: GH6-6E gas-valve supersession chain (obs #115, #116) — issue #42
+
+Issue #35's deferred gas-valve item ("91605 -> 93870 -> 93844 + 94787") was split into
+issue #42 for dedicated research. The attached AI research report (`91605-Research.md`,
+issue #42) was reviewed against the three local Atwood service manuals rather than taken
+on trust — the project's established standard (§7.1, §8). That review is posted as a
+comment on issue #42; the summary:
+
+**Buildable, primary-verified:** `93870 -> 93844` for GH6-6E. Atwood's own January 2014
+"Replacement Part Reference" table (obs #116, direct `pdftotext -f`/`pdftoppm` page read,
+not OCR guesswork) combines both part numbers into one row — `"93870/93844 White Rodgers
+Valve (6&10 Gal.)"` — with GH6-6E checked. Cross-checked against the January 2007 edition,
+whose native-text table lists only `93870` (also checked for GH6-6E) and does not yet name
+`93844`, confirming the combined listing is a later factory revision rather than an
+extraction artifact from the 2014 scan's known OCR gaps (§2).
+
+**Buildable, secondary-tier:** `91605 -> 93870`. No Atwood factory document names `91605`
+at all (grepped all three local manuals; zero hits). Built instead from obs #115: Leisure
+Vehicle Services' 2012 Atwood spares list ("91605 Replaced by 93870"), cross-checked
+against a direct `pdftotext` read of the 1995 Winnebago ICF23RC Parts Catalog PDF — not
+secondhand from the attached report. That catalog lists `91605` as "VALVE-GAS" under its
+"WATER HEATER W/ELECTRIC IGNITION" (G6A-7E) section and `93870` as "SOLENOID VALVE AND
+BRACKET" under its "WATER HEATER W/MOTOR AID" (GH6-7E) section, both at the identical
+Winnebago-internal key part number `051393-01-726` — corroborating without independently
+proving chronological supersession (two adjacent model sections, not one model's revision
+history), so this edge is built at retailer-tier evidence (`atwood_91605_93870_supersession()`
+in `edge_resolver.py`), one notch below the manufacturer-sourced `93870 -> 93844` step.
+
+**Not built:** the report's `93243 -> 94787` bracket claim for GH6-6E. Column-by-column
+verification of all three local manuals (2003, 2007, Jan 2014 — including a rendered-page
+visual check, not just `pdftotext` column-position guessing) shows `94787` is never
+checked for GH6-6E in any edition. `93243` is checked for GH6-6E in the 2003 edition,
+marked "No Longer Available" by the Jan 2007 edition, and labeled OBSOLETE in Jan 2014 —
+with no GH6-6E successor marked in any edition. The report's bracket chain comes from
+other models' parts lists (G6A-2E, GC6A-7E), over-generalized to GH6-6E. Left as an open
+question on issue #42 rather than built.
+
+3 new repair-part components (`91605`, `93870`, `93844`, `part_type_id: 413`), 2 `fits`
+edges (`93870`/`93844` -> GH6-6E), 2 `supersedes` edges (`91605`->`93870`, `93870`->`93844`)
+— `atwood_gh6_6e_gas_valve_chain()` and `atwood_91605_93870_supersession()` in
+`edge_resolver.py`, resolver version `atwood_gh6_6e_valve_v1`.
+
+`edge_resolver.py --check-fixture`: 0 mismatches. `edge_resolver.py --self-test`: PASS.
+`pytest`: 52/53 (the one failure, `test_part_types_cover_every_exported_constant`, predates
+this work — a gap from the Coleman AC 48253B866 build (commit `9063edd`) never adding
+`COLEMAN_AC_PART_TYPE`/`COLEMAN_AC_REPAIR_PART_TYPE` to that test's registry check).
