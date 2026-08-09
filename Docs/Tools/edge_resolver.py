@@ -39,7 +39,8 @@ from interchange_store import (
     insert_controls_detail, get_controls_detail,
 )
 from part_types import (
-    ATWOOD_PART_TYPE, NORCOLD_REFRIGERATOR_PART_TYPE, NORCOLD_REPAIR_PART_TYPE,
+    ATWOOD_PART_TYPE, COLEMAN_AC_PART_TYPE, COLEMAN_AC_REPAIR_PART_TYPE,
+    NORCOLD_REFRIGERATOR_PART_TYPE, NORCOLD_REPAIR_PART_TYPE,
     SUBURBAN_COOKTOP_PART_TYPE, SUBURBAN_FURNACE_PART_TYPE,
     SUBURBAN_FURNACE_REPAIR_PART_TYPE, THERMOSTAT_PART_TYPE, WATER_HEATER_PART_TYPE,
 )
@@ -66,6 +67,8 @@ ATWOOD_ELECTRONIC_PARTS_TARGET_MODELS = (
 SUBURBAN_FURNACE_COOKTOP_RESOLVER_VERSION = "suburban_furnace_cooktop_v1"
 NORCOLD_ENDPOINT_RESOLVER_VERSION = "norcold_endpoint_v1"
 NORCOLD_PARTS_RESOLVER_VERSION = "norcold_parts_v1"
+COLEMAN_AC_ENDPOINT_RESOLVER_VERSION = "coleman_ac_endpoint_v1"
+COLEMAN_AC_PARTS_RESOLVER_VERSION = "coleman_ac_parts_v1"
 ATWOOD_6_GAL_OPENING = (12.625, 16.25)
 ATWOOD_10_GAL_OPENING = (15.625, 16.25)
 COLEMAN_VISUAL_MATCH_CANDIDATE = {
@@ -1702,6 +1705,163 @@ def norcold_630762_component(dealer_row, component_id):
         value_text=dealer["product_type"], resolver_version=NORCOLD_PARTS_RESOLVER_VERSION)]
 
     return component, identifiers, attributes
+
+
+COLEMAN_AC_48253B866_IDENTIFIERS = {("coleman", "48253B866")}
+
+
+def coleman_ac_48253b866_component(dataplate_row, component_id):
+    """
+    Build the owner's in-hand Coleman-Mach "Mach 3 Plus A/C" rooftop unit as
+    an exact endpoint component -- a new part type within the existing
+    Coleman-Mach vendor arc (rooftop AC, not thermostats), split out from
+    the `8330A733` ceiling plenum (see GitHub issue #23) which is a
+    physically separate component the AC head sits above, not this unit.
+
+    Identity comes from two photographs of the same physical unit (obs
+    #111): a permanent rating plate riveted inside the AC base/shroud ring
+    ('MODEL NO. 48253B866  SERIAL NO. 051218899') and a separate white
+    manufacturer label on the same unit reading 'MACH 3 PLUS A/C'. The
+    model number is independently corroborated (not just visually) by
+    Coleman-Mach's own online model-number-replacement lookup tool, which
+    returns 48253B866 as a real catalogued number ("MACH 3+ EZ A/C WHT
+    OEM") with current replacement 38203-066 -- the exact SKU the 2025
+    dealer catalog lists as "MACH 3 Plus, 13,500 BTU A/C - Textured White"
+    (see VENDOR-Coleman-Mach.md sec 1 catalog evidence already in this
+    fixture). That supersession/replacement relationship is not built as
+    an edge here -- 38203-066 is not itself confirmed in-hand or built as a
+    component, so this stays a description-level note, same caution
+    already applied elsewhere in this vendor arc (e.g. the compressor's
+    "USE 14504209" note in coleman_ac_repair_parts_and_fits()).
+
+    The pink factory "build sheet" transcription that originally motivated
+    this research (illegible handwritten "Coleman 4853B866"-ish text) is
+    superseded by this photographed rating plate as the identity source --
+    it was too illegible to trust alone and is not cited as evidence here.
+    """
+    _validate_observation_source(dataplate_row, 111, "dataplate_photo", 2,
+                                  "AC rating plate")
+    plate = _normalized_attributes(dataplate_row)
+    plate_ids = {(i["ns"], i["value"]) for i in plate["physical_identifiers"]}
+    if plate_ids != COLEMAN_AC_48253B866_IDENTIFIERS:
+        raise ValueError(f"unexpected Coleman AC identifiers: {plate_ids}")
+    if plate.get("serial_number") != "051218899":
+        raise ValueError(f"unexpected Coleman AC serial: {plate.get('serial_number')}")
+
+    def text_attr(name, value, provenance="dataplate_photo"):
+        return ComponentAttribute(
+            component_id, name, provenance, dataplate_row["id"], value_text=value,
+            resolver_version=COLEMAN_AC_ENDPOINT_RESOLVER_VERSION)
+
+    component = Component(component_id, COLEMAN_AC_PART_TYPE, None)
+    identifiers = [Identifier(component_id, "coleman", "48253B866", "rating_plate")]
+    attributes = [
+        text_attr("serial", plate["serial_number"]),
+        text_attr("product_line", plate["product_type"]),
+    ]
+    return component, identifiers, attributes
+
+
+def coleman_ac_repair_parts_and_fits(conn, catalog_row, host_component_id):
+    """
+    Build Coleman-Mach 48253B866 repair/service-part components and their
+    "fits" edges to the in-hand AC -- same one-host, many-repair-parts shape
+    as atwood_repair_parts_and_fits()/norcold_base_board_fits(). Sourced to
+    a single retailer illustrated-parts breakdown page for this exact
+    product ID (obs #112, Young Farts RV Parts), the only parts-level source
+    found for this legacy model -- Coleman-Mach's own current document
+    library and 2025 catalog (already in this fixture, see VENDOR doc) cover
+    the current 38203-066 replacement's sales listing, not a service parts
+    breakdown for either SKU. Retailer-only sourcing (tier 7, not a
+    manufacturer PDF) is reflected in weaker "fits" evidence than the
+    manufacturer-catalog-sourced Atwood/Norcold repair-part edges.
+
+    Two rows in the table name each other directly: `1468-3069` ("FAN MOTOR
+    (FASCO D1092) USE 1468A3069") and `1468A3069` ("MOTOR") -- the same
+    explicit "(USE X)" supersession wording already used for Suburban/
+    Coleman-Mach thermostats and Norcold's optical control board elsewhere
+    in this project. Both are still built as fitting components (the old
+    number is a legitimate historical part, not a typo), plus a `supersedes`
+    edge between them. The compressor row's own "USE 14504209" note is
+    NOT built the same way: 14504209 does not otherwise appear in this
+    table and is not independently confirmed, so it stays a caveat inside
+    the component's description rather than an invented component.
+    """
+    _validate_observation_source(catalog_row, 112, "retailer_page", 7, "repair parts")
+    catalog = _normalized_attributes(catalog_row)
+    parts = catalog.get("repair_part_fitment_table")
+    if not isinstance(parts, dict) or not parts:
+        raise ValueError(f"obs #112 catalog has no repair_part_fitment_table: {parts}")
+
+    results = []
+    component_ids_by_part = {}
+    for part_number, spec in parts.items():
+        if not isinstance(spec, dict) or "description" not in spec or "applies_to" not in spec:
+            raise ValueError(f"Coleman AC repair part {part_number} missing required fields: {spec}")
+        if spec["applies_to"] != ["48253B866"]:
+            raise ValueError(f"Coleman AC repair part {part_number} has unexpected applies_to: "
+                              f"{spec['applies_to']}")
+
+        component_id = f"c_placeholder_coleman_ac_part_{part_number}"
+        component_ids_by_part[part_number] = component_id
+        component = Component(component_id, COLEMAN_AC_REPAIR_PART_TYPE, None)
+        identifiers = [Identifier(component_id, "coleman", part_number, "catalog")]
+        attributes = [ComponentAttribute(
+            component_id, "description", "retailer_page", catalog_row["id"],
+            value_text=spec["description"], resolver_version=COLEMAN_AC_PARTS_RESOLVER_VERSION)]
+        insert_component(conn, component)
+        for identifier in identifiers:
+            insert_identifier(conn, identifier)
+        for attribute in attributes:
+            insert_component_attribute(conn, attribute)
+
+        edge = Edge(
+            type=EDGE_TYPE_FITS,
+            from_component_id=component_id,
+            to_component_id=host_component_id,
+            group_key="coleman_ac_48253b866_repair_part",
+            status="candidate",
+            resolver_version=COLEMAN_AC_PARTS_RESOLVER_VERSION,
+            notes=f"Young Farts RV Parts' 48253B866 illustrated parts breakdown names "
+                  f"{part_number} as fitting this exact product ID.",
+        )
+        insert_edge(conn, edge)
+        for event_type, alpha, beta, source_id in (
+            ("attribute_prior", 1.0, 1.0, None),
+            ("retailer_cross_reference", 1.0, 0.0, catalog_row["id"]),
+        ):
+            insert_evidence(conn, RelationshipEvidence(
+                edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+                effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+        results.append((component, identifiers, attributes, [edge.id]))
+
+    old_motor, new_motor = "1468-3069", "1468A3069"
+    if parts.get(old_motor, {}).get("superseded_by") != new_motor:
+        raise ValueError(f"expected {old_motor} to name {new_motor} as its replacement")
+    supersession_edge = Edge(
+        type=EDGE_TYPE_SUPERSEDES,
+        from_component_id=component_ids_by_part[old_motor],
+        to_component_id=component_ids_by_part[new_motor],
+        group_key="coleman_ac_48253b866_fan_motor",
+        status="candidate",
+        resolver_version=COLEMAN_AC_PARTS_RESOLVER_VERSION,
+        notes="Young Farts RV Parts' 48253B866 parts breakdown names 1468A3069 as the "
+              "replacement for 1468-3069 ('USE 1468A3069').",
+    )
+    insert_edge(conn, supersession_edge)
+    insert_supersession_detail(conn, EdgeSupersessionDetail(
+        edge_id=supersession_edge.id,
+        note="Retailer parts breakdown's own '(USE 1468A3069)' wording for the "
+             "Fasco D1092 fan motor."))
+    for event_type, alpha, beta, source_id in (
+        ("attribute_prior", 1.0, 1.0, None),
+        ("retailer_cross_reference", 1.0, 0.0, catalog_row["id"]),
+    ):
+        insert_evidence(conn, RelationshipEvidence(
+            edge_id=supersession_edge.id, event_type=event_type, effect_alpha=alpha,
+            effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+
+    return results, supersession_edge.id
 
 
 def identifier_candidate_from_observation(obs_row):
@@ -4337,6 +4497,124 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
 
     print(f"Norcold repair parts: "
           f"{mismatches - norcold_parts_mismatches_before} mismatch(es)")
+
+    coleman_ac_mismatches_before = mismatches
+    obs111 = load_observation(obs_db_path, 111)
+    coleman_ac_component_id = "c_placeholder_coleman_ac_48253b866"
+    coleman_ac_component, coleman_ac_identifiers, coleman_ac_attributes = \
+        coleman_ac_48253b866_component(obs111, coleman_ac_component_id)
+    insert_component(conn, coleman_ac_component)
+    for identifier in coleman_ac_identifiers:
+        insert_identifier(conn, identifier)
+    for attribute in coleman_ac_attributes:
+        insert_component_attribute(conn, attribute)
+
+    fixture_coleman_ac = next(
+        (c for c in components_doc if c.get("component_id") == coleman_ac_component_id), None)
+    if fixture_coleman_ac is None:
+        print(f"MISMATCH fixture is missing component: {coleman_ac_component_id}")
+        mismatches += 1
+    else:
+        resolved_coleman_ac_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (coleman_ac_component_id,)).fetchall()
+        }
+        expected_coleman_ac_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_coleman_ac["identifiers"]
+        }
+        if resolved_coleman_ac_identifiers != expected_coleman_ac_identifiers:
+            print(f"MISMATCH Coleman AC identifiers: resolved={resolved_coleman_ac_identifiers} "
+                  f"fixture={expected_coleman_ac_identifiers}")
+            mismatches += 1
+
+        resolved_coleman_ac_attribute_rows = get_component_attributes(conn, coleman_ac_component_id)
+        resolved_coleman_ac_attributes = {}
+        for attribute in resolved_coleman_ac_attribute_rows:
+            value = attribute.value_text if attribute.value_text is not None else (
+                attribute.value_number if attribute.value_number is not None
+                else attribute.value_boolean)
+            resolved_coleman_ac_attributes[attribute.name] = (
+                value, attribute.provenance, attribute.source_observation_id)
+        expected_coleman_ac_attributes = {
+            name: (definition["value"], definition["provenance"],
+                   definition["source_observation_id"])
+            for name, definition in fixture_coleman_ac["attributes"].items()
+        }
+        if (len(resolved_coleman_ac_attribute_rows) != len(expected_coleman_ac_attributes)
+                or resolved_coleman_ac_attributes != expected_coleman_ac_attributes):
+            print(f"MISMATCH Coleman AC attributes: resolved={resolved_coleman_ac_attributes} "
+                  f"fixture={expected_coleman_ac_attributes}")
+            mismatches += 1
+
+    print(f"Coleman AC endpoint: {mismatches - coleman_ac_mismatches_before} mismatch(es)")
+
+    coleman_ac_parts_mismatches_before = mismatches
+    obs112 = load_observation(obs_db_path, 112)
+    coleman_ac_parts_results, coleman_ac_motor_supersession_edge_id = \
+        coleman_ac_repair_parts_and_fits(conn, obs112, coleman_ac_component_id)
+
+    for component, identifiers, attributes, edge_ids in coleman_ac_parts_results:
+        component_id = component.component_id
+        fixture_part = next(
+            (c for c in components_doc if c.get("component_id") == component_id), None)
+        if fixture_part is None:
+            print(f"MISMATCH fixture is missing component: {component_id}")
+            mismatches += 1
+            continue
+        resolved_part_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (component_id,)).fetchall()
+        }
+        fixture_part_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_part["identifiers"]
+        }
+        if resolved_part_identifiers != fixture_part_identifiers:
+            print(f"MISMATCH Coleman AC part identifiers for {component_id}: "
+                  f"resolved={resolved_part_identifiers} fixture={fixture_part_identifiers}")
+            mismatches += 1
+
+        fixture_fits_edge = next(
+            (e for e in edges_doc if e.get("type") == "fits"
+             and e.get("from") == component_id and e.get("to") == coleman_ac_component_id), None)
+        if fixture_fits_edge is None:
+            print(f"MISMATCH ground-truth.yaml has no fits edge for {component_id}")
+            mismatches += 1
+        else:
+            edge_row = conn.execute(
+                "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
+                (edge_ids[0],)).fetchone()
+            if tuple(edge_row) != ("fits", fixture_fits_edge["from"], fixture_fits_edge["to"]):
+                print(f"MISMATCH {component_id} fits edge: resolved={tuple(edge_row)} "
+                      f"fixture=({fixture_fits_edge['type']}, {fixture_fits_edge['from']}, "
+                      f"{fixture_fits_edge['to']})")
+                mismatches += 1
+
+    fixture_motor_supersession_edge = next(
+        (e for e in edges_doc if e.get("type") == "supersedes"
+         and e.get("group") == "coleman_ac_48253b866_fan_motor"), None)
+    if fixture_motor_supersession_edge is None:
+        print("MISMATCH ground-truth.yaml has no coleman_ac_48253b866_fan_motor supersedes edge")
+        mismatches += 1
+    else:
+        edge_row = conn.execute(
+            "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
+            (coleman_ac_motor_supersession_edge_id,)).fetchone()
+        if tuple(edge_row) != ("supersedes", fixture_motor_supersession_edge["from"],
+                                fixture_motor_supersession_edge["to"]):
+            print(f"MISMATCH Coleman AC fan motor supersedes edge: resolved={tuple(edge_row)} "
+                  f"fixture=({fixture_motor_supersession_edge['type']}, "
+                  f"{fixture_motor_supersession_edge['from']}, "
+                  f"{fixture_motor_supersession_edge['to']})")
+            mismatches += 1
+
+    print(f"Coleman AC repair parts: "
+          f"{mismatches - coleman_ac_parts_mismatches_before} mismatch(es)")
 
     suburban_remainder_mismatches_before = mismatches
     obs11 = load_observation(obs_db_path, 11)

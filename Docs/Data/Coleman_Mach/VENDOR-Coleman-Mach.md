@@ -1,6 +1,21 @@
 # VENDOR — Coleman-Mach / RV Products / Airxcel
 
 **Status:** exact endpoint and supersession fixture complete; broader adapter research in progress
+**Updated:** 2026-08-09 — built the owner's in-hand rooftop AC (Mach 3 Plus, model `48253B866`,
+serial `051218899`) as an exact endpoint component (part type 604), split out from the
+`8330A733` ceiling plenum (issue #23) which turned out to be a separate physical part — see
+GitHub issue #36. Identity comes from photographed rating-plate + product-label evidence
+(obs #111), independently corroborated by Coleman-Mach's own online model-number-replacement
+lookup tool (`48253B866` → "MACH 3+ EZ A/C WHT OEM", current replacement `38203-066`, the
+exact SKU the 2025 dealer catalog already in this fixture lists as "MACH 3 Plus, 13,500 BTU
+A/C - Textured White"). Also built all 28 repair parts from Young Farts RV Parts' illustrated
+parts-breakdown page for this exact product ID (obs #112, retailer tier 7 — no manufacturer
+parts-catalog PDF was found for this legacy SKU) as `fits` edges (part type 605), plus a
+`supersedes` edge for the fan motor pair (`1468-3069` → `1468A3069`, the table's own "USE
+1468A3069" wording). Resolver functions `coleman_ac_48253b866_component()` and
+`coleman_ac_repair_parts_and_fits()`, resolver versions `coleman_ac_endpoint_v1`/
+`coleman_ac_parts_v1`. `edge_resolver.py --check-fixture` confirms 0 mismatches. See §9 below.
+
 **Updated:** 2026-08-04 — the user supplied Airxcel's own current (May 2025) dealer catalog
 (`CM-4040.02_2025 AMCAT.pdf`, `Docs/Data/Coleman_Mach/`), the highest-currency
 manufacturer-primary source found for this vendor yet. Its own "NEW SINGLE STAGE
@@ -795,3 +810,54 @@ Ready-to-do next work, in rough priority order:
    products catalog (Atwood/marine items overlapping RV items only incidentally) — out of
    scope for this vendor, and out of scope for RV Interchange generally per the Atwood
    vendor's own marine-exclusion decision (`VENDOR-Atwood.md` §4). Not reviewed further.
+
+## 9. Rooftop AC unit — `48253B866` (separate part type from the plenum)
+
+Issue #23 was originally opened for "the Coleman-Mach rooftop AC" using the model number
+visible on the owner's coach data plates (`8330A733`), but that number turned out to
+identify the **room plenum** (interior ceiling assembly), not the rooftop AC head itself —
+confirmed via Airxcel's own installation manual and catalog listings (research doc attached
+to issue #23; plenum not yet built as a component in this fixture, remains open). The
+rooftop AC's own model number is not visible without disassembly and was illegible on the
+pink factory "build sheet" transcription (`Coleman 4853B866`-ish handwriting, too uncertain
+to trust). Issue #36 tracks the AC unit itself, separately from #23's plenum.
+
+**Identity (obs #111, 2026-08-09):** photographs of the physical unit's rating plate
+(riveted inside the base/shroud ring: `MODEL NO. 48253B866  SERIAL NO. 051218899`) and a
+separate "MACH 3 PLUS A/C" manufacturer label on the same unit. Independently corroborated
+by Coleman-Mach's own online model-number-replacement lookup tool
+(coleman-mach.com/search-model-number-replacement/), which returns `48253B866` as
+"MACH 3+ EZ A/C WHT OEM" with current replacement `38203-066` — exactly the SKU the 2025
+dealer catalog (already in this fixture, §"Why this adapter" catalog evidence) lists as
+"MACH 3 Plus, 13,500 BTU A/C - Textured White." The `48253B866 -> 38203-066` replacement is
+**not** built as a `supersedes` edge: `38203-066` itself is not in-hand or independently
+built as a component here, so it stays a description-level note (same caution as the
+compressor's unbuilt `14504209` variant below).
+
+Built as component `c_placeholder_coleman_ac_48253b866` (part type 604,
+`coleman_ac_48253b866_component()`, resolver version `coleman_ac_endpoint_v1`).
+
+**Repair parts (obs #112, 2026-08-09):** Young Farts RV Parts' illustrated parts-breakdown
+page for this exact product ID (`48253B866`) is the only parts-level source found — no
+manufacturer repair-parts catalog PDF exists for this legacy SKU (Coleman-Mach's current
+document library and 2025 catalog only cover the current `38203-066` replacement's sales
+listing, not a service breakdown for either SKU). Retailer-only sourcing (tier 7) means
+these `fits` edges carry weaker evidence than the manufacturer-catalog-sourced Atwood/
+Norcold repair-part edges elsewhere in this project — `attribute_prior` + one
+`retailer_cross_reference` event each, no `manufacturer_assertion`.
+
+All 28 listed parts (26 numbered reference positions + 2 "NS"/not-shown-on-diagram items)
+are built as repair-part components (part type 605) with `fits` edges to the host AC,
+via `coleman_ac_repair_parts_and_fits()` (resolver version `coleman_ac_parts_v1`). One pair
+names each other directly in the source table — `1468-3069` ("FAN MOTOR (FASCO D1092) USE
+1468A3069") and `1468A3069` ("MOTOR") — the same explicit "(USE X)" supersession wording
+already used for the Suburban/Coleman-Mach thermostats and Norcold's optical control board
+elsewhere in this project; built as both a `fits` edge (each is still a real, orderable
+part) and a `supersedes` edge (`coleman_ac_48253b866_fan_motor` group). The compressor row's
+own "USE 14504209" note is **not** built the same way — `14504209` doesn't otherwise appear
+in the table and isn't independently confirmed, so it stays a caveat inside the compressor
+component's description rather than an invented component, consistent with this project's
+standing rule against building identifiers from a single unconfirmed mention.
+
+`edge_resolver.py --check-fixture` confirms 0 mismatches for both the endpoint and the
+repair-parts/fits build.

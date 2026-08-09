@@ -908,6 +908,218 @@ components:
     attributes:
       description: {value: "Optical display/control board (\"eyebrow board\"), Norcold N61X/N81X family", provenance: retailer_page, source_observation_id: 110}
 
+  - component_id: c_placeholder_coleman_ac_48253b866
+    part_type_id: 604
+    interchange_code: null
+    identifiers:
+      - {ns: coleman, value: "48253B866", visibility: rating_plate}
+    attributes:
+      serial:       {value: "051218899", provenance: dataplate_photo, source_observation_id: 111}
+      product_line: {value: "Mach 3 Plus A/C — cool-only rooftop unit", provenance: dataplate_photo, source_observation_id: 111}
+
+  - component_id: c_placeholder_coleman_ac_part_6792-5111
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "6792-5111", visibility: catalog}]
+    attributes:
+      description: {value: "Screw & Washer Pkg. x4", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_8335A5261
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "8335A5261", visibility: catalog}]
+    attributes:
+      description: {value: "Coleman Shroud, Arctic White", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_1452-1851
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "1452-1851", visibility: catalog}]
+    attributes:
+      description: {value: "Condenser Coil", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_6792-1071
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "6792-1071", visibility: catalog}]
+    attributes:
+      description: {value: "Shroud, Fan", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_6733-3221
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "6733-3221", visibility: catalog}]
+    attributes:
+      description: {value: "Fan", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_14504029
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "14504029", visibility: catalog}]
+    attributes:
+      description: {value: "Compressor (Tecumseh)", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_14500511
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "14500511", visibility: catalog}]
+    attributes:
+      description: {value: "Overload Protection", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_6759-3081
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "6759-3081", visibility: catalog}]
+    attributes:
+      description: {value: "Compressor Mounting Pkg. (3/Pkg)", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_1468-3069
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "1468-3069", visibility: catalog}]
+    attributes:
+      description: {value: "Fan Motor (Fasco D1092)", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_1468A3069
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "1468A3069", visibility: catalog}]
+    attributes:
+      description: {value: "Motor", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_1472-1091
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "1472-1091", visibility: catalog}]
+    attributes:
+      description: {value: "Blower Wheel Package", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_8333-1371
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "8333-1371", visibility: catalog}]
+    attributes:
+      description: {value: "Cap Tube (Formed)", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_1499-5721
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "1499-5721", visibility: catalog}]
+    attributes:
+      description: {value: "Run Capacitor", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_1499-5461
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "1499-5461", visibility: catalog}]
+    attributes:
+      description: {value: "Fan Capacitor", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_8333A9021
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "8333A9021", visibility: catalog}]
+    attributes:
+      description: {value: "Hard Start Kit", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_4820-33751
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "4820-33751", visibility: catalog}]
+    attributes:
+      description: {value: "Conduit & Wiring Assembly (6 Wires)", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_8333B1011
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "8333B1011", visibility: catalog}]
+    attributes:
+      description: {value: "Basepan (with Foam Scroll)", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_1452A1121
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "1452A1121", visibility: catalog}]
+    attributes:
+      description: {value: "Evaporator Coil", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_8333A5061
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "8333A5061", visibility: catalog}]
+    attributes:
+      description: {value: "Cover, Evaporator Assy", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_8332-3301
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "8332-3301", visibility: catalog}]
+    attributes:
+      description: {value: "Gasket Kit, 14 In. x 14 In.", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_8335A3841
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "8335A3841", visibility: catalog}]
+    attributes:
+      description: {value: "Filler Pad, Condenser Air Seal", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_8333-5151
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "8333-5151", visibility: catalog}]
+    attributes:
+      description: {value: "Seal Kit, Motor Mount & Shaft", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_4820-3130
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "4820-3130", visibility: catalog}]
+    attributes:
+      description: {value: "Suction Line", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_8333-109
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "8333-109", visibility: catalog}]
+    attributes:
+      description: {value: "Door, Wire Box", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_8333-505
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "8333-505", visibility: catalog}]
+    attributes:
+      description: {value: "Panel, RH Side", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_8335A3501
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "8335A3501", visibility: catalog}]
+    attributes:
+      description: {value: "Drain Pan Assy", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_8333-507
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "8333-507", visibility: catalog}]
+    attributes:
+      description: {value: "Panel, LH Side", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_4820-3131
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "4820-3131", visibility: catalog}]
+    attributes:
+      description: {value: "Discharge Line", provenance: retailer_page, source_observation_id: 112}
+
+  - component_id: c_placeholder_coleman_ac_part_8333B1551
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "8333B1551", visibility: catalog}]
+    attributes:
+      description: {value: "Shroud Bracket (Qty 3)", provenance: retailer_page, source_observation_id: 112}
+
   # =========================================================================
   # 3. MONITOR PANEL — system-bound; assembly decomposition case
   # =========================================================================
@@ -1354,6 +1566,276 @@ edges:
     evidence:
       - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
       - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 109}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_6792-5111
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_8335A5261
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_1452-1851
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_6792-1071
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_6733-3221
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_14504029
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_14500511
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_6759-3081
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_1468-3069
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_1468A3069
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_1472-1091
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_8333-1371
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_1499-5721
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_1499-5461
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_8333A9021
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_4820-33751
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_8333B1011
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_1452A1121
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_8333A5061
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_8332-3301
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_8335A3841
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_8333-5151
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_4820-3130
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_8333-109
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_8333-505
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_8335A3501
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_8333-507
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_4820-3131
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_8333B1551
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
+
+  - type: supersedes
+    from: c_placeholder_coleman_ac_part_1468-3069
+    to: c_placeholder_coleman_ac_part_1468A3069
+    group: coleman_ac_48253b866_fan_motor
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 112}
 
 
 identifier_equivalence_candidates:
