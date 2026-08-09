@@ -62,6 +62,14 @@ function renderResultCard(result, query, onSelectResult) {
   title.appendChild(highlightMatch(result.label, query));
   card.appendChild(title);
 
+  const description = (result.attributes || []).find((a) => a.name === "description");
+  if (description) {
+    const descLine = document.createElement("div");
+    descLine.className = "result-description";
+    descLine.textContent = description.value;
+    card.appendChild(descLine);
+  }
+
   const others = result.identifiers.map((i) => i.value).filter((v) => v !== result.label);
   if (others.length > 0) {
     const alt = document.createElement("div");

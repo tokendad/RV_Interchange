@@ -340,6 +340,12 @@ body.public-page {
   margin-top: 4px;
 }
 
+.result-description {
+  font-size: 0.85rem;
+  color: #374151;
+  margin-top: 4px;
+}
+
 .result-chevron {
   position: absolute;
   right: 1rem;
@@ -397,6 +403,12 @@ body.public-page {
   font-size: 1.6rem;
   color: #111827;
   margin: 2px 0 4px;
+}
+
+.detail-description {
+  font-size: 0.95rem;
+  color: #374151;
+  margin: 0 0 0.6rem;
 }
 
 .detail-alt {

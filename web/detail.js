@@ -34,6 +34,14 @@ function renderDetailView({ resolveData, replacementsData, ns }, { onBack, onCop
   heading.textContent = replacementsData.source;
   container.appendChild(heading);
 
+  const description = (resolveData.attributes || []).find((a) => a.name === "description");
+  if (description) {
+    const descLine = document.createElement("p");
+    descLine.className = "detail-description";
+    descLine.textContent = description.value;
+    container.appendChild(descLine);
+  }
+
   const others = resolveData.identifiers
     .map((i) => i.value)
     .filter((v) => v !== replacementsData.source);
