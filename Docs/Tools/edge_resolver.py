@@ -69,6 +69,8 @@ NORCOLD_ENDPOINT_RESOLVER_VERSION = "norcold_endpoint_v1"
 NORCOLD_PARTS_RESOLVER_VERSION = "norcold_parts_v1"
 COLEMAN_AC_ENDPOINT_RESOLVER_VERSION = "coleman_ac_endpoint_v1"
 COLEMAN_AC_PARTS_RESOLVER_VERSION = "coleman_ac_parts_v1"
+ATWOOD_GH6_6E_RESOLVER_VERSION = "atwood_gh6_6e_v1"
+ATWOOD_GH6_6E_PARTS_RESOLVER_VERSION = "atwood_gh6_6e_parts_v1"
 ATWOOD_6_GAL_OPENING = (12.625, 16.25)
 ATWOOD_10_GAL_OPENING = (15.625, 16.25)
 COLEMAN_VISUAL_MATCH_CANDIDATE = {
@@ -1739,7 +1741,7 @@ def coleman_ac_48253b866_component(dataplate_row, component_id):
     superseded by this photographed rating plate as the identity source --
     it was too illegible to trust alone and is not cited as evidence here.
     """
-    _validate_observation_source(dataplate_row, 111, "dataplate_photo", 2,
+    _validate_observation_source(dataplate_row, 113, "dataplate_photo", 2,
                                   "AC rating plate")
     plate = _normalized_attributes(dataplate_row)
     plate_ids = {(i["ns"], i["value"]) for i in plate["physical_identifiers"]}
@@ -1762,13 +1764,66 @@ def coleman_ac_48253b866_component(dataplate_row, component_id):
     return component, identifiers, attributes
 
 
+def atwood_gh6_6e_component(dataplate_row, component_id):
+    """
+    Build the owner's in-hand Atwood GH6-6E water heater as an exact endpoint
+    component -- the project's first in-hand teardown anchor for Atwood
+    (previously catalog-only, see VENDOR-Atwood.md sec 7 and issue #13).
+
+    Identity (model GH6-6E, spec 266038, serial 96266000345) was settled only
+    after two rounds of independent re-reads of the physical data plate photo
+    (obs #111) -- an attached AI research report's "GH6-GE" reading was ruled
+    out (doesn't fit Atwood's own Pilot/Electronic model-number grammar, no
+    independent web corroboration) and its "Spec 260038" transcription was
+    corrected to 266038 by direct visual re-inspection. See issue #33.
+    """
+    _validate_observation_source(dataplate_row, 111, "dataplate_photo", 2,
+                                  "GH6-6E data plate")
+    plate = _normalized_attributes(dataplate_row)
+    if plate.get("model") != "GH6-6E":
+        raise ValueError(f"unexpected GH6-6E data plate model: {plate.get('model')}")
+
+    def text_attr(name, value):
+        return ComponentAttribute(
+            component_id, name, "dataplate_photo", dataplate_row["id"], value_text=value,
+            resolver_version=ATWOOD_GH6_6E_RESOLVER_VERSION)
+
+    def number_attr(name, value, unit=None):
+        return ComponentAttribute(
+            component_id, name, "dataplate_photo", dataplate_row["id"], value_number=value,
+            unit=unit, resolver_version=ATWOOD_GH6_6E_RESOLVER_VERSION)
+
+    def bool_attr(name, value):
+        return ComponentAttribute(
+            component_id, name, "dataplate_photo", dataplate_row["id"], value_boolean=value,
+            resolver_version=ATWOOD_GH6_6E_RESOLVER_VERSION)
+
+    component = Component(component_id, WATER_HEATER_PART_TYPE, None)
+    identifiers = [Identifier(component_id, "atwood", "GH6-6E", "data_plate")]
+    attributes = [
+        text_attr("spec_no", plate["spec_no"]),
+        text_attr("serial", plate["serial_number"]),
+        number_attr("capacity_gal", float(plate["capacity_gal"]), "gal"),
+        text_attr("power_type", "gas_only"),
+        text_attr("ignition_type", "electronic"),
+        bool_attr("heat_exchanger", True),
+        number_attr("input_btu_hr", float(plate["input_btuh"]), "BTU/h"),
+        number_attr("recovery_gal_hr", float(plate["recovery_gas_only_gph"]), "gal/h"),
+        number_attr("min_gas_pressure_in_wc", float(plate["min_gas_pressure_in_wc"]), "in_wc"),
+        number_attr("manifold_pressure_in_wc", float(plate["manifold_pressure_wc"]), "in_wc"),
+        number_attr("max_working_pressure_psi", float(plate["max_working_pressure_psi"]), "psi"),
+        number_attr("test_pressure_psi", float(plate["test_pressure_psi"]), "psi"),
+    ]
+    return component, identifiers, attributes
+
+
 def coleman_ac_repair_parts_and_fits(conn, catalog_row, host_component_id):
     """
     Build Coleman-Mach 48253B866 repair/service-part components and their
     "fits" edges to the in-hand AC -- same one-host, many-repair-parts shape
     as atwood_repair_parts_and_fits()/norcold_base_board_fits(). Sourced to
     a single retailer illustrated-parts breakdown page for this exact
-    product ID (obs #112, Young Farts RV Parts), the only parts-level source
+    product ID (obs #114, Young Farts RV Parts), the only parts-level source
     found for this legacy model -- Coleman-Mach's own current document
     library and 2025 catalog (already in this fixture, see VENDOR doc) cover
     the current 38203-066 replacement's sales listing, not a service parts
@@ -1787,11 +1842,11 @@ def coleman_ac_repair_parts_and_fits(conn, catalog_row, host_component_id):
     table and is not independently confirmed, so it stays a caveat inside
     the component's description rather than an invented component.
     """
-    _validate_observation_source(catalog_row, 112, "retailer_page", 7, "repair parts")
+    _validate_observation_source(catalog_row, 114, "retailer_page", 7, "repair parts")
     catalog = _normalized_attributes(catalog_row)
     parts = catalog.get("repair_part_fitment_table")
     if not isinstance(parts, dict) or not parts:
-        raise ValueError(f"obs #112 catalog has no repair_part_fitment_table: {parts}")
+        raise ValueError(f"obs #114 catalog has no repair_part_fitment_table: {parts}")
 
     results = []
     component_ids_by_part = {}
@@ -1862,6 +1917,71 @@ def coleman_ac_repair_parts_and_fits(conn, catalog_row, host_component_id):
             effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
 
     return results, supersession_edge.id
+
+
+def atwood_gh6_6e_tank_91642_fits(conn, catalog_row, host_component_id):
+    """
+    Build Atwood repair part `91642` (front-mount inner tank) as a
+    repair-part component and its `fits` edge to the in-hand GH6-6E water
+    heater -- same many-to-many "fits" shape as
+    atwood_repair_parts_and_fits() (see that function's docstring), sourced
+    to a genuinely independent third-party OEM catalog rather than Atwood's
+    own service manual: the 1994 Winnebago WF424RC Parts Catalog (obs #112),
+    read directly from the primary-source PDF (not secondhand from the
+    attached AI research report). That catalog names Atwood part 91642 as
+    the front-mount inner tank for "GH6-4E & 6E" under its own "WATER HEATER
+    W/MOTOR AID" heading, which also names GH6-3E/GH6-4E/GH6-6E together as
+    one product line -- corroborating the report's core model family claim
+    even though two of the report's own numeric transcriptions needed
+    correction. See issue #33; lower-confidence parts from the same report
+    (board/electrode/valve/orifice supersession chains, disputed thermostat
+    calibration) are deliberately NOT built here -- spun off to a follow-up
+    issue instead.
+    """
+    _validate_observation_source(catalog_row, 112, "manufacturer_pdf", 2,
+                                  "Winnebago parts catalog")
+    catalog = _normalized_attributes(catalog_row)
+    parts = catalog.get("repair_part_fitment_table")
+    if not isinstance(parts, dict) or "91642" not in parts:
+        raise ValueError(f"obs #112 catalog missing 91642 fitment row: {parts}")
+    spec = parts["91642"]
+    if spec.get("applies_to") != ["GH6-6E"]:
+        raise ValueError(f"unexpected 91642 applies_to: {spec.get('applies_to')}")
+
+    component_id = "c_placeholder_wh_atwood_part_91642"
+    component = Component(component_id, ATWOOD_PART_TYPE, None)
+    identifiers = [Identifier(component_id, "atwood", "91642", "catalog")]
+    attributes = [ComponentAttribute(
+        component_id, "description", "manufacturer_pdf", catalog_row["id"],
+        value_text=spec["description"], resolver_version=ATWOOD_GH6_6E_PARTS_RESOLVER_VERSION)]
+    insert_component(conn, component)
+    for identifier in identifiers:
+        insert_identifier(conn, identifier)
+    for attribute in attributes:
+        insert_component_attribute(conn, attribute)
+
+    edge = Edge(
+        type=EDGE_TYPE_FITS,
+        from_component_id=component_id,
+        to_component_id=host_component_id,
+        group_key="atwood_gh6_6e_tank",
+        status="candidate",
+        resolver_version=ATWOOD_GH6_6E_PARTS_RESOLVER_VERSION,
+        notes="The 1994 Winnebago WF424RC Parts Catalog names Atwood 91642 as "
+              "the front-mount inner tank for \"GH6-4E & 6E\", independently "
+              "verified by direct PDF read (not secondhand from the attached "
+              "AI research report).",
+    )
+    insert_edge(conn, edge)
+    for event_type, alpha, beta, source_id in (
+        ("attribute_prior", 1.0, 1.0, None),
+        ("manufacturer_assertion", 2.0, 0.0, catalog_row["id"]),
+    ):
+        insert_evidence(conn, RelationshipEvidence(
+            edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+            effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+
+    return component, identifiers, attributes, [edge.id]
 
 
 def identifier_candidate_from_observation(obs_row):
@@ -4499,10 +4619,10 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
           f"{mismatches - norcold_parts_mismatches_before} mismatch(es)")
 
     coleman_ac_mismatches_before = mismatches
-    obs111 = load_observation(obs_db_path, 111)
+    obs113 = load_observation(obs_db_path, 113)
     coleman_ac_component_id = "c_placeholder_coleman_ac_48253b866"
     coleman_ac_component, coleman_ac_identifiers, coleman_ac_attributes = \
-        coleman_ac_48253b866_component(obs111, coleman_ac_component_id)
+        coleman_ac_48253b866_component(obs113, coleman_ac_component_id)
     insert_component(conn, coleman_ac_component)
     for identifier in coleman_ac_identifiers:
         insert_identifier(conn, identifier)
@@ -4552,9 +4672,9 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
     print(f"Coleman AC endpoint: {mismatches - coleman_ac_mismatches_before} mismatch(es)")
 
     coleman_ac_parts_mismatches_before = mismatches
-    obs112 = load_observation(obs_db_path, 112)
+    obs114 = load_observation(obs_db_path, 114)
     coleman_ac_parts_results, coleman_ac_motor_supersession_edge_id = \
-        coleman_ac_repair_parts_and_fits(conn, obs112, coleman_ac_component_id)
+        coleman_ac_repair_parts_and_fits(conn, obs114, coleman_ac_component_id)
 
     for component, identifiers, attributes, edge_ids in coleman_ac_parts_results:
         component_id = component.component_id
@@ -4615,6 +4735,111 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
 
     print(f"Coleman AC repair parts: "
           f"{mismatches - coleman_ac_parts_mismatches_before} mismatch(es)")
+
+    atwood_gh6_6e_mismatches_before = mismatches
+    obs111 = load_observation(obs_db_path, 111)
+    gh6_6e_component_id = "c_placeholder_wh_atwood_gh6_6e"
+    gh6_6e_component, gh6_6e_identifiers, gh6_6e_attributes = atwood_gh6_6e_component(
+        obs111, gh6_6e_component_id)
+    insert_component(conn, gh6_6e_component)
+    for identifier in gh6_6e_identifiers:
+        insert_identifier(conn, identifier)
+    for attribute in gh6_6e_attributes:
+        insert_component_attribute(conn, attribute)
+
+    fixture_gh6_6e = next(
+        (c for c in components_doc if c.get("component_id") == gh6_6e_component_id), None)
+    if fixture_gh6_6e is None:
+        print(f"MISMATCH fixture is missing component: {gh6_6e_component_id}")
+        mismatches += 1
+    else:
+        resolved_gh6_6e = conn.execute(
+            "SELECT * FROM components WHERE component_id = ?", (gh6_6e_component_id,)).fetchone()
+        if (resolved_gh6_6e["part_type_id"], resolved_gh6_6e["interchange_code"]) != (
+                fixture_gh6_6e["part_type_id"], fixture_gh6_6e["interchange_code"]):
+            print(f"MISMATCH GH6-6E component: "
+                  f"resolved={dict(resolved_gh6_6e)} fixture={fixture_gh6_6e}")
+            mismatches += 1
+
+        resolved_gh6_6e_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (gh6_6e_component_id,)).fetchall()
+        }
+        expected_gh6_6e_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_gh6_6e["identifiers"]
+        }
+        if resolved_gh6_6e_identifiers != expected_gh6_6e_identifiers:
+            print(f"MISMATCH GH6-6E identifiers: resolved={resolved_gh6_6e_identifiers} "
+                  f"fixture={expected_gh6_6e_identifiers}")
+            mismatches += 1
+
+        resolved_gh6_6e_attribute_rows = get_component_attributes(conn, gh6_6e_component_id)
+        resolved_gh6_6e_attributes = {}
+        for attribute in resolved_gh6_6e_attribute_rows:
+            value = attribute.value_text if attribute.value_text is not None else (
+                attribute.value_number if attribute.value_number is not None
+                else attribute.value_boolean)
+            resolved_gh6_6e_attributes[attribute.name] = (
+                value, attribute.provenance, attribute.source_observation_id)
+        expected_gh6_6e_attributes = {
+            name: (definition["value"], definition["provenance"],
+                   definition["source_observation_id"])
+            for name, definition in fixture_gh6_6e["attributes"].items()
+        }
+        if (len(resolved_gh6_6e_attribute_rows) != len(expected_gh6_6e_attributes)
+                or resolved_gh6_6e_attributes != expected_gh6_6e_attributes):
+            print(f"MISMATCH GH6-6E attributes: resolved={resolved_gh6_6e_attributes} "
+                  f"fixture={expected_gh6_6e_attributes}")
+            mismatches += 1
+
+    obs112 = load_observation(obs_db_path, 112)
+    tank_91642_component, tank_91642_identifiers, tank_91642_attrs, tank_91642_edge_ids = \
+        atwood_gh6_6e_tank_91642_fits(conn, obs112, gh6_6e_component_id)
+
+    fixture_91642 = next(
+        (c for c in components_doc
+         if c.get("component_id") == "c_placeholder_wh_atwood_part_91642"), None)
+    if fixture_91642 is None:
+        print("MISMATCH fixture is missing component: c_placeholder_wh_atwood_part_91642")
+        mismatches += 1
+    else:
+        resolved_91642_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                ("c_placeholder_wh_atwood_part_91642",)).fetchall()
+        }
+        fixture_91642_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_91642["identifiers"]
+        }
+        if resolved_91642_identifiers != fixture_91642_identifiers:
+            print(f"MISMATCH 91642 identifiers: resolved={resolved_91642_identifiers} "
+                  f"fixture={fixture_91642_identifiers}")
+            mismatches += 1
+
+    fixture_91642_edge = next(
+        (e for e in edges_doc if e.get("type") == "fits"
+         and e.get("group") == "atwood_gh6_6e_tank"), None)
+    if fixture_91642_edge is None:
+        print("MISMATCH ground-truth.yaml has no atwood_gh6_6e_tank fits edge")
+        mismatches += 1
+    else:
+        edge_row = conn.execute(
+            "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
+            (tank_91642_edge_ids[0],)).fetchone()
+        if tuple(edge_row) != (
+                "fits", fixture_91642_edge["from"], fixture_91642_edge["to"]):
+            print(f"MISMATCH 91642 fits edge: resolved={tuple(edge_row)} "
+                  f"fixture=({fixture_91642_edge['type']}, "
+                  f"{fixture_91642_edge['from']}, {fixture_91642_edge['to']})")
+            mismatches += 1
+
+    print(f"Atwood GH6-6E teardown anchor: "
+          f"{mismatches - atwood_gh6_6e_mismatches_before} mismatch(es)")
 
     suburban_remainder_mismatches_before = mismatches
     obs11 = load_observation(obs_db_path, 11)
