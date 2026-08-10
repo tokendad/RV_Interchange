@@ -156,11 +156,31 @@ January 2012 general release (vs. Sabaf's `04`-prefixed and BSI's `06`-prefixed 
 starts per the 2008 bulletin) — a reasonable inference that the in-hand unit carries a
 Copreci manifold, though this is not asserted as a component attribute, only noted here.
 
-**Not built:** the `2863A -> 3108A` stock-number lead. The report itself found no
-manufacturer document proving supersession — only a later retailer listing under the same
-model description — so this stays unbuilt per this project's evidence bar. Cutout
-dimensions from the report's lettered Figure-2 values are also not asserted; the letters
-have no meaning without the installation drawing itself.
+**Not built, research exhausted 2026-08-10:** the `2863A -> 3108A` stock-number lead. The
+original report found no manufacturer document proving supersession — only a later
+retailer listing under the same model description. Two independent follow-up passes the
+same day (agent web research, and a second user-run research report posted to issue #37)
+both reached the same conclusion: `2863A` is solidly confirmed as SRNA3SBBM's original
+stock number (Suburban factory service/training manual, NHTSA recall 07E-022 records, a
+2007 Suburban recall letter), and `3108A` is confirmed as a current retailer listing under
+the identical model description — but neither pass found any Suburban/Airxcel bulletin,
+catalog, or cross-reference actually stating "3108A replaces 2863A" or equivalent. Stays
+unbuilt per this project's evidence bar ("probable, not officially verified" isn't enough
+for a `supersedes` edge). Next lever, if pursued further, is a direct manufacturer email
+to Suburban/Airxcel, same pattern as [[suburban_dm_manufacturer_contact]] — not yet sent,
+no GitHub issue opened for it since #37 already tracks it.
+
+**Correction, 2026-08-10:** the line previously here claiming cutout dimensions weren't
+asserted because "the letters have no meaning without the installation drawing itself"
+was stale/wrong. `cutout_a_in`-`cutout_e_in` were already built on the SRNA3SBBM cooktop
+component back in the 2026-08-05 endpoint session (obs #102, §0/§2 above), sourced to
+this same manual's own Figure 2 + A-E dimension table, and the user separately confirmed
+that manual matches the in-hand unit. Re-verified today by locating the actual Figure 2
+illustration (missing from one mirror copy, present in a second) — the letters decode to:
+A = cutout opening width, B = cutout depth, C = rear-corner notch/lip, D = overall cabinet
+depth to back wall, E = top-lip/gas-service-pipe-opening offset. No further building
+needed here; the repair-parts pass (issue #37) just never cross-checked the endpoint
+session's own attributes before writing this note.
 
 28 new repair-part components (`part_type_id: 606`), 28 `fits` edges —
 `suburban_srna3sbbm_repair_parts_and_fits()` in `edge_resolver.py`, resolver version
