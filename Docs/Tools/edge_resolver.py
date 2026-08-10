@@ -41,7 +41,7 @@ from interchange_store import (
 from part_types import (
     ATWOOD_PART_TYPE, COLEMAN_AC_PART_TYPE, COLEMAN_AC_REPAIR_PART_TYPE,
     NORCOLD_REFRIGERATOR_PART_TYPE, NORCOLD_REPAIR_PART_TYPE,
-    SUBURBAN_COOKTOP_PART_TYPE, SUBURBAN_FURNACE_PART_TYPE,
+    SUBURBAN_COOKTOP_PART_TYPE, SUBURBAN_COOKTOP_REPAIR_PART_TYPE, SUBURBAN_FURNACE_PART_TYPE,
     SUBURBAN_FURNACE_REPAIR_PART_TYPE, THERMOSTAT_PART_TYPE, WATER_HEATER_PART_TYPE,
 )
 
@@ -65,6 +65,7 @@ ATWOOD_ELECTRONIC_PARTS_TARGET_MODELS = (
     "GH6-8E", "G6A-8E", "G10-3E", "GH10-3E", "GCH6A-10E", "GC6AA-10E", "GC10A-4E", "GCH10A-4E",
 )
 SUBURBAN_FURNACE_COOKTOP_RESOLVER_VERSION = "suburban_furnace_cooktop_v1"
+SUBURBAN_COOKTOP_PARTS_RESOLVER_VERSION = "suburban_cooktop_parts_v1"
 NORCOLD_ENDPOINT_RESOLVER_VERSION = "norcold_endpoint_v1"
 NORCOLD_PARTS_RESOLVER_VERSION = "norcold_parts_v1"
 COLEMAN_AC_ENDPOINT_RESOLVER_VERSION = "coleman_ac_endpoint_v1"
@@ -1455,6 +1456,80 @@ def suburban_furnace_core_module(conn, catalog_row, retailer_row, furnace_compon
             effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
 
     return component, identifiers, attributes, [edge.id]
+
+
+def suburban_srna3sbbm_repair_parts_and_fits(conn, catalog_row, host_component_id):
+    """
+    Build Suburban SRNA3SBBM repair-part components and their `fits` edges
+    to the in-hand cooktop/range -- same many-to-many "fits" shape as
+    atwood_repair_parts_and_fits() (see that function's docstring), sourced
+    to Airxcel/Suburban's own "Replacement Parts List and Parts
+    Illustrations for Cook Top & Range Models" (doc 203705XP, 03-13-2018,
+    obs #117) rather than secondhand from the attached AI research report
+    (issue #37) -- the report's own parts table (its section 8) was
+    verified directly against this PDF and found to have missed two real
+    entries (011008/011009/011010, the match-ignition top-burner
+    assemblies; its table had only the oven burner 010994).
+
+    The shared SRNA3S/SRSA3S table covers many finish/ignition/manifold
+    variants at once; obs #117's extraction is pre-filtered to exactly the
+    SRNA3SBBM configuration (conventional burner, short oven, black
+    porcelain top, black painted door, match ignition) -- long-oven-only,
+    Piezo/Spark-ignition-only, sealed-burner, and stainless/glass-finish
+    rows are excluded at the observation layer, not here. BSI/Copreci
+    manifold qualifiers stay in each part's own description text (the same
+    "(Use with X)" precedent as Atwood's bracket rows) rather than becoming
+    a caveat structure, since manifold generation is a property of the
+    physical unit's build date, not of the SRNA3SBBM model itself -- see
+    obs #98's serial for the in-hand unit's own likely generation.
+    """
+    _validate_observation_source(catalog_row, 117, "manufacturer_pdf", 2, "repair parts")
+    catalog = _normalized_attributes(catalog_row)
+    parts = catalog.get("repair_part_fitment_table")
+    if not isinstance(parts, dict) or not parts:
+        raise ValueError(f"obs #117 catalog has no repair_part_fitment_table: {parts}")
+
+    results = []
+    for part_number, spec in parts.items():
+        if not isinstance(spec, dict) or "description" not in spec or "applies_to" not in spec:
+            raise ValueError(f"SRNA3SBBM repair part {part_number} missing required fields: {spec}")
+        if spec["applies_to"] != ["SRNA3SBBM"]:
+            raise ValueError(f"SRNA3SBBM repair part {part_number} has unexpected applies_to: "
+                              f"{spec['applies_to']}")
+
+        component_id = f"c_placeholder_suburban_cooktop_part_{part_number}"
+        component = Component(component_id, SUBURBAN_COOKTOP_REPAIR_PART_TYPE, None)
+        identifiers = [Identifier(component_id, "suburban", part_number, "catalog")]
+        attributes = [ComponentAttribute(
+            component_id, "description", "manufacturer_pdf", catalog_row["id"],
+            value_text=spec["description"], resolver_version=SUBURBAN_COOKTOP_PARTS_RESOLVER_VERSION)]
+        insert_component(conn, component)
+        for identifier in identifiers:
+            insert_identifier(conn, identifier)
+        for attribute in attributes:
+            insert_component_attribute(conn, attribute)
+
+        edge = Edge(
+            type=EDGE_TYPE_FITS,
+            from_component_id=component_id,
+            to_component_id=host_component_id,
+            group_key="suburban_srna3sbbm_repair_part",
+            status="candidate",
+            resolver_version=SUBURBAN_COOKTOP_PARTS_RESOLVER_VERSION,
+            notes=f"Airxcel/Suburban's Replacement Parts List (203705XP) names "
+                  f"{part_number} as fitting the SRNA3SBBM configuration (conventional "
+                  f"burner, short oven, black top, black door, match ignition).",
+        )
+        insert_edge(conn, edge)
+        for event_type, alpha, beta, source_id in (
+            ("attribute_prior", 1.0, 1.0, None),
+            ("manufacturer_assertion", 2.0, 0.0, catalog_row["id"]),
+        ):
+            insert_evidence(conn, RelationshipEvidence(
+                edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+                effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+        results.append((component, identifiers, attributes, [edge.id]))
+    return results
 
 
 def norcold_n811_component(dataplate_row, grammar_row, family_spec_row, component_id):
@@ -4621,6 +4696,55 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
     print(f"Suburban furnace core module: "
           f"{mismatches - suburban_furnace_cooktop_mismatches_before} "
           f"mismatch(es) (cumulative with furnace/cooktop endpoints above)")
+
+    suburban_cooktop_parts_mismatches_before = mismatches
+    suburban_cooktop_parts_fixture = next(
+        (d["suburban_srna3sbbm_repair_parts_fixture"] for d in docs
+         if isinstance(d, dict) and "suburban_srna3sbbm_repair_parts_fixture" in d), None)
+    if suburban_cooktop_parts_fixture is None:
+        print("MISMATCH ground-truth.yaml is missing suburban_srna3sbbm_repair_parts_fixture")
+        mismatches += 1
+    else:
+        obs117 = load_observation(obs_db_path, 117)
+        suburban_cooktop_parts_results = suburban_srna3sbbm_repair_parts_and_fits(
+            conn, obs117, suburban_furnace_cooktop_ids["cooktop"])
+        if len(suburban_cooktop_parts_results) != suburban_cooktop_parts_fixture["total_parts"]:
+            print(f"MISMATCH Suburban cooktop repair-part count: "
+                  f"resolved={len(suburban_cooktop_parts_results)} "
+                  f"fixture={suburban_cooktop_parts_fixture['total_parts']}")
+            mismatches += 1
+        total_fits_edges = sum(len(edge_ids) for _, _, _, edge_ids in suburban_cooktop_parts_results)
+        if total_fits_edges != suburban_cooktop_parts_fixture["total_fits_edges"]:
+            print(f"MISMATCH Suburban cooktop fits-edge count: resolved={total_fits_edges} "
+                  f"fixture={suburban_cooktop_parts_fixture['total_fits_edges']}")
+            mismatches += 1
+
+        results_by_part = {identifiers[0].value: (component, identifiers, attrs, edge_ids)
+                            for component, identifiers, attrs, edge_ids in suburban_cooktop_parts_results}
+        for spot_check in suburban_cooktop_parts_fixture["spot_checks"]:
+            part = spot_check["part"]
+            if part not in results_by_part:
+                print(f"MISMATCH Suburban cooktop repair part {part} missing from resolver output")
+                mismatches += 1
+                continue
+            component, identifiers, attrs, edge_ids = results_by_part[part]
+            if attrs[0].value_text != spot_check["description"]:
+                print(f"MISMATCH Suburban cooktop repair part {part} description: "
+                      f"resolved={attrs[0].value_text} fixture={spot_check['description']}")
+                mismatches += 1
+            resolved_targets = {
+                row["to_component_id"] for row in conn.execute(
+                    "SELECT to_component_id FROM edges WHERE id IN ({})".format(
+                        ",".join("?" for _ in edge_ids)), edge_ids).fetchall()
+            }
+            if resolved_targets != {suburban_furnace_cooktop_ids["cooktop"]}:
+                print(f"MISMATCH Suburban cooktop repair part {part} fits targets: "
+                      f"resolved={resolved_targets} "
+                      f"fixture={{suburban_furnace_cooktop_ids['cooktop']}}")
+                mismatches += 1
+
+    print(f"Suburban SRNA3SBBM cooktop repair parts: "
+          f"{mismatches - suburban_cooktop_parts_mismatches_before} mismatch(es)")
 
     norcold_mismatches_before = mismatches
     obs105 = load_observation(obs_db_path, 105)

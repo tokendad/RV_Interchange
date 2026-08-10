@@ -2028,3 +2028,25 @@ atwood_electronic_repair_parts_fixture:
     - part: "91222"
       description: "Junction Box 110V - 6 gal"
       applies_to: [GCH6A-10E, GC6AA-10E]
+
+---
+
+# Suburban SRNA3SBBM cooktop/range repair-parts cross-reference (obs #117, issue #37).
+# Same "fits" edge type and same structural (not per-row) validation approach as the
+# Atwood tables above -- single host, so applies_to is always [SRNA3SBBM].
+suburban_srna3sbbm_repair_parts_fixture:
+  total_parts: 28
+  total_fits_edges: 28
+  spot_checks:
+    - part: "011009"
+      description: "Burner Center (Match Ign)"
+      applies_to: [SRNA3SBBM]
+    - part: "521092"
+      description: "Orifice Holder and Oven Tube Assembly (Short Oven) (Copreci)"
+      applies_to: [SRNA3SBBM]
+    - part: "521103"
+      description: "Copreci Manifold Assembly Complete With Black Thermostat Knob"
+      applies_to: [SRNA3SBBM]
+    - part: "031443BK"
+      description: "Door, Oven (Black)"
+      applies_to: [SRNA3SBBM]
