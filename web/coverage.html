@@ -7,15 +7,38 @@
 </head>
 <body class="public-page">
   <div id="header-slot"></div>
-  <main class="stub-page">
+  <main class="coverage-page">
     <h1>Data Coverage</h1>
-    <p>This page is coming soon.</p>
+    <p>
+      RV Interchange is built one manufacturer at a time. Each part below has been
+      individually researched — cross-referenced against manufacturer documentation,
+      parts diagrams, and (where available) confirmed by evidence such as label
+      photos or vendor correspondence, not scraped or bulk-imported. The table below
+      reflects what's actually in the database right now.
+    </p>
+    <p id="coverage-status" aria-live="polite">Loading coverage data…</p>
+    <div id="coverage-table-wrap"></div>
+    <section class="tier-explainer">
+      <h2>What these numbers mean</h2>
+      <ul>
+        <li><strong>Components tracked</strong> — distinct parts with at least one
+          manufacturer part number on file.</li>
+        <li><strong>Fit relationships</strong> — confirmed pairings between a part
+          and the assemblies it's known to fit.</li>
+        <li><strong>Substitute relationships</strong> — parts confirmed to work as
+          replacements for one another, even across manufacturers.</li>
+        <li><strong>Supersessions</strong> — chains showing which part number replaced
+          an earlier, discontinued one.</li>
+      </ul>
+      <p>
+        Not seeing a manufacturer you need? Coverage grows in response to real
+        lookups — see the "Report missing or incorrect data" link below to request one.
+      </p>
+    </section>
   </main>
   <div id="footer-slot"></div>
+  <script src="api-client.js"></script>
   <script src="chrome.js"></script>
-  <script>
-    document.getElementById("header-slot").replaceWith(renderHeader("coverage"));
-    document.getElementById("footer-slot").replaceWith(renderFooter());
-  </script>
+  <script src="coverage.js"></script>
 </body>
 </html>

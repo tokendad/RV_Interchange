@@ -73,3 +73,23 @@ class ReplacementsResponse(BaseModel):
     source: str
     replacements: list[ReplacementItem]
     supersessions: list[SupersessionItem] = []
+
+
+class CoverageManufacturerItem(BaseModel):
+    manufacturer: str
+    components: int
+    fits_edges: int
+    substitutes_edges: int
+    supersedes_edges: int
+
+
+class CoverageTotals(BaseModel):
+    components: int
+    fits_edges: int
+    substitutes_edges: int
+    supersedes_edges: int
+
+
+class CoverageResponse(BaseModel):
+    manufacturers: list[CoverageManufacturerItem]
+    totals: CoverageTotals

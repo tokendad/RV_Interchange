@@ -67,6 +67,17 @@ def test_replacements_endpoint_not_found(client):
     assert response.status_code == 404
 
 
+def test_coverage_endpoint(client):
+    response = client.get("/public/v1/coverage")
+    assert response.status_code == 200
+    body = response.json()
+    suburban = next(m for m in body["manufacturers"] if m["manufacturer"] == "Suburban")
+    assert suburban["components"] == 1
+    assert {m["manufacturer"] for m in body["manufacturers"]} == \
+        {"Suburban", "Coleman-Mach", "Atwood", "Norcold"}
+    assert body["totals"]["components"] == 1
+
+
 def test_unhandled_error_is_logged_and_returns_500(client, caplog):
     import api.main as main_module
 

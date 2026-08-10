@@ -324,3 +324,47 @@ def test_get_replacements_includes_required_parts():
         {"ns": "suburban", "value": "6276APW", "role": "replacement_panel",
          "manufacturer": "Suburban"},
     ]
+
+
+from edge_types import EDGE_TYPE_FITS
+
+from api.services import CoverageService
+
+
+def test_get_coverage_counts_components_and_edges_per_manufacturer():
+    conn = init_db(":memory:")
+    insert_component(conn, Component("c_test_a", 412, "412-0001-A"))
+    insert_component(conn, Component("c_test_b", 412, "412-0001-B"))
+    insert_component(conn, Component("c_test_c", 413, "413-0001-A"))
+    insert_identifier(conn, Identifier("c_test_a", "suburban", "SW6DE"))
+    insert_identifier(conn, Identifier("c_test_b", "suburban", "SW6DEL"))
+    insert_identifier(conn, Identifier("c_test_c", "atwood", "GH6-6E"))
+
+    insert_edge(conn, Edge(type=EDGE_TYPE_FITS, from_component_id="c_test_a",
+                            to_component_id="c_test_b"))
+    insert_edge(conn, Edge(type=EDGE_TYPE_SUBSTITUTES, from_component_id="c_test_a",
+                            to_component_id="c_test_b"))
+
+    result = CoverageService.get_coverage(conn)
+
+    suburban = next(m for m in result["manufacturers"] if m["manufacturer"] == "Suburban")
+    assert suburban == {
+        "manufacturer": "Suburban", "components": 2,
+        "fits_edges": 1, "substitutes_edges": 1, "supersedes_edges": 0,
+    }
+    atwood = next(m for m in result["manufacturers"] if m["manufacturer"] == "Atwood")
+    assert atwood == {
+        "manufacturer": "Atwood", "components": 1,
+        "fits_edges": 0, "substitutes_edges": 0, "supersedes_edges": 0,
+    }
+    assert result["totals"] == {
+        "components": 3, "fits_edges": 1, "substitutes_edges": 1, "supersedes_edges": 0,
+    }
+
+
+def test_get_coverage_lists_every_known_manufacturer_even_with_no_data():
+    conn = init_db(":memory:")
+    result = CoverageService.get_coverage(conn)
+    names = {m["manufacturer"] for m in result["manufacturers"]}
+    assert names == {"Suburban", "Coleman-Mach", "Atwood", "Norcold"}
+    assert all(m["components"] == 0 for m in result["manufacturers"])

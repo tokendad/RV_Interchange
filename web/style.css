@@ -155,6 +155,60 @@ body.public-page {
   padding: 3rem 1.5rem;
 }
 
+.coverage-page {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.coverage-page h1 {
+  color: #111827;
+}
+
+#coverage-status {
+  color: #374151;
+}
+
+#coverage-status.error {
+  color: #b00020;
+  font-weight: bold;
+}
+
+.coverage-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.9rem;
+}
+
+.coverage-table th,
+.coverage-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.coverage-table thead th {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.coverage-table tbody th {
+  color: #111827;
+  font-weight: 600;
+}
+
+.coverage-table td {
+  text-align: right;
+}
+
+.coverage-table tfoot th,
+.coverage-table tfoot td {
+  border-top: 2px solid #d1d5db;
+  border-bottom: none;
+  font-weight: 700;
+}
+
 .hero {
   max-width: 40rem;
   margin: 0 auto;

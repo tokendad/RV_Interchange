@@ -9,13 +9,13 @@ at process start; tests do it per-file — see tests/api/test_services.py).
 
 from interchange_store import (
     get_component, get_component_attributes, get_component_by_identifier,
-    get_edges_from, get_caveats_for_edge, get_evidence_for_edge,
+    get_coverage_counts, get_edges_from, get_caveats_for_edge, get_evidence_for_edge,
     get_identifiers_for_component, get_required_parts_for_edge,
     get_supersession_detail, search_identifiers,
 )
 from interchange_models import compute_confidence
-from edge_types import EDGE_TYPE_SUBSTITUTES, EDGE_TYPE_SUPERSEDES
-from manufacturers import MANUFACTURER_NAMES
+from edge_types import EDGE_TYPE_FITS, EDGE_TYPE_SUBSTITUTES, EDGE_TYPE_SUPERSEDES
+from manufacturers import MANUFACTURER_NAMES, MANUFACTURERS
 from part_types import PART_TYPE_NAMES
 
 
@@ -182,3 +182,27 @@ class ReplacementService:
             "replacements": replacements,
             "supersessions": supersessions,
         }
+
+
+class CoverageService:
+    @staticmethod
+    def get_coverage(conn):
+        raw = get_coverage_counts(conn)
+        totals = {"components": 0, "fits_edges": 0, "substitutes_edges": 0, "supersedes_edges": 0}
+        manufacturers = []
+
+        for manufacturer in MANUFACTURERS:
+            stats = raw.get(manufacturer.ns, {"components": 0, "edges": {}})
+            edges = stats["edges"]
+            item = {
+                "manufacturer": manufacturer.display_name,
+                "components": stats["components"],
+                "fits_edges": edges.get(EDGE_TYPE_FITS, 0),
+                "substitutes_edges": edges.get(EDGE_TYPE_SUBSTITUTES, 0),
+                "supersedes_edges": edges.get(EDGE_TYPE_SUPERSEDES, 0),
+            }
+            manufacturers.append(item)
+            for key in totals:
+                totals[key] += item[key]
+
+        return {"manufacturers": manufacturers, "totals": totals}

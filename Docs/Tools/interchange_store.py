@@ -301,6 +301,32 @@ def get_caveats_for_edge(conn, edge_id):
                         text=r["text"], becomes_input=r["becomes_input"]) for r in rows]
 
 
+def get_coverage_counts(conn):
+    """Per-ns component counts and outbound-edge-type counts, keyed by ns.
+
+    A component's ns is the namespace of its identifiers, not a column on
+    components itself, so this joins through identifiers rather than
+    grouping components directly. Shape: {ns: {"components": n, "edges":
+    {edge_type: n, ...}}}. Callers (api/services.py's CoverageService)
+    decide which ns values are manufacturers and fill in zeros for any
+    with no rows.
+    """
+    counts = {}
+    for ns, n in conn.execute(
+        "SELECT ns, COUNT(DISTINCT component_id) FROM identifiers GROUP BY ns"
+    ):
+        counts.setdefault(ns, {"components": 0, "edges": {}})["components"] = n
+
+    for ns, edge_type, n in conn.execute(
+        "SELECT i.ns, e.type, COUNT(*) FROM edges e "
+        "JOIN identifiers i ON i.component_id = e.from_component_id "
+        "GROUP BY i.ns, e.type"
+    ):
+        counts.setdefault(ns, {"components": 0, "edges": {}})["edges"][edge_type] = n
+
+    return counts
+
+
 def self_test(verbose=False):
     conn = init_db(":memory:")
     failures = []
