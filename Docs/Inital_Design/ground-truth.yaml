@@ -899,6 +899,38 @@ components:
     attributes:
       description: {value: "Kit Service Optical Control Replacement", provenance: manufacturer_pdf, source_observation_id: 109}
 
+  - component_id: c_placeholder_norcold_part_622391
+    part_type_id: 603
+    interchange_code: null
+    identifiers:
+      - {ns: norcold, value: "622391", visibility: catalog}
+    attributes:
+      description: {value: "Drain Hose Assy - N8 Series", provenance: manufacturer_pdf, source_observation_id: 118}
+
+  - component_id: c_placeholder_norcold_part_639101
+    part_type_id: 603
+    interchange_code: null
+    identifiers:
+      - {ns: norcold, value: "639101", visibility: catalog}
+    attributes:
+      description: {value: "Kit Serv Drain Hose Replacement", provenance: manufacturer_pdf, source_observation_id: 118}
+
+  - component_id: c_placeholder_norcold_part_630811
+    part_type_id: 603
+    interchange_code: null
+    identifiers:
+      - {ns: norcold, value: "630811", visibility: catalog}
+    attributes:
+      description: {value: "Heater-AC/Backer (CU Serial# 11232008 & Above)", provenance: manufacturer_pdf, source_observation_id: 118}
+
+  - component_id: c_placeholder_norcold_part_638374
+    part_type_id: 603
+    interchange_code: null
+    identifiers:
+      - {ns: norcold, value: "638374", visibility: catalog}
+    attributes:
+      description: {value: "Kit Service Heater Replacement", provenance: manufacturer_pdf, source_observation_id: 118}
+
   - component_id: c_placeholder_norcold_part_630762
     part_type_id: 603
     interchange_code: null
@@ -1617,6 +1649,60 @@ edges:
     evidence:
       - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
       - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 109}
+
+  - type: fits
+    from: c_placeholder_norcold_part_622391
+    to: c_placeholder_refrigerator_n811
+    group: norcold_drain_hose_heater
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 118}
+
+  - type: fits
+    from: c_placeholder_norcold_part_639101
+    to: c_placeholder_refrigerator_n811
+    group: norcold_drain_hose_heater
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 118}
+
+  - type: fits
+    from: c_placeholder_norcold_part_630811
+    to: c_placeholder_refrigerator_n811
+    group: norcold_drain_hose_heater
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 118}
+
+  - type: fits
+    from: c_placeholder_norcold_part_638374
+    to: c_placeholder_refrigerator_n811
+    group: norcold_drain_hose_heater
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 118}
+
+  - type: supersedes
+    from: c_placeholder_norcold_part_622391
+    to: c_placeholder_norcold_part_639101
+    group: norcold_drain_hose_heater
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 118}
+
+  - type: supersedes
+    from: c_placeholder_norcold_part_630811
+    to: c_placeholder_norcold_part_638374
+    group: norcold_drain_hose_heater
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 118}
 
   - type: fits
     from: c_placeholder_coleman_ac_part_6792-5111

@@ -1,9 +1,10 @@
 # VENDOR — Norcold (Thetford)
 
 **Status:** exact endpoint component built (`c_placeholder_refrigerator_n811`,
-part_type_id `602`, resolver version `norcold_endpoint_v1`); one `fits` repair-part edge
-and one `supersedes` repair-part chain built (part_type_id `603`, resolver version
-`norcold_parts_v1`)
+part_type_id `602`, resolver version `norcold_endpoint_v1`); base/power board `fits` edge
+and optical-control `supersedes` chain built (`norcold_parts_v1`); drain-hose and
+AC-heater `fits`/`supersedes` pairs built 2026-08-10 (`norcold_drain_hose_heater_v1`,
+obs #118) — see §4.2
 **Vendor position:** 4th Stage 1 vendor (after Suburban, Coleman-Mach, Atwood)
 
 ## 1. In-hand unit
@@ -145,16 +146,67 @@ edge to anything. `--check-fixture` asserts this directly (fails if any edge is 
 attached to it), so a future change can't silently promote the connection without
 updating this reasoning first.
 
+**Correction 2026-08-10** (research-pass check, not a logged observation — same "not yet
+promoted to obs" convention as §5's recall-status line): the catalog's other
+optical-control pairs were column-checked with `pdftotext -bbox` (same coordinate-precise
+method as VENDOR-Atwood.md §7.1) rather than left as an open question. Result: none of
+them apply to the in-hand N811. `636105`→
+`637776` is scoped to the `N611v`/`N811v` columns only (the in-hand unit is plain `N811`,
+confirmed non-`v` per obs #108's own family statement); `629079`→`637777` is the *brown*
+board and scoped to `N610`/`N810` only (wrong color and wrong model family). `621988`→
+`637774` does cover `N811`, but at the "serial 9056491 and below" bracket — the in-hand
+refrigerator serial (15605897) is well above that, same reasoning that already excluded
+`618186` from the base board in §4. A fourth number, `624207` ("brown, serial 9056491 and
+below, USE 621988"), was found chained ahead of `621988`'s own bracket — also `N610`/
+`N810`-only, also not applicable. So this isn't "not yet matched cleanly"; none of the
+four numbers apply to a plain black N811 above that serial breakpoint.
+
+## 4.2 Drain hose and AC heater (obs #118) — built 2026-08-10
+
+Same official parts catalog (623421), read fresh with the coordinate-precise method
+(`pdftotext -bbox`) rather than reusing obs #109's narrower extraction. Both pairs are
+fully determined by data already photographed on the in-hand unit (obs #105), unlike the
+optical-control board pair in §4 (whose installed color/serial was never photographed) —
+so both get `fits` edges to `c_placeholder_refrigerator_n811`, same bar as the base board
+(`628674`).
+
+- **Drain hose:** `622391` ("Drain Hose Assy - N8 Series") → `639101`, cleanly scoped to
+  the N8 column group (N811 included) with no serial variants. The N6-series sibling
+  (`622390`→`639100`) is out of scope for this unit, not built.
+- **AC heater:** `630811` ("Heater-AC/Backer, CU Serial# 11232008 & Above") → `638374`.
+  The in-hand unit's own cooling-unit serial (`15597729`, obs #105, tag `8W1006`) is
+  above that breakpoint, so this is the applicable generation — same "which generation
+  matches this specific unit" resolution already used for the base board. The
+  below-serial sibling (`621702`→`638365`) is out of scope, not built.
+
+**Table-layout quirk worth recording:** this table prints each part number's anchor
+CENTERED between its two column-group description lines (N6-group line above, N8-group
+line below), not above both the way VENDOR-Atwood.md §7.1 describes as "the standard
+method." A naive anchor-to-next-anchor row window only captures the line *below* the
+anchor. That happened to be exactly the line needed here (N8-group, matching N811), but a
+future extraction against the N6-group lines from this same table needs row boundaries
+built from the midpoint between adjacent anchors, not anchor-to-anchor.
+
+4 new repair-part components (`part_type_id: 603`), 4 `fits` edges, 2 `supersedes`
+edges — `norcold_drain_hose_and_heater_fits()` in `edge_resolver.py`, resolver version
+`norcold_drain_hose_heater_v1`. `edge_resolver.py --check-fixture`: 0 mismatches.
+`--self-test`: PASS. `pytest`: 53/53.
+
 ## 5. Not yet done
 
 - `N8X`/`N8DC` (vague line names, not verified exact catalog model numbers) remain
   observation-only. Same bar this project has applied elsewhere (Coleman-Mach's
   `8330-3362`/`1C26-10`): no edge without either a manufacturer statement or a second
   independent source.
-- The catalog's other three optical-control supersession pairs (§4) and its AC-heater,
-  gas-valve-bracket, and drain-hose serial-scoped tables (obs #109's `quoted_text`/the
-  research report's §5) are real but not yet built — same evidentiary bar as `628674`,
-  just not yet worked through column-by-column.
+- **Gas valve bracket** (p.5): a third serial-scoped table exists (`624681`/`628993`
+  brackets, `621334`/`640182` and `633726`/`637540` kits, breakpoint `9185698`/`9185699`)
+  but this document's own rows don't label which serial the breakpoint refers to (unlike
+  "SERIAL #" for the base board/optical control, or "CU SERIAL#" for the heater) —
+  plausibly the refrigerator serial, given the numeric adjacency to the `9056491`/
+  `9056492` breakpoint elsewhere in this same document, but that's an inference, not a
+  labeled fact. **If confirmed as refrigerator serial**, the in-hand unit's serial
+  (15605897) puts it in the ABOVE bracket (`628993`, `633726`→`637540`), making this
+  buildable; deferred until that's confirmed rather than assumed.
 - Recall status checked (research report only, not a logged observation) — `N811`/
   `N811RT` absent from Thetford's current model-list pages reviewed, but that's not
   conclusive without a serial-specific check.
@@ -175,6 +227,8 @@ updating this reasoning first.
   (mirror: thetford.com), p.6 Optical Control & p.9 Base/Power Board tables
 - obs #110 — `630762`/`1172-321` board-photo research pass (Dads Marine, RV Yard,
   Young Farts RV Parts, Tim's RV/eBay), `Docs/Data/Norcold/630762-Research.md`
+- obs #118 — fresh coordinate-precise (`pdftotext -bbox`) read of the same 623421 parts
+  catalog as obs #109, drain hose (p.6) and AC heater (p.6-7) tables
 - `Docs/Data/Norcold/Norcold N811RT Research Report.md` — broader online research pass
   (manuals, parts catalog, recall status, near-match interchange leads), not yet
   individually logged as observations

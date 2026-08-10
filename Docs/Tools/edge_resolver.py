@@ -68,6 +68,7 @@ SUBURBAN_FURNACE_COOKTOP_RESOLVER_VERSION = "suburban_furnace_cooktop_v1"
 SUBURBAN_COOKTOP_PARTS_RESOLVER_VERSION = "suburban_cooktop_parts_v1"
 NORCOLD_ENDPOINT_RESOLVER_VERSION = "norcold_endpoint_v1"
 NORCOLD_PARTS_RESOLVER_VERSION = "norcold_parts_v1"
+NORCOLD_DRAIN_HOSE_HEATER_RESOLVER_VERSION = "norcold_drain_hose_heater_v1"
 COLEMAN_AC_ENDPOINT_RESOLVER_VERSION = "coleman_ac_endpoint_v1"
 COLEMAN_AC_PARTS_RESOLVER_VERSION = "coleman_ac_parts_v1"
 ATWOOD_GH6_6E_RESOLVER_VERSION = "atwood_gh6_6e_v1"
@@ -1674,6 +1675,114 @@ def norcold_base_board_fits(conn, catalog_row, host_component_ids):
             effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
 
     return component, identifiers, attributes, [edge.id]
+
+
+def norcold_drain_hose_and_heater_fits(conn, catalog_row, host_component_id):
+    """
+    Build the Norcold drain-hose (`622391`/`639101`) and AC-heater
+    (`630811`/`638374`) part pairs as repair-part components, each with a
+    `fits` edge to the in-hand N811 refrigerator AND a `supersedes` edge
+    between the pair -- unlike norcold_optical_control_supersession()'s
+    board pair (no host edge, since the installed board's own color/serial
+    was never photographed), both pairs here are fully determined by data
+    already photographed on the in-hand unit (obs #105): the drain hose is
+    N8-series-scoped with no variants, and the heater generation is decided
+    by the in-hand cooling-unit serial (15597729) against the catalog's own
+    11232008 breakpoint -- same "observed data determines applicability"
+    bar as norcold_base_board_fits()'s `628674`.
+
+    Sourced to obs #118, a fresh coordinate-precise read of the same
+    official Thetford/Norcold parts catalog as obs #109 (
+    Docs/Data/Norcold/VENDOR-Norcold.md sec 4's evidentiary standard). The
+    catalog's sibling below-serial rows (`622390`/`639100` for N6-series,
+    `621702`/`638365` for the heater's earlier cooling-unit generation) are
+    out of scope for this unit and not built, same treatment as the base
+    board's `618186`.
+    """
+    _validate_observation_source(catalog_row, 118, "manufacturer_pdf", 2,
+                                  "drain hose / AC heater parts")
+    catalog = _normalized_attributes(catalog_row)
+    parts = catalog.get("repair_part_fitment_table")
+    if not isinstance(parts, dict) or not parts:
+        raise ValueError(f"obs #118 catalog has no repair_part_fitment_table: {parts}")
+
+    results = []
+    component_ids_by_part = {}
+    for part_number, spec in parts.items():
+        if not isinstance(spec, dict) or "description" not in spec or "applies_to" not in spec:
+            raise ValueError(f"Norcold drain hose/heater part {part_number} missing "
+                              f"required fields: {spec}")
+        if spec["applies_to"] != ["N811"]:
+            raise ValueError(f"Norcold drain hose/heater part {part_number} has "
+                              f"unexpected applies_to: {spec['applies_to']}")
+
+        component_id = f"c_placeholder_norcold_part_{part_number}"
+        component_ids_by_part[part_number] = component_id
+        component = Component(component_id, NORCOLD_REPAIR_PART_TYPE, None)
+        identifiers = [Identifier(component_id, "norcold", part_number, "catalog")]
+        attributes = [ComponentAttribute(
+            component_id, "description", "manufacturer_pdf", catalog_row["id"],
+            value_text=spec["description"],
+            resolver_version=NORCOLD_DRAIN_HOSE_HEATER_RESOLVER_VERSION)]
+        insert_component(conn, component)
+        for identifier in identifiers:
+            insert_identifier(conn, identifier)
+        for attribute in attributes:
+            insert_component_attribute(conn, attribute)
+
+        edge = Edge(
+            type=EDGE_TYPE_FITS,
+            from_component_id=component_id,
+            to_component_id=host_component_id,
+            group_key="norcold_drain_hose_heater",
+            status="candidate",
+            resolver_version=NORCOLD_DRAIN_HOSE_HEATER_RESOLVER_VERSION,
+            notes=f"Thetford/Norcold's official N61/N81 parts catalog (623421) names "
+                  f"{part_number} as fitting N811.",
+        )
+        insert_edge(conn, edge)
+        for event_type, alpha, beta, source_id in (
+            ("attribute_prior", 1.0, 1.0, None),
+            ("manufacturer_assertion", 2.0, 0.0, catalog_row["id"]),
+        ):
+            insert_evidence(conn, RelationshipEvidence(
+                edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+                effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+        results.append((component, identifiers, attributes, [edge.id]))
+
+    chart = catalog.get("replacement_chart_entries")
+    if not isinstance(chart, dict) or chart.get("622391") != "639101" \
+            or chart.get("630811") != "638374":
+        raise ValueError(f"obs #118 replacement_chart missing expected pairs: {chart}")
+
+    supersession_edge_ids = {}
+    for old_part, new_part, note in (
+            ("622391", "639101", "Catalog's own '(USE 639101)' wording for the N8-series "
+             "drain hose assembly."),
+            ("630811", "638374", "Catalog's own '(USE 638374)' wording for the AC heater/"
+             "backer, cooling-unit serial 11232008 and above -- the generation matching "
+             "the in-hand unit's cooling-unit serial (15597729, obs #105).")):
+        supersession_edge = Edge(
+            type=EDGE_TYPE_SUPERSEDES,
+            from_component_id=component_ids_by_part[old_part],
+            to_component_id=component_ids_by_part[new_part],
+            group_key="norcold_drain_hose_heater",
+            status="candidate",
+            resolver_version=NORCOLD_DRAIN_HOSE_HEATER_RESOLVER_VERSION,
+            notes=note,
+        )
+        insert_edge(conn, supersession_edge)
+        insert_supersession_detail(conn, EdgeSupersessionDetail(
+            edge_id=supersession_edge.id, note=note))
+        for event_type, alpha, beta, source_id in (
+                ("attribute_prior", 1.0, 1.0, None),
+                ("manufacturer_assertion", 2.0, 0.0, catalog_row["id"])):
+            insert_evidence(conn, RelationshipEvidence(
+                edge_id=supersession_edge.id, event_type=event_type, effect_alpha=alpha,
+                effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+        supersession_edge_ids[(old_part, new_part)] = supersession_edge.id
+
+    return results, supersession_edge_ids
 
 
 def norcold_optical_control_supersession(conn, catalog_row):
@@ -4913,6 +5022,69 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
         if no_edges:
             print(f"MISMATCH 630762 has {no_edges} edge(s), expected none "
                   f"(fitment/supersession unresolved)")
+            mismatches += 1
+
+    obs118 = load_observation(obs_db_path, 118)
+    drain_heater_results, drain_heater_supersession_ids = norcold_drain_hose_and_heater_fits(
+        conn, obs118, norcold_component_id)
+
+    for component, identifiers, attrs, edge_ids in drain_heater_results:
+        component_id = component.component_id
+        fixture_part = next(
+            (c for c in components_doc if c.get("component_id") == component_id), None)
+        if fixture_part is None:
+            print(f"MISMATCH fixture is missing component: {component_id}")
+            mismatches += 1
+            continue
+        resolved_part_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (component_id,)).fetchall()
+        }
+        fixture_part_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_part["identifiers"]
+        }
+        if resolved_part_identifiers != fixture_part_identifiers:
+            print(f"MISMATCH Norcold drain hose/heater identifiers for {component_id}: "
+                  f"resolved={resolved_part_identifiers} fixture={fixture_part_identifiers}")
+            mismatches += 1
+
+        fixture_fits_edge = next(
+            (e for e in edges_doc if e.get("type") == "fits"
+             and e.get("from") == component_id and e.get("to") == norcold_component_id), None)
+        if fixture_fits_edge is None:
+            print(f"MISMATCH ground-truth.yaml has no fits edge for {component_id}")
+            mismatches += 1
+        else:
+            edge_row = conn.execute(
+                "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
+                (edge_ids[0],)).fetchone()
+            if tuple(edge_row) != ("fits", fixture_fits_edge["from"], fixture_fits_edge["to"]):
+                print(f"MISMATCH {component_id} fits edge: resolved={tuple(edge_row)} "
+                      f"fixture=({fixture_fits_edge['type']}, {fixture_fits_edge['from']}, "
+                      f"{fixture_fits_edge['to']})")
+                mismatches += 1
+
+    for old_part, new_part in (("622391", "639101"), ("630811", "638374")):
+        old_id = f"c_placeholder_norcold_part_{old_part}"
+        new_id = f"c_placeholder_norcold_part_{new_part}"
+        fixture_supersedes_edge = next(
+            (e for e in edges_doc if e.get("type") == "supersedes"
+             and e.get("from") == old_id and e.get("to") == new_id), None)
+        if fixture_supersedes_edge is None:
+            print(f"MISMATCH ground-truth.yaml has no {old_part}->{new_part} supersedes edge")
+            mismatches += 1
+            continue
+        edge_row = conn.execute(
+            "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
+            (drain_heater_supersession_ids[(old_part, new_part)],)).fetchone()
+        if tuple(edge_row) != (
+                "supersedes", fixture_supersedes_edge["from"], fixture_supersedes_edge["to"]):
+            print(f"MISMATCH {old_part}->{new_part} supersedes edge: resolved={tuple(edge_row)} "
+                  f"fixture=({fixture_supersedes_edge['type']}, "
+                  f"{fixture_supersedes_edge['from']}, {fixture_supersedes_edge['to']})")
             mismatches += 1
 
     print(f"Norcold repair parts: "
