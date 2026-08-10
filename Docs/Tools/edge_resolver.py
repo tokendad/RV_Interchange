@@ -33,6 +33,7 @@ from interchange_store import (
     insert_supersession_detail,
     insert_caveat, insert_evidence, now_iso, get_caveats_for_edge, get_evidence_for_edge,
     insert_component_attribute, get_component_attributes, get_component_by_identifier,
+    get_components_by_identifier, merge_component_into,
     insert_identifier_equivalence_candidate, insert_identifier_equivalence_evidence,
     get_identifier_equivalence_candidates, get_identifier_equivalence_evidence,
     get_supersession_detail, insert_required_part, get_required_parts_for_edge,
@@ -1203,6 +1204,18 @@ def atwood_electronic_repair_parts_and_fits(conn, catalog_row, host_component_id
     (part 91802) resolved to exactly the four 6-gallon models among the 8
     (GH6-8E, G6A-8E, GCH6A-10E, GC6AA-10E), and its 10-gallon sibling (93871)
     to three of the four 10-gallon ones.
+
+    17 part numbers are the same physical part as one already built by
+    atwood_repair_parts_and_fits() from the Pilot table (obs #95), just
+    described slightly differently table-to-table (e.g. 90960's "Flue Box &
+    Gasket" here vs "Flue Box and Gasket" there) -- issue #48. As with
+    atwood_ext_repair_parts_and_fits() (see that function's docstring point
+    3), this looks up each part number by its `atwood` identifier first and,
+    on a hit, adds this table's description as a second attribute
+    observation and its edges onto the EXISTING component(s) instead of
+    minting a second one -- and if more than one component already shares
+    that identifier (a duplicate from some other source), all of them are
+    kept in sync rather than just one.
     """
     _validate_observation_source(catalog_row, 96, "manufacturer_pdf", 1, "repair parts")
     catalog = _normalized_attributes(catalog_row)
@@ -1225,41 +1238,50 @@ def atwood_electronic_repair_parts_and_fits(conn, catalog_row, host_component_id
                 f"Atwood electronic repair part {part_number} has invalid applies_to: "
                 f"{applies_to}")
 
-        component_id = f"c_placeholder_wh_atwood_epart_{part_number}"
-        component = Component(component_id, ATWOOD_PART_TYPE, None)
-        identifiers = [Identifier(component_id, "atwood", part_number, None)]
-        attributes = [ComponentAttribute(
-            component_id, "description", "manufacturer_pdf", catalog_row["id"],
-            value_text=spec["description"],
-            resolver_version=ATWOOD_ELECTRONIC_PARTS_RESOLVER_VERSION)]
-        insert_component(conn, component)
-        for identifier in identifiers:
-            insert_identifier(conn, identifier)
-        for attribute in attributes:
-            insert_component_attribute(conn, attribute)
+        existing = get_components_by_identifier(conn, "atwood", part_number)
+        if existing:
+            component_ids = [c.component_id for c in existing]
+            component = existing[0]
+            identifiers = []
+        else:
+            component_ids = [f"c_placeholder_wh_atwood_epart_{part_number}"]
+            component = Component(component_ids[0], ATWOOD_PART_TYPE, None)
+            identifiers = [Identifier(component_ids[0], "atwood", part_number, None)]
+            insert_component(conn, component)
+            for identifier in identifiers:
+                insert_identifier(conn, identifier)
 
+        attributes = []
         edge_ids = []
-        for model in applies_to:
-            edge = Edge(
-                type=EDGE_TYPE_FITS,
-                from_component_id=component_id,
-                to_component_id=host_component_ids[model],
-                group_key="atwood_electronic_repair_part",
-                status="candidate",
-                resolver_version=ATWOOD_ELECTRONIC_PARTS_RESOLVER_VERSION,
-                notes=f"Atwood's January 2007 service manual Electronic Ignition "
-                      f"Replacement Part Reference table names {part_number} as "
-                      f"fitting {model}.",
-            )
-            insert_edge(conn, edge)
-            for event_type, alpha, beta, source_id in (
-                ("attribute_prior", 1.0, 1.0, None),
-                ("manufacturer_assertion", 2.0, 0.0, catalog_row["id"]),
-            ):
-                insert_evidence(conn, RelationshipEvidence(
-                    edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
-                    effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
-            edge_ids.append(edge.id)
+        for component_id in component_ids:
+            attribute = ComponentAttribute(
+                component_id, "description", "manufacturer_pdf", catalog_row["id"],
+                value_text=spec["description"],
+                resolver_version=ATWOOD_ELECTRONIC_PARTS_RESOLVER_VERSION)
+            insert_component_attribute(conn, attribute)
+            attributes.append(attribute)
+
+            for model in applies_to:
+                edge = Edge(
+                    type=EDGE_TYPE_FITS,
+                    from_component_id=component_id,
+                    to_component_id=host_component_ids[model],
+                    group_key="atwood_electronic_repair_part",
+                    status="candidate",
+                    resolver_version=ATWOOD_ELECTRONIC_PARTS_RESOLVER_VERSION,
+                    notes=f"Atwood's January 2007 service manual Electronic Ignition "
+                          f"Replacement Part Reference table names {part_number} as "
+                          f"fitting {model}.",
+                )
+                insert_edge(conn, edge)
+                for event_type, alpha, beta, source_id in (
+                    ("attribute_prior", 1.0, 1.0, None),
+                    ("manufacturer_assertion", 2.0, 0.0, catalog_row["id"]),
+                ):
+                    insert_evidence(conn, RelationshipEvidence(
+                        edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+                        effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+                edge_ids.append(edge.id)
         results.append((component, identifiers, attributes, edge_ids))
     return results
 
@@ -1321,46 +1343,56 @@ def atwood_ext_repair_parts_and_fits(conn, catalog_row, host_component_ids):
                 not set(applies_to).issubset(ATWOOD_EXT_PARTS_TARGET_MODELS):
             raise ValueError(f"Atwood EXT repair part {part_number} has invalid applies_to: {applies_to}")
 
-        existing = get_component_by_identifier(conn, "atwood", part_number)
-        if existing is not None:
-            component_id = existing.component_id
-            component = existing
+        existing = get_components_by_identifier(conn, "atwood", part_number)
+        if existing:
+            # A handful of part numbers already resolve to more than one
+            # component -- the same physical part minted twice by the Pilot
+            # and Electronic repair-parts tables before the duplication was
+            # noticed (see the docstring's point 3 and the "NOTE ... resolved
+            # to more than one component_id" diagnostic in check_fixture()).
+            # This table's description/fits data applies equally to the real
+            # part, so every duplicate must be updated in lockstep -- merging
+            # onto only one would leave the others silently stale.
+            component_ids = [c.component_id for c in existing]
+            component = existing[0]
             identifiers = []
         else:
-            component_id = f"c_placeholder_wh_atwood_extpart_{part_number}"
-            component = Component(component_id, ATWOOD_PART_TYPE, None)
-            identifiers = [Identifier(component_id, "atwood", part_number, None)]
+            component_ids = [f"c_placeholder_wh_atwood_extpart_{part_number}"]
+            component = Component(component_ids[0], ATWOOD_PART_TYPE, None)
+            identifiers = [Identifier(component_ids[0], "atwood", part_number, None)]
             insert_component(conn, component)
             for identifier in identifiers:
                 insert_identifier(conn, identifier)
 
-        attributes = [ComponentAttribute(
-            component_id, "description", "manufacturer_pdf", catalog_row["id"],
-            value_text=spec["description"], resolver_version=ATWOOD_EXT_PARTS_RESOLVER_VERSION)]
-        for attribute in attributes:
-            insert_component_attribute(conn, attribute)
-
+        attributes = []
         edge_ids = []
-        for model in applies_to:
-            edge = Edge(
-                type=EDGE_TYPE_FITS,
-                from_component_id=component_id,
-                to_component_id=host_component_ids[model],
-                group_key="atwood_ext_repair_part",
-                status="candidate",
-                resolver_version=ATWOOD_EXT_PARTS_RESOLVER_VERSION,
-                notes=f"Atwood's January 2007 service manual XT Water Heater Part "
-                      f"Identification table names {part_number} as fitting {model}.",
-            )
-            insert_edge(conn, edge)
-            for event_type, alpha, beta, source_id in (
-                ("attribute_prior", 1.0, 1.0, None),
-                ("manufacturer_assertion", 2.0, 0.0, catalog_row["id"]),
-            ):
-                insert_evidence(conn, RelationshipEvidence(
-                    edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
-                    effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
-            edge_ids.append(edge.id)
+        for component_id in component_ids:
+            attribute = ComponentAttribute(
+                component_id, "description", "manufacturer_pdf", catalog_row["id"],
+                value_text=spec["description"], resolver_version=ATWOOD_EXT_PARTS_RESOLVER_VERSION)
+            insert_component_attribute(conn, attribute)
+            attributes.append(attribute)
+
+            for model in applies_to:
+                edge = Edge(
+                    type=EDGE_TYPE_FITS,
+                    from_component_id=component_id,
+                    to_component_id=host_component_ids[model],
+                    group_key="atwood_ext_repair_part",
+                    status="candidate",
+                    resolver_version=ATWOOD_EXT_PARTS_RESOLVER_VERSION,
+                    notes=f"Atwood's January 2007 service manual XT Water Heater Part "
+                          f"Identification table names {part_number} as fitting {model}.",
+                )
+                insert_edge(conn, edge)
+                for event_type, alpha, beta, source_id in (
+                    ("attribute_prior", 1.0, 1.0, None),
+                    ("manufacturer_assertion", 2.0, 0.0, catalog_row["id"]),
+                ):
+                    insert_evidence(conn, RelationshipEvidence(
+                        edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+                        effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+                edge_ids.append(edge.id)
         results.append((component, identifiers, attributes, edge_ids))
     return results
 
@@ -2293,6 +2325,17 @@ def atwood_gh6_6e_gas_valve_chain(conn, catalog_row, host_component_id):
     shows `94787` is never checked for GH6-6E in any edition -- the
     report's `93243 -> 94787` bracket chain comes from other models'
     parts lists, over-generalized to GH6-6E. See issue #42 review comment.
+
+    93870 is also named in the Electronic Ignition table (obs #96), which
+    runs earlier in the build and, before this, had no way to know this
+    function would later mint its own canonical `c_placeholder_wh_atwood_
+    part_93870` -- the two other Atwood resolvers avoid this by looking an
+    identifier up before creating a component, but that only works when the
+    canonical ID is whichever component gets found first. Here the ID is
+    fixed (both `atwood_91605_93870_supersession()` and this function's own
+    93870->93844 supersession name it directly), so instead this folds any
+    such earlier duplicate onto the canonical component after creating it,
+    via merge_component_into() -- issue #48.
     """
     _validate_observation_source(catalog_row, 116, "manufacturer_pdf", 2,
                                   "Jan 2014 Replacement Part Reference table")
@@ -2312,6 +2355,8 @@ def atwood_gh6_6e_gas_valve_chain(conn, catalog_row, host_component_id):
 
         component_id = f"c_placeholder_wh_atwood_part_{part_number}"
         component_ids_by_part[part_number] = component_id
+        duplicates = [c.component_id for c in get_components_by_identifier(conn, "atwood", part_number)
+                      if c.component_id != component_id]
         component = Component(component_id, ATWOOD_PART_TYPE, None)
         identifiers = [Identifier(component_id, "atwood", part_number, "catalog")]
         attributes = [ComponentAttribute(
@@ -2322,6 +2367,8 @@ def atwood_gh6_6e_gas_valve_chain(conn, catalog_row, host_component_id):
             insert_identifier(conn, identifier)
         for attribute in attributes:
             insert_component_attribute(conn, attribute)
+        for duplicate_id in duplicates:
+            merge_component_into(conn, duplicate_id, component_id)
 
         edge = Edge(
             type=EDGE_TYPE_FITS,
@@ -3361,6 +3408,89 @@ def self_test(verbose=False):
             failures.append("invalid Atwood electronic repair-part evidence was accepted")
         except (ValueError, KeyError, sqlite3.IntegrityError):
             pass
+
+    # Issue #48: on a shared connection where the Pilot table already built
+    # its own atwood/90960 component, the Electronic table's own 90960 row
+    # must merge onto it instead of minting a second "_epart_" duplicate.
+    store_conn_atwood_pilot_then_eparts = init_db(":memory:")
+    for component, identifiers, attrs in atwood_endpoints:
+        if identifiers[0].value in ATWOOD_PILOT_PARTS_TARGET_MODELS or \
+                identifiers[0].value in ATWOOD_ELECTRONIC_PARTS_TARGET_MODELS:
+            insert_component(store_conn_atwood_pilot_then_eparts, component)
+            for identifier in identifiers:
+                insert_identifier(store_conn_atwood_pilot_then_eparts, identifier)
+    atwood_repair_parts_and_fits(
+        store_conn_atwood_pilot_then_eparts, obs95, atwood_parts_host_ids)
+    pilot_then_eparts_results = atwood_electronic_repair_parts_and_fits(
+        store_conn_atwood_pilot_then_eparts, obs96, atwood_eparts_host_ids)
+    merged_90960 = next(
+        r for r, part_number in zip(
+            pilot_then_eparts_results,
+            _normalized_attributes(obs96)["repair_part_fitment_table"].keys())
+        if part_number == "90960")
+    if merged_90960[0].component_id != "c_placeholder_wh_atwood_part_90960":
+        failures.append(f"expected Electronic table's 90960 to merge onto the Pilot "
+                         f"table's component, got {merged_90960[0].component_id}")
+    if merged_90960[1] != []:
+        failures.append(f"expected no new identifiers for merged Atwood 90960, "
+                         f"got {merged_90960[1]}")
+    all_90960_after_merge = store_conn_atwood_pilot_then_eparts.execute(
+        "SELECT component_id FROM identifiers WHERE ns='atwood' AND value='90960'").fetchall()
+    if len(all_90960_after_merge) != 1:
+        failures.append(f"expected 1 component for atwood/90960 after Pilot+Electronic merge, "
+                         f"got {len(all_90960_after_merge)}")
+    merged_90960_edges = store_conn_atwood_pilot_then_eparts.execute(
+        "SELECT COUNT(*) AS n FROM edges WHERE from_component_id=?",
+        ("c_placeholder_wh_atwood_part_90960",)).fetchone()
+    if merged_90960_edges["n"] != 5 + 8:
+        failures.append(f"expected merged Atwood 90960 to carry both tables' fits edges "
+                         f"(5 Pilot + 8 Electronic = 13), got {merged_90960_edges['n']}")
+
+    # Issue #48: 93870's canonical component_id is fixed by
+    # atwood_gh6_6e_gas_valve_chain() itself (other code hardcodes it), so
+    # unlike the Pilot/Electronic merge above, a pre-existing "atwood"/93870
+    # component under some OTHER id (as if built by the Electronic table
+    # first) must be folded onto the canonical one via merge_component_into()
+    # rather than becoming the merge target.
+    obs116 = load_observation(obs_db, 116)  # Atwood GH6-6E gas-valve chain
+    store_conn_atwood_valve_merge = init_db(":memory:")
+    insert_component(store_conn_atwood_valve_merge,
+                      Component("c_placeholder_wh_atwood_gh6_6e", ATWOOD_PART_TYPE, None))
+    insert_component(store_conn_atwood_valve_merge,
+                      Component("c_placeholder_wh_atwood_epart_93870", ATWOOD_PART_TYPE, None))
+    insert_identifier(store_conn_atwood_valve_merge,
+                       Identifier("c_placeholder_wh_atwood_epart_93870", "atwood", "93870", None))
+    insert_component_attribute(store_conn_atwood_valve_merge, ComponentAttribute(
+        "c_placeholder_wh_atwood_epart_93870", "description", "manufacturer_pdf", obs96["id"],
+        value_text="Flue Box and Gasket -- decoy pre-existing attribute",
+        resolver_version=ATWOOD_ELECTRONIC_PARTS_RESOLVER_VERSION))
+    decoy_edge = Edge(
+        type=EDGE_TYPE_FITS, from_component_id="c_placeholder_wh_atwood_epart_93870",
+        to_component_id="c_placeholder_wh_atwood_gh6_6e", group_key="atwood_electronic_repair_part",
+        status="candidate", resolver_version=ATWOOD_ELECTRONIC_PARTS_RESOLVER_VERSION,
+        notes="decoy pre-existing edge to be migrated onto the canonical component")
+    insert_edge(store_conn_atwood_valve_merge, decoy_edge)
+    valve_merge_results, _ = atwood_gh6_6e_gas_valve_chain(
+        store_conn_atwood_valve_merge, obs116, "c_placeholder_wh_atwood_gh6_6e")
+    if any(c.component_id == "c_placeholder_wh_atwood_epart_93870"
+           for c, _, _, _ in valve_merge_results):
+        failures.append("Atwood gas valve chain should never return the pre-merge duplicate id")
+    all_93870_after_valve_merge = store_conn_atwood_valve_merge.execute(
+        "SELECT component_id FROM identifiers WHERE ns='atwood' AND value='93870'").fetchall()
+    if [r["component_id"] for r in all_93870_after_valve_merge] != [
+            "c_placeholder_wh_atwood_part_93870"]:
+        failures.append(f"expected atwood/93870 to resolve only to the canonical gas-valve "
+                         f"component after merge, got {list(all_93870_after_valve_merge)}")
+    if store_conn_atwood_valve_merge.execute(
+            "SELECT 1 FROM components WHERE component_id='c_placeholder_wh_atwood_epart_93870'"
+            ).fetchone() is not None:
+        failures.append("expected pre-existing duplicate atwood/93870 component to be deleted "
+                         "after merge_component_into()")
+    migrated_edge = store_conn_atwood_valve_merge.execute(
+        "SELECT from_component_id FROM edges WHERE id = ?", (decoy_edge.id,)).fetchone()
+    if migrated_edge["from_component_id"] != "c_placeholder_wh_atwood_part_93870":
+        failures.append(f"expected decoy edge to be migrated onto the canonical component, "
+                         f"got {migrated_edge['from_component_id']}")
 
     obs119 = load_observation(obs_db, 119)  # Atwood XT repair-parts cross-reference
     atwood_extparts_host_ids = {
@@ -4822,8 +4952,13 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
                   f"fixture={atwood_eparts_fixture['total_fits_edges']}")
             mismatches += 1
 
-        eresults_by_part = {identifiers[0].value: (component, identifiers, attrs, edge_ids)
-                             for component, identifiers, attrs, edge_ids in atwood_eparts_results}
+        atwood_eparts_numbers = list(
+            _normalized_attributes(obs96)["repair_part_fitment_table"].keys())
+        eresults_by_part = {
+            part_number: (component, identifiers, attrs, edge_ids)
+            for part_number, (component, identifiers, attrs, edge_ids)
+            in zip(atwood_eparts_numbers, atwood_eparts_results)
+        }
         for spot_check in atwood_eparts_fixture["spot_checks"]:
             part = spot_check["part"]
             if part not in eresults_by_part:
@@ -4899,14 +5034,12 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
                       f"resolved={resolved_targets} fixture={expected_targets}")
                 mismatches += 1
 
-    # Non-blocking diagnostic, not a MISMATCH: atwood_ext_repair_parts_and_fits()
-    # introduces zero new duplicates (it merges onto existing components on a
-    # part-number hit -- see its docstring point 3), but this invariant also
-    # surfaces a pre-existing, unrelated gap between the Pilot (obs #95) and
-    # Electronic (obs #96) repair-parts tables, which don't cross-check each
-    # other the same way. That gap predates this change and is out of scope
-    # for issue #14 -- tracked separately rather than silently left or turned
-    # into a build-blocking failure here.
+    # Non-blocking diagnostic, not a MISMATCH: all three Atwood repair-parts
+    # resolvers (Pilot obs #95, Electronic obs #96, EXT obs #119) merge onto
+    # an existing `atwood` identifier hit rather than minting a duplicate
+    # component, so this should always come back empty (issue #48; formerly
+    # a real 17-pair gap between the Pilot and Electronic tables). Left in
+    # place as a standing invariant check rather than removed outright.
     duplicate_identifiers = conn.execute(
         "SELECT ns, value, COUNT(DISTINCT component_id) AS n FROM identifiers "
         "GROUP BY ns, value HAVING n > 1").fetchall()

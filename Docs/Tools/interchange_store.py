@@ -55,6 +55,46 @@ def get_component_by_identifier(conn, ns, value):
     return get_component(conn, row["component_id"])
 
 
+def get_components_by_identifier(conn, ns, value):
+    """All components sharing an (ns, value) identifier, ordered by component_id.
+
+    A small number of (ns, value) pairs resolve to more than one component --
+    the same manufacturer part number was minted as separate placeholder
+    components by two different source tables before the duplication was
+    noticed. Callers that need to keep such duplicates in sync (rather than
+    silently updating only whichever one a single-row lookup happens to
+    return) should use this instead of get_component_by_identifier().
+    """
+    rows = conn.execute(
+        "SELECT DISTINCT component_id FROM identifiers WHERE ns = ? AND value = ? "
+        "ORDER BY component_id",
+        (ns, value)).fetchall()
+    return [get_component(conn, row["component_id"]) for row in rows]
+
+
+def merge_component_into(conn, source_component_id, target_component_id):
+    """Fold a duplicate component's data onto the canonical one and drop it.
+
+    For the rarer case where a resolver's own canonical component_id for a
+    part is fixed (e.g. a hand-authored teardown ID other edges already
+    reference by name) but an earlier, differently-named placeholder for the
+    same identifier already exists in the store -- unlike
+    get_components_by_identifier(), which keeps existing duplicates in sync
+    in place, this physically reassigns source_component_id's attributes and
+    edges onto target_component_id, drops its now-redundant identifier
+    row(s) (target already carries the same identifier), and deletes the
+    source component itself.
+    """
+    conn.execute("UPDATE component_attributes SET component_id = ? WHERE component_id = ?",
+                 (target_component_id, source_component_id))
+    conn.execute("UPDATE edges SET from_component_id = ? WHERE from_component_id = ?",
+                 (target_component_id, source_component_id))
+    conn.execute("UPDATE edges SET to_component_id = ? WHERE to_component_id = ?",
+                 (target_component_id, source_component_id))
+    conn.execute("DELETE FROM identifiers WHERE component_id = ?", (source_component_id,))
+    conn.execute("DELETE FROM components WHERE component_id = ?", (source_component_id,))
+
+
 def get_identifiers_for_component(conn, component_id):
     rows = conn.execute(
         "SELECT * FROM identifiers WHERE component_id = ? ORDER BY id",
