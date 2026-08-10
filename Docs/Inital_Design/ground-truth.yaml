@@ -2117,6 +2117,42 @@ atwood_electronic_repair_parts_fixture:
 
 ---
 
+# Atwood XT repair-parts cross-reference (obs #119, same January 2007 edition,
+# p.38's "XT Water Heater Part Identification" table, scoped to the 6 already-built
+# EXT models -- closes issue #14 / VENDOR-Atwood.md sec 6 item 4). Same "fits" edge
+# type and same structural (not per-row) validation approach as the Pilot/Electronic
+# tables above. Unlike those, this table brackets by tank size only, not per-model:
+# only the two NS (not-shown) rows -- Heating Element & Gasket, Relay, both genuinely
+# electric-only -- are scoped to the four gas_electric EXT models; the rest of the
+# Combination Gas/Electric section (mixing valve/tee/hose/elbow, the replacement valve
+# kit) is not power-type-restricted -- see atwood_ext_repair_parts_and_fits()'s
+# docstring. One row (item 21A's 6-gallon hose, part 90032) is deliberately left
+# unbuilt: it prints the same part number as item 20's 10-gallon Tee, a genuine
+# duplicate in the manual's own table, not an extraction error. 14 of the 22 part
+# numbers already exist as components from the Pilot/Electronic tables and are reused,
+# not duplicated -- total_parts counts every row this table asserts either way.
+atwood_ext_repair_parts_fixture:
+  total_parts: 22
+  total_fits_edges: 116
+  spot_checks:
+    - part: "91604"
+      description: "Pressure-Temperature Relief Valve 1/2\" NPT"
+      applies_to: [G9-EXT, GE9-EXT, GEH9-EXT, G16-EXT, GE16-EXT, GEH16-EXT]
+    - part: "92249"
+      description: "Heating Element & Gasket"
+      applies_to: [GE9-EXT, GEH9-EXT, GE16-EXT, GEH16-EXT]
+    - part: "90029"
+      description: "Mixing Valve"
+      applies_to: [G9-EXT, GE9-EXT, GEH9-EXT, G16-EXT, GE16-EXT, GEH16-EXT]
+    - part: "90031"
+      description: "Tee (6 Gallon)"
+      applies_to: [G9-EXT, GE9-EXT, GEH9-EXT]
+    - part: "92690"
+      description: "10 Gal Replacement Valve Kit"
+      applies_to: [G16-EXT, GE16-EXT, GEH16-EXT]
+
+---
+
 # Suburban SRNA3SBBM cooktop/range repair-parts cross-reference (obs #117, issue #37).
 # Same "fits" edge type and same structural (not per-row) validation approach as the
 # Atwood tables above -- single host, so applies_to is always [SRNA3SBBM].

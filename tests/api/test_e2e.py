@@ -91,6 +91,11 @@ def test_coleman_supersession_chain_is_visible_through_api(client):
 
 
 def test_atwood_repair_part_is_served_from_the_persisted_database(client, persisted_db_path):
+    # 91230 is asserted by both the Electronic (obs #96) and XT (obs #119) repair-parts
+    # tables under the same "atwood" part number -- the XT resolver merges onto the
+    # existing component rather than creating a duplicate (see
+    # atwood_ext_repair_parts_and_fits()'s docstring point 3), so one search result
+    # carries both tables' descriptions and the union of both tables' fits edges.
     search = client.get("/public/v1/search", params={"q": "91230"})
     assert search.status_code == 200
     assert search.json() == {
@@ -105,6 +110,8 @@ def test_atwood_repair_part_is_served_from_the_persisted_database(client, persis
                 "attributes": [
                     {"name": "description", "qualifier": "",
                      "value": "Switch 12 VDC - White Combo", "unit": None},
+                    {"name": "description", "qualifier": "",
+                     "value": "Dual Switch", "unit": None},
                 ],
             },
         ],
@@ -116,7 +123,7 @@ def test_atwood_repair_part_is_served_from_the_persisted_database(client, persis
         component = get_component_by_identifier(conn, "atwood", "91230")
         assert component is not None
         fits_edges = get_edges_from(conn, component.component_id, type=EDGE_TYPE_FITS)
-        assert len(fits_edges) == 4
+        assert len(fits_edges) == 10
     finally:
         conn.close()
 

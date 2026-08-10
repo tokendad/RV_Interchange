@@ -165,11 +165,7 @@ Ready-to-do next work, in rough priority order:
    ground-truth.yaml`) — resolved. The Atwood brochure cutout spec gives the two family
    openings directly, so all 19 endpoint components now carry `opening_h`/`opening_w`
    assertions in the resolver and fixture.
-4. The 6 remaining EXT-family models (`G9-EXT`, `GE9-EXT`, `GEH9-EXT`, `G16-EXT`,
-   `GE16-EXT`, `GEH16-EXT`) don't appear in either Pilot or Electronic Ignition
-   "Replacement Part Reference" table — the manual covers them under a separate "XT Water
-   Heater" section (obs #92's own manual, pp.37-38) with its own parts diagrams, not yet
-   captured as a cross-reference table.
+4. ~~The 6 remaining EXT-family models...~~ Done — see §10.
 
 ## 7. Second wave: Pilot repair-parts cross-reference (obs #95)
 
@@ -368,3 +364,60 @@ edges (`93870`/`93844` -> GH6-6E), 2 `supersedes` edges (`91605`->`93870`, `9387
 `pytest`: 52/53 (the one failure, `test_part_types_cover_every_exported_constant`, predates
 this work — a gap from the Coleman AC 48253B866 build (commit `9063edd`) never adding
 `COLEMAN_AC_PART_TYPE`/`COLEMAN_AC_REPAIR_PART_TYPE` to that test's registry check).
+
+## 10. Sixth wave: XT repair-parts cross-reference (obs #119) — closes issue #14
+
+The gap §6 item 4 called out: the 6 EXT-family models (`G9-EXT`, `GE9-EXT`, `GEH9-EXT`,
+`G16-EXT`, `GE16-EXT`, `GEH16-EXT`) don't appear in either Pilot or Electronic Ignition
+"Replacement Part Reference" table — the same January 2007 manual covers them separately,
+under its own "XT Water Heater Part Identification" table (p.38), extracted with the same
+coordinate-precise `pdftotext -bbox` method as §7.1.
+
+**Shape differs from the Pilot/Electronic tables.** Those bracket by individual model (one
+column per model). This table brackets by tank size only (a "6 GALLON"/"10 GALLON" column
+pair), under three section headers — Spark Ignition, Heat Exchange, Combination
+Gas/Electric — that turned out to describe the assembly diagram each part is drawn in, not
+a power-type restriction. Confirmed against p.37 (the same manual's `92690` valve-kit
+install instructions, which name only "10 GALLON XT" with no power-type qualifier) and
+against the table itself, where three Combination Gas/Electric items (`90029` Mixing
+Valve, `90030` Ball Valve, `90034` Elbow) print the identical part number in both size
+columns. Only the section's two `NS` (not-shown-in-diagram) rows — `92249` Heating Element
+& Gasket, `93849` Relay — are genuinely electric-only components and stay restricted to
+the four gas_electric EXT models (`GE9-EXT`, `GEH9-EXT`, `GE16-EXT`, `GEH16-EXT`); every
+other part on the page applies to all 6 EXT models (Spark Ignition section) or every model
+of the matching tank size (the rest of the Combination Gas/Electric section).
+
+**One row deliberately left unbuilt.** Item 21A ("9" Hose (6 Gallon)") prints the same
+part number, `90032`, as item 20's 10-gallon Tee — a real duplicate in the manual's own
+table, coordinate-verified, not an extraction error. A Tee and a hose sharing one SKU is
+physically implausible, so `90032` is only built as the Tee; the 6-gallon-hose row is
+unasserted pending manufacturer clarification.
+
+**14 of the 22 XT part numbers already existed as components from the Pilot and/or
+Electronic tables** — the XT family's spark-ignition hardware (switches, circuit board,
+wiring harness, thermal cut-off, spark probe, relief valves, flue box, drain plug, solenoid
+valve) is largely the same generic service stock as the Electronic-ignition family's, just
+described slightly differently table-to-table (e.g. `91230` is obs #96's "Switch 12 VDC -
+White Combo" and this table's "Dual Switch" — same part). `atwood_ext_repair_parts_and_fits()`
+looks up each part number first and, on a hit, adds this table's description as a second
+attribute observation and its edges onto the existing component instead of minting a
+duplicate `atwood` identifier. Checking this surfaced a **pre-existing, separate gap**:
+the Pilot and Electronic tables don't cross-check each other the same way, and 17
+`(ns, value)` pairs between them already resolve to two different components (e.g. `90960`
+Flue Box & Gasket exists as both `..._part_90960` and `..._epart_90960`). That predates
+this change, is out of scope for issue #14, and is now surfaced as a non-blocking `NOTE` by
+a new `check_fixture()` invariant rather than silently left — see issue #48.
+
+**8 new repair-part components, 116 `fits` edges** (of which 10 land on the reused `91230`
+component, joining its existing 4) — resolver version `atwood_fits_v3`. Same structural
+validation approach as §7.2/§7.3; `ground-truth.yaml`'s fixture entry
+(`atwood_ext_repair_parts_fixture`) follows the same total-counts-plus-spot-checks shape.
+
+`edge_resolver.py --check-fixture`: 0 mismatches (22 parts, 116 edges, all 4 spot-checks
+pass; 17-pair pre-existing-duplicate NOTE is informational). `edge_resolver.py --self-test`:
+PASS. `pytest`: 46/46 green (one snapshot test, `test_atwood_repair_part_is_served_from_the_
+persisted_database`, updated to reflect `91230`'s now-merged description/edge count — a
+real data change, not a test patch). Atwood repair-parts total across all three tables:
+**95 components, 483 `fits` edges** (87 + 8 new; 367 + 116 new, minus double-counting
+none — the merged edges are additive on the existing `91230` component, not a separate
+total).
