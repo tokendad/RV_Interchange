@@ -208,13 +208,16 @@ different, 4-prong ATC family that doesn't match the in-hand unit's 5-wire harne
 - ~~Confirming `AH-SWI-P09-1` as the white suffix~~ — **RESOLVED, obs #100, see §4b.**
   `AH-SWI-P09-1` is confirmed real by ATC directly: discontinued 2019, replaced by
   `AH-SWI-P10-1`. The earlier §4a conclusion ("likely never existed") is superseded.
-- **New open item (obs #100-101, §4b):** reconciling Lippert's `AH-SWI-P10-8` (white,
-  4-pin) against the `AH-SWI-P09`/`P10-1` lineage (white, 5-pin) — color-suffix
-  convention and pin count both conflict. User emailed Lippert 2026-08-04; reply pending.
+- ~~Reconciling Lippert's `AH-SWI-P10-8` (white, 4-pin) against the `AH-SWI-P09`/`P10-1`
+  lineage (white, 5-pin)~~ — **RESOLVED as a Lippert listing error, obs #102, see §4c.**
+  Lippert confirmed directly: "the ATC number currently listed is incorrect," being
+  corrected. `670704` is not a genuine second white `P10-8` switch, but Lippert did not
+  say what the corrected number is, so `670704`'s true ATC part number is still open.
 
 **Research on this adapter is active again.** The white-suffix question that closed it
-is resolved (real part, just discontinued); what's open now is the Lippert `P10-8`
-discrepancy and, ideally, an explicit ATC confirmation that `12095` = `AH-SWI-P10-1`.
+is resolved (real part, just discontinued), and the Lippert `P10-8` conflict is resolved
+as a data error rather than a real competing part. What's open now is `670704`'s actual
+ATC part number and, ideally, an explicit ATC confirmation that `12095` = `AH-SWI-P10-1`.
 
 ## 4a. `AH-SWI-P09-1` white suffix — concluded likely never existed (obs #97-99)
 
@@ -286,8 +289,30 @@ consistent with the pattern already seen in `P09` (suffix alone isn't a reliable
 guarantee) — but the color mismatch specifically looks more like a listing error on
 Lippert's part than a real second white P10 switch. **User emailed Lippert 2026-08-04
 asking them to clarify the color/pin-count discrepancy for SKU `670704`/`AH-SWI-P10-8`.**
-Status: reply pending. If Lippert confirms an error, `670704` may actually correspond to
-`AH-SWI-P10-1` (or the retired `P09-1`) rather than a genuine `P10-8`.
+
+## 4c. Lippert reply (obs #102): confirms the `AH-SWI-P10-8` listing is a data error
+
+**2026-08-10, Lippert Customer Care (Angela G., via lippert.com contact form) replied to
+the §4b question directly:**
+
+> *"We have identified that the ATC number currently listed is incorrect. Our team is
+> aware of the discrepancy and is actively working to have the information corrected."*
+
+This confirms the suspected read: `670704`'s `AH-SWI-P10-8`/4-pin listing is a **Lippert
+data error**, not a genuine second white `P10` switch family. It does not, however, state
+what the corrected reference number should be — Lippert gave no ETA and did not confirm
+`AH-SWI-P10-1` (or `P09-1`) as the intended replacement, so `670704`'s true ATC part
+number is still unconfirmed. Full email thread in the GitHub issue tracking this
+(closed as answered, not as resolved-to-a-number — see issue tracking doc).
+
+**Net effect on the cross-reference:** the `P10-8`/4-pin conflict is retired as a real
+competing identity — `670704` is not a second, genuinely-4-pin white switch. It does
+**not** newly confirm `670704` = `AH-SWI-P10-1`; that remains the best-fit guess (matches
+Lippert's own kit-BOM confirmation in obs #96 that `670704` is the current, non-stale
+white switch, and the 5-pin `P09`/`P10-1` lineage is the only white ATC family with any
+confirmed real existence) but is still not printed by any single source. Keep
+observation-only pending either an ATC-side confirmation of `670704`'s real number or a
+corrected Lippert listing.
 
 ## 5a. Reference material (not part identity, keep for troubleshooting)
 
@@ -338,3 +363,4 @@ SKUs linked to `AH-SWI-P09` as observation-only until then.
 | 99 | other | general web search, agent re-check | no result anywhere for `AH-SWI-P09-1`; corroborates user's conclusion that it likely was never a stocked part (later superseded by obs #100) |
 | 100 | manufacturer_email | ATC Parts (Pamela White, parts.atc@atcomp.com), direct reply, 2026-08-04 | confirms `AH-SWI-P09-1` was real, discontinued 2019, replaced by `AH-SWI-P10-1`; links PDX RV Wholesale `12095` as the replacement's info page — supersedes obs #97-99's conclusion |
 | 101 | retailer_page | pdxrvwholesale.com `12095` + cross-check (Walmart, eBay, Amazon, jrproducts.net) | confirms the PDX link ATC's rep gave is JR Products' own `12095` (white, 5-pin) — circumstantial ATC-sourced link to the P09/P10-1 lineage, not a printed cross-reference |
+| 102 | retailer_email | Lippert Customer Care (Angela G.), lippert.com contact form, direct reply, 2026-08-10 | confirms `670704`'s listed `AH-SWI-P10-8`/4-pin reference number "is incorrect," being corrected — does not state the correct number |
