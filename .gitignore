@@ -62,6 +62,7 @@ Docs/Tools/components.db
 
 # Claude Code project instructions — local only, not shared via git
 CLAUDE.md
+.claude/
 
 # Images — going forward, evidence photos get hand-transcribed into observations.db
 # instead of committed as binary files. Already-tracked images as of 2026-08-06 are
