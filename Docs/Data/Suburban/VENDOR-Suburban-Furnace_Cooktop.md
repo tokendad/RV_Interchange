@@ -167,8 +167,8 @@ the identical model description — but neither pass found any Suburban/Airxcel 
 catalog, or cross-reference actually stating "3108A replaces 2863A" or equivalent. Stays
 unbuilt per this project's evidence bar ("probable, not officially verified" isn't enough
 for a `supersedes` edge). Next lever, if pursued further, is a direct manufacturer email
-to Suburban/Airxcel, same pattern as [[suburban_dm_manufacturer_contact]] — not yet sent,
-no GitHub issue opened for it since #37 already tracks it.
+to Suburban/Airxcel, same pattern as [[suburban_dm_manufacturer_contact]] — not yet sent.
+Tracked as GitHub issue #50 (`vendor-research`); #37 itself is closed.
 
 **Correction, 2026-08-10:** the line previously here claiming cutout dimensions weren't
 asserted because "the letters have no meaning without the installation drawing itself"
