@@ -146,6 +146,14 @@ edge to anything. `--check-fixture` asserts this directly (fails if any edge is 
 attached to it), so a future change can't silently promote the connection without
 updating this reasoning first.
 
+**Thetford email reply, 2026-08-12** (issue #28, obs #120): user emailed Thetford's
+parts-fulfillment contact (Dave Carter & Associates) asking specifically about the
+630762-to-catalog-lineage question. Reply confirmed 630762 is the front optical board
+but did not address the catalog relationship at all — it redirected to the unrelated
+main/base-power board and noted Thetford no longer sells parts directly to customers.
+Same non-identification outcome as the Coleman-Mach `1C26-10` precedent (issue #37).
+No new information; zero-edge status above stands unchanged.
+
 **Correction 2026-08-10** (research-pass check, not a logged observation — same "not yet
 promoted to obs" convention as §5's recall-status line): the catalog's other
 optical-control pairs were column-checked with `pdftotext -bbox` (same coordinate-precise
