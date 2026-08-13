@@ -154,6 +154,18 @@ main/base-power board and noted Thetford no longer sells parts directly to custo
 Same non-identification outcome as the Coleman-Mach `1C26-10` precedent (issue #37).
 No new information; zero-edge status above stands unchanged.
 
+**Thetford email reply, 2026-08-13** (issue #28 reopened, obs #121): a second reply in
+the same thread directly answered the catalog-relationship question this time. Thetford
+states 630762 cannot be documented as an earlier part number for `621988`/`628979`/
+`636105`/`629079`, nor as directly superseding to `637774`/`637775`/`637776`/`637777` —
+their own Parts List 623421 does not include 630762 in those supersession chains, and
+without an older service bulletin or internal cross-reference it should be treated as a
+separate/legacy optical-control part number. This upgrades the zero-edge status from
+"unresolved" to **resolved negative**: Thetford itself confirms no `fits`/`supersedes`
+relationship exists, not merely that one couldn't be found. `--check-fixture`'s
+zero-edge assertion for `c_placeholder_norcold_part_630762` stands, now on firmer
+grounds.
+
 **Correction 2026-08-10** (research-pass check, not a logged observation — same "not yet
 promoted to obs" convention as §5's recall-status line): the catalog's other
 optical-control pairs were column-checked with `pdftotext -bbox` (same coordinate-precise
