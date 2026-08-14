@@ -69,8 +69,8 @@ zero supply, and only then add listings.
   `supersedes`, `controls`, `fits`) — resolver functions, serializers, and API queries
   reference this shared vocabulary instead of ad hoc string literals.
 - `Docs/Tools/interchange_*.py` and `edge_resolver.py` persist components, typed edges,
-  caveats, required parts, and evidence. The current build produces 199 components and
-  577 edges (557 `fits`, 11 `supersedes`, 8 `substitutes`, 1 `controls`) with zero
+  caveats, required parts, and evidence. The current build produces 200 components and
+  579 edges (558 `fits`, 12 `supersedes`, 8 `substitutes`, 1 `controls`) with zero
   mismatches against `ground-truth.yaml`.
 - **Suburban** (first vendor arc): the canonical SW6DE/SW6DEL directional-replacement
   fixture case resolves with zero mismatches. Also carries two exact endpoint components

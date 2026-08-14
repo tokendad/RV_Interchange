@@ -1152,6 +1152,13 @@ components:
     attributes:
       description: {value: "Shroud Bracket (Qty 3)", provenance: retailer_page, source_observation_id: 114}
 
+  - component_id: c_placeholder_coleman_ac_part_14504209
+    part_type_id: 605
+    interchange_code: null
+    identifiers: [{ns: coleman, value: "14504209", visibility: catalog}]
+    attributes:
+      description: {value: "Compressor package (Coleman/RVP), for Mach 3 Plus EZ Series air conditioners", provenance: retailer_page, source_observation_id: 126}
+
   - component_id: c_placeholder_coleman_plenum_8330a733
     part_type_id: 607
     interchange_code: null
@@ -2038,6 +2045,25 @@ edges:
     evidence:
       - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
       - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 114}
+
+  - type: fits
+    from: c_placeholder_coleman_ac_part_14504209
+    to: c_placeholder_coleman_ac_48253b866
+    group: coleman_ac_48253b866_repair_part
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 126}
+
+  - type: supersedes
+    from: c_placeholder_coleman_ac_part_14504029
+    to: c_placeholder_coleman_ac_part_14504209
+    group: coleman_ac_48253b866_compressor
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 114}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 126}
 
   - type: fits
     from: c_placeholder_coleman_plenum_part_8330-3501

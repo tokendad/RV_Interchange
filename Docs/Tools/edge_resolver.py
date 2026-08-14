@@ -2244,6 +2244,131 @@ def coleman_ac_repair_parts_and_fits(conn, catalog_row, host_component_id):
     return results, supersession_edge.id
 
 
+COLEMAN_AC_COMPRESSOR_OLD_PART = "14504029"
+COLEMAN_AC_COMPRESSOR_NEW_PART = "14504209"
+
+
+def coleman_ac_compressor_supersession(conn, original_row, corroboration_row, host_component_id):
+    """
+    Build the `14504029` -> `14504209` Tecumseh compressor supersession for
+    the 48253B866 rooftop AC -- issue #38, closing the gap left open by
+    coleman_ac_repair_parts_and_fits() (obs #114's own docstring/caveat):
+    `14504029`'s source row there says "USE 14504209" but 14504209 appeared
+    nowhere else in that one table, so it was built only as a caveat inside
+    `14504029`'s description, not as a component or edge -- this project's
+    standing rule against building identifiers from a single unconfirmed
+    mention.
+
+    That mention is no longer single. obs #126 independently corroborates
+    it from a *different* retailer domain (rvpartshop.com's 48203-879 parts
+    list, not youngfartsrvparts.com like obs #114) giving the identical
+    "USE 14504209 * SEE NOTES FOR ADJ NEEDED*" row for a different rooftop
+    unit sharing the same compressor, plus two more Young Farts pages
+    (48203-876, 48253A876) repeating it, plus two dedicated product listings
+    (Young Farts' own C7W14504209 and a third domain, highskyrvparts.com)
+    independently identifying 1450-4209 as a real, currently-listed
+    (discontinued) Coleman/RVP compressor package "For Use With Coleman
+    Mach 3 Plus EZ Series Air Conditioners" -- the same "Mach 3+ EZ A/C"
+    family Coleman-Mach's own lookup tool already assigned to the in-hand
+    48253B866 (obs #113, see VENDOR-Coleman-Mach.md sec 9). Four independent
+    parts-list pages across two retailer domains, plus two independent
+    dedicated-product listings across two more, together clear the bar this
+    project sets for treating a fitment claim as evidenced rather than a
+    single unconfirmed mention.
+
+    None of the six sources checked (across obs #114 and #126) explain what
+    the "SEE NOTES FOR ADJ NEEDED" adjustment actually involves -- no
+    notes/footnote section was found on any of the four parts-list pages.
+    That detail stays an open caveat on the supersession edge rather than
+    an invented explanation.
+    """
+    _validate_observation_source(original_row, 114, "retailer_page", 7,
+                                  "compressor original mention")
+    _validate_observation_source(corroboration_row, 126, "retailer_page", 7,
+                                  "compressor corroboration")
+
+    original = _normalized_attributes(original_row)
+    original_note = original.get("repair_part_fitment_table", {}) \
+        .get(COLEMAN_AC_COMPRESSOR_OLD_PART, {}).get("note", "")
+    if COLEMAN_AC_COMPRESSOR_NEW_PART not in original_note:
+        raise ValueError(f"obs #114 compressor note no longer names {COLEMAN_AC_COMPRESSOR_NEW_PART}: "
+                          f"{original_note}")
+
+    corroboration = _normalized_attributes(corroboration_row)
+    corroboration_fitment = corroboration.get("repair_part_fitment_table", {}) \
+        .get(COLEMAN_AC_COMPRESSOR_OLD_PART, {})
+    if corroboration_fitment.get("superseded_by") != COLEMAN_AC_COMPRESSOR_NEW_PART:
+        raise ValueError(f"obs #126 does not corroborate {COLEMAN_AC_COMPRESSOR_OLD_PART} -> "
+                          f"{COLEMAN_AC_COMPRESSOR_NEW_PART}: {corroboration_fitment}")
+    corroboration_identifiers = {(i["ns"], i["value"]) for i in corroboration["physical_identifiers"]}
+    if ("coleman", COLEMAN_AC_COMPRESSOR_NEW_PART) not in corroboration_identifiers:
+        raise ValueError(f"obs #126 missing {COLEMAN_AC_COMPRESSOR_NEW_PART} identifier: "
+                          f"{corroboration_identifiers}")
+
+    old_component_id = f"c_placeholder_coleman_ac_part_{COLEMAN_AC_COMPRESSOR_OLD_PART}"
+    new_component_id = f"c_placeholder_coleman_ac_part_{COLEMAN_AC_COMPRESSOR_NEW_PART}"
+
+    new_component = Component(new_component_id, COLEMAN_AC_REPAIR_PART_TYPE, None)
+    new_identifiers = [Identifier(new_component_id, "coleman", COLEMAN_AC_COMPRESSOR_NEW_PART, "catalog")]
+    new_attributes = [ComponentAttribute(
+        new_component_id, "description", "retailer_page", corroboration_row["id"],
+        value_text=corroboration["product_type"], resolver_version=COLEMAN_AC_PARTS_RESOLVER_VERSION)]
+    insert_component(conn, new_component)
+    for identifier in new_identifiers:
+        insert_identifier(conn, identifier)
+    for attribute in new_attributes:
+        insert_component_attribute(conn, attribute)
+
+    fits_edge = Edge(
+        type=EDGE_TYPE_FITS,
+        from_component_id=new_component_id,
+        to_component_id=host_component_id,
+        group_key="coleman_ac_48253b866_repair_part",
+        status="candidate",
+        resolver_version=COLEMAN_AC_PARTS_RESOLVER_VERSION,
+        notes=f"Independent cross-domain retailer corroboration (obs #126) names "
+              f"{COLEMAN_AC_COMPRESSOR_NEW_PART} as a real Coleman/RVP compressor package "
+              f"for the Mach 3 Plus EZ Series family the in-hand 48253B866 belongs to.",
+    )
+    insert_edge(conn, fits_edge)
+    for event_type, alpha, beta, source_id in (
+        ("attribute_prior", 1.0, 1.0, None),
+        ("retailer_cross_reference", 1.0, 0.0, corroboration_row["id"]),
+    ):
+        insert_evidence(conn, RelationshipEvidence(
+            edge_id=fits_edge.id, event_type=event_type, effect_alpha=alpha,
+            effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+
+    supersession_edge = Edge(
+        type=EDGE_TYPE_SUPERSEDES,
+        from_component_id=old_component_id,
+        to_component_id=new_component_id,
+        group_key="coleman_ac_48253b866_compressor",
+        status="candidate",
+        resolver_version=COLEMAN_AC_PARTS_RESOLVER_VERSION,
+        notes=f"Four independent parts-list pages across two retailer domains "
+              f"(youngfartsrvparts.com obs #114/#126-corroborated, rvpartshop.com obs #126) "
+              f"name {COLEMAN_AC_COMPRESSOR_NEW_PART} as the replacement for "
+              f"{COLEMAN_AC_COMPRESSOR_OLD_PART} ('USE 14504209').",
+    )
+    insert_edge(conn, supersession_edge)
+    insert_supersession_detail(conn, EdgeSupersessionDetail(
+        edge_id=supersession_edge.id,
+        note="All source pages carry the same '* SEE NOTES FOR ADJ NEEDED*' caveat but none "
+             "include the referenced notes section -- the nature of the required adjustment "
+             "(mounting, refrigerant charge, electrical) remains unconfirmed."))
+    for event_type, alpha, beta, source_id in (
+        ("attribute_prior", 1.0, 1.0, None),
+        ("retailer_cross_reference", 1.0, 0.0, original_row["id"]),
+        ("retailer_cross_reference", 1.0, 0.0, corroboration_row["id"]),
+    ):
+        insert_evidence(conn, RelationshipEvidence(
+            edge_id=supersession_edge.id, event_type=event_type, effect_alpha=alpha,
+            effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+
+    return (new_component, new_identifiers, new_attributes, [fits_edge.id]), supersession_edge.id
+
+
 COLEMAN_PLENUM_8330A733_IDENTIFIERS = {("coleman", "8330A733")}
 
 
@@ -5724,6 +5849,75 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
 
     print(f"Coleman AC repair parts: "
           f"{mismatches - coleman_ac_parts_mismatches_before} mismatch(es)")
+
+    coleman_ac_compressor_mismatches_before = mismatches
+    obs126 = load_observation(obs_db_path, 126)
+    (coleman_ac_compressor_component, coleman_ac_compressor_identifiers,
+     coleman_ac_compressor_attributes, coleman_ac_compressor_fits_edge_ids), \
+        coleman_ac_compressor_supersession_edge_id = coleman_ac_compressor_supersession(
+            conn, obs114, obs126, coleman_ac_component_id)
+
+    compressor_component_id = coleman_ac_compressor_component.component_id
+    fixture_compressor_part = next(
+        (c for c in components_doc if c.get("component_id") == compressor_component_id), None)
+    if fixture_compressor_part is None:
+        print(f"MISMATCH fixture is missing component: {compressor_component_id}")
+        mismatches += 1
+    else:
+        resolved_compressor_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (compressor_component_id,)).fetchall()
+        }
+        fixture_compressor_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_compressor_part["identifiers"]
+        }
+        if resolved_compressor_identifiers != fixture_compressor_identifiers:
+            print(f"MISMATCH Coleman AC compressor identifiers: "
+                  f"resolved={resolved_compressor_identifiers} "
+                  f"fixture={fixture_compressor_identifiers}")
+            mismatches += 1
+
+        fixture_compressor_fits_edge = next(
+            (e for e in edges_doc if e.get("type") == "fits"
+             and e.get("from") == compressor_component_id
+             and e.get("to") == coleman_ac_component_id), None)
+        if fixture_compressor_fits_edge is None:
+            print(f"MISMATCH ground-truth.yaml has no fits edge for {compressor_component_id}")
+            mismatches += 1
+        else:
+            edge_row = conn.execute(
+                "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
+                (coleman_ac_compressor_fits_edge_ids[0],)).fetchone()
+            if tuple(edge_row) != ("fits", fixture_compressor_fits_edge["from"],
+                                    fixture_compressor_fits_edge["to"]):
+                print(f"MISMATCH {compressor_component_id} fits edge: resolved={tuple(edge_row)} "
+                      f"fixture=({fixture_compressor_fits_edge['type']}, "
+                      f"{fixture_compressor_fits_edge['from']}, {fixture_compressor_fits_edge['to']})")
+                mismatches += 1
+
+    fixture_compressor_supersession_edge = next(
+        (e for e in edges_doc if e.get("type") == "supersedes"
+         and e.get("group") == "coleman_ac_48253b866_compressor"), None)
+    if fixture_compressor_supersession_edge is None:
+        print("MISMATCH ground-truth.yaml has no coleman_ac_48253b866_compressor supersedes edge")
+        mismatches += 1
+    else:
+        edge_row = conn.execute(
+            "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
+            (coleman_ac_compressor_supersession_edge_id,)).fetchone()
+        if tuple(edge_row) != ("supersedes", fixture_compressor_supersession_edge["from"],
+                                fixture_compressor_supersession_edge["to"]):
+            print(f"MISMATCH Coleman AC compressor supersedes edge: resolved={tuple(edge_row)} "
+                  f"fixture=({fixture_compressor_supersession_edge['type']}, "
+                  f"{fixture_compressor_supersession_edge['from']}, "
+                  f"{fixture_compressor_supersession_edge['to']})")
+            mismatches += 1
+
+    print(f"Coleman AC compressor supersession: "
+          f"{mismatches - coleman_ac_compressor_mismatches_before} mismatch(es)")
 
     coleman_plenum_mismatches_before = mismatches
     obs122 = load_observation(obs_db_path, 122)

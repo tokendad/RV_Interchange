@@ -1,6 +1,15 @@
 # VENDOR — Coleman-Mach / RV Products / Airxcel
 
 **Status:** exact endpoint and supersession fixture complete; broader adapter research in progress
+**Updated:** 2026-08-14 (later same day) — resolved issue #38's `14504029` compressor
+"USE 14504209" caveat from §9: no longer a single unconfirmed mention, now corroborated by
+four independent retailer parts-list pages across two domains plus two dedicated
+`1450-4209` product listings across two more. Built `14504209` as a repair-part component
+(part type 605) with a `fits` edge to the AC head plus the `14504029 -> 14504209`
+`supersedes` edge, via `coleman_ac_compressor_supersession()` (obs #126). The referenced
+"adjustment" itself is still unexplained in every source checked — recorded as an open
+`EdgeSupersessionDetail` caveat rather than invented. Issue #38 closed. See §9.
+
 **Updated:** 2026-08-14 — built the `8330A733` ceiling plenum (issue #23) as its own exact
 endpoint component (part type 607) — the part split out from the `48253B866` rooftop AC head
 on 2026-08-09 (§9) and left unbuilt until now. Identity comes from an in-hand model-tag photo
@@ -871,13 +880,35 @@ names each other directly in the source table — `1468-3069` ("FAN MOTOR (FASCO
 already used for the Suburban/Coleman-Mach thermostats and Norcold's optical control board
 elsewhere in this project; built as both a `fits` edge (each is still a real, orderable
 part) and a `supersedes` edge (`coleman_ac_48253b866_fan_motor` group). The compressor row's
-own "USE 14504209" note is **not** built the same way — `14504209` doesn't otherwise appear
-in the table and isn't independently confirmed, so it stays a caveat inside the compressor
-component's description rather than an invented component, consistent with this project's
-standing rule against building identifiers from a single unconfirmed mention.
+own "USE 14504209" note was **not** built the same way at the time — `14504209` didn't
+otherwise appear in the table and wasn't independently confirmed, so it stayed a caveat
+inside the compressor component's description rather than an invented component, consistent
+with this project's standing rule against building identifiers from a single unconfirmed
+mention. See below — resolved 2026-08-14.
 
 `edge_resolver.py --check-fixture` confirms 0 mismatches for both the endpoint and the
 repair-parts/fits build.
+
+**Compressor supersession resolved (obs #126, 2026-08-14, issue #38):** the single-mention
+gap above is closed. obs #126 independently corroborates the "USE 14504209" wording from a
+*different* retailer domain (rvpartshop.com's Mach 3+ `48203-879` parts list, not
+youngfartsrvparts.com like obs #114) covering a different rooftop unit that shares the same
+compressor, plus two more Young Farts pages (`48203-876`, `48253A876`) repeating the same
+row, plus two dedicated product listings — Young Farts' own `C7W14504209` and a third domain,
+highskyrvparts.com — independently identifying `1450-4209` as a real, currently-listed
+(discontinued) Coleman/RVP compressor package "For Use With Coleman Mach 3 Plus EZ Series Air
+Conditioners", the same "Mach 3+ EZ A/C" family Coleman-Mach's own lookup tool already
+assigned to the in-hand `48253B866` (obs #113). Four independent parts-list pages across two
+retailer domains, plus two independent dedicated-product listings across two more domains,
+clear this project's bar for treating a fitment claim as evidenced rather than a single
+unconfirmed mention. `14504209` built as a repair-part component (part type 605) with a
+`fits` edge to the host AC, plus the `14504029 -> 14504209` `supersedes` edge
+(`coleman_ac_48253b866_compressor` group), via `coleman_ac_compressor_supersession()`
+(resolver version `coleman_ac_parts_v1`). None of the six sources checked explain what the
+"* SEE NOTES FOR ADJ NEEDED*" adjustment actually involves — no notes/footnote section was
+found on any of the four parts-list pages — so that detail stays an open caveat on the
+supersession edge (`EdgeSupersessionDetail`) rather than an invented explanation. Issue #38
+closed. `edge_resolver.py --check-fixture` confirms 0 mismatches.
 
 ## 10. Ceiling plenum — `8330A733` (issue #23, split from §9)
 
