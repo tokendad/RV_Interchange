@@ -2045,6 +2045,7 @@ edges:
     evidence:
       - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
       - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 114}
+      - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 127}
 
   - type: fits
     from: c_placeholder_coleman_ac_part_14504209

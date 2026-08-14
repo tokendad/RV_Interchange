@@ -2369,6 +2369,59 @@ def coleman_ac_compressor_supersession(conn, original_row, corroboration_row, ho
     return (new_component, new_identifiers, new_attributes, [fits_edge.id]), supersession_edge.id
 
 
+COLEMAN_AC_FAN_MOTOR_OLD_PART = "1468-3069"
+COLEMAN_AC_FAN_MOTOR_NEW_PART = "1468A3069"
+
+
+def coleman_ac_fan_motor_corroboration(conn, corroboration_row, supersession_edge_id):
+    """
+    Add independent corroborating evidence to the existing `1468-3069` ->
+    `1468A3069` fan-motor `supersedes` edge -- issue #39. The edge itself was
+    already built by coleman_ac_repair_parts_and_fits() from obs #114 alone
+    (Young Farts' 48253B866 parts-breakdown table's own "(USE 1468A3069)"
+    wording) -- a single source, flagged in that issue as needing a second
+    one before the claim could be considered more than reseller-corroborated.
+
+    obs #127 supplies that second source, independently: (1) Young Farts'
+    own *dedicated* 1468A3069 product page states explicitly "Supersedes
+    Part Number: 1468-3069" and lists fitment across 20 Coleman-Mach model
+    numbers including the in-hand 48253B866's own 48253/48254 family: a
+    different page than obs #114's parts-breakdown table, from the same
+    retailer. (2) Northwest RV Supply -- an independent domain -- lists the
+    same "Replaces 1468-3069" cross-reference. (3) RV Products Shop --
+    another independent domain -- lists the identical part under both its
+    old and new numbers with matching specs. (4) McCombs Supply -- a fourth
+    independent domain, selling a Fasco D1092-equivalent aftermarket motor
+    rather than the Coleman/RVP-branded part -- cross-references 1468-3069
+    and independently corroborates a fitment caveat (a buyer note about
+    re-measuring for a shorter motor casing), consistent with though not
+    verbatim-identical to the attached AI research report's "mounting holes
+    must be elongated on some applications" caveat -- both phrasings are
+    kept distinct in obs #127 rather than merged into one claim. This does
+    NOT add a new component or a new edge (both already exist) -- only a
+    third RelationshipEvidence event on the edge that already connects them.
+    """
+    _validate_observation_source(corroboration_row, 127, "retailer_page", 7,
+                                  "fan motor corroboration")
+    corroboration = _normalized_attributes(corroboration_row)
+    fitment = corroboration.get("repair_part_fitment_table", {}) \
+        .get(COLEMAN_AC_FAN_MOTOR_OLD_PART, {})
+    if fitment.get("superseded_by") != COLEMAN_AC_FAN_MOTOR_NEW_PART:
+        raise ValueError(f"obs #127 does not corroborate {COLEMAN_AC_FAN_MOTOR_OLD_PART} -> "
+                          f"{COLEMAN_AC_FAN_MOTOR_NEW_PART}: {fitment}")
+    corroboration_identifiers = {(i["ns"], i["value"]) for i in corroboration["physical_identifiers"]}
+    if ("coleman", COLEMAN_AC_FAN_MOTOR_NEW_PART) not in corroboration_identifiers:
+        raise ValueError(f"obs #127 missing {COLEMAN_AC_FAN_MOTOR_NEW_PART} identifier: "
+                          f"{corroboration_identifiers}")
+
+    evidence = RelationshipEvidence(
+        edge_id=supersession_edge_id, event_type="retailer_cross_reference",
+        effect_alpha=1.0, effect_beta=0.0, source_observation_id=corroboration_row["id"],
+        occurred_at=now_iso())
+    insert_evidence(conn, evidence)
+    return evidence
+
+
 COLEMAN_PLENUM_8330A733_IDENTIFIERS = {("coleman", "8330A733")}
 
 
@@ -5918,6 +5971,35 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
 
     print(f"Coleman AC compressor supersession: "
           f"{mismatches - coleman_ac_compressor_mismatches_before} mismatch(es)")
+
+    coleman_ac_fan_motor_mismatches_before = mismatches
+    obs127 = load_observation(obs_db_path, 127)
+    coleman_ac_fan_motor_corroboration(conn, obs127, coleman_ac_motor_supersession_edge_id)
+
+    fixture_fan_motor_supersession_edge = next(
+        (e for e in edges_doc if e.get("type") == "supersedes"
+         and e.get("group") == "coleman_ac_48253b866_fan_motor"), None)
+    if fixture_fan_motor_supersession_edge is None:
+        print("MISMATCH ground-truth.yaml has no coleman_ac_48253b866_fan_motor supersedes edge")
+        mismatches += 1
+    else:
+        resolved_fan_motor_evidence = [
+            (item.event_type, item.effect_alpha, item.effect_beta, item.source_observation_id)
+            for item in get_evidence_for_edge(conn, coleman_ac_motor_supersession_edge_id)
+        ]
+        expected_fan_motor_evidence = [
+            (item["event_type"], float(item["alpha"]), float(item["beta"]),
+             item["source_observation_id"])
+            for item in fixture_fan_motor_supersession_edge["evidence"]
+        ]
+        if resolved_fan_motor_evidence != expected_fan_motor_evidence:
+            print(f"MISMATCH Coleman AC fan motor supersedes evidence: "
+                  f"resolved={resolved_fan_motor_evidence} "
+                  f"fixture={expected_fan_motor_evidence}")
+            mismatches += 1
+
+    print(f"Coleman AC fan motor corroboration: "
+          f"{mismatches - coleman_ac_fan_motor_mismatches_before} mismatch(es)")
 
     coleman_plenum_mismatches_before = mismatches
     obs122 = load_observation(obs_db_path, 122)

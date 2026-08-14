@@ -1,6 +1,13 @@
 # VENDOR — Coleman-Mach / RV Products / Airxcel
 
 **Status:** exact endpoint and supersession fixture complete; broader adapter research in progress
+**Updated:** 2026-08-14 (later still) — resolved issue #39's `1468-3069 -> 1468A3069` fan-motor
+supersession from reseller-corroborated/single-source to independently corroborated: obs #127
+adds a fourth independent retailer domain (Young Farts' own dedicated product page, Northwest
+RV Supply, RV Products Shop, McCombs Supply) as a third `RelationshipEvidence` event on the
+existing edge — no new component or edge needed, since both already existed. Issue #39
+closed. See §9.
+
 **Updated:** 2026-08-14 (later same day) — resolved issue #38's `14504029` compressor
 "USE 14504209" caveat from §9: no longer a single unconfirmed mention, now corroborated by
 four independent retailer parts-list pages across two domains plus two dedicated
@@ -908,6 +915,30 @@ unconfirmed mention. `14504209` built as a repair-part component (part type 605)
 "* SEE NOTES FOR ADJ NEEDED*" adjustment actually involves — no notes/footnote section was
 found on any of the four parts-list pages — so that detail stays an open caveat on the
 supersession edge (`EdgeSupersessionDetail`) rather than an invented explanation. Issue #38
+closed. `edge_resolver.py --check-fixture` confirms 0 mismatches.
+
+**Fan motor supersession corroborated (obs #127, 2026-08-14, issue #39):** the
+`1468-3069 -> 1468A3069` fan-motor `supersedes` edge (built above from obs #114 alone —
+Young Farts' 48253B866 parts-breakdown table's own "(USE 1468A3069)" wording) was flagged as
+reseller-corroborated but single-source. It no longer is. obs #127 independently confirms
+the direction from four more sources: Young Farts' own *dedicated* `1468A3069` product page
+(a different page than obs #114, same retailer) states outright "Supersedes Part Number:
+1468-3069" and lists fitment across 20 Coleman-Mach model numbers including the in-hand
+`48253B866`'s own 48253/48254 family; Northwest RV Supply (independent domain) lists the
+same "Replaces 1468-3069" cross-reference; RV Products Shop (independent domain) lists the
+identical part under both its old and new numbers with matching specs; and McCombs Supply
+(independent domain, a Fasco D1092-equivalent aftermarket motor rather than the branded
+Coleman/RVP part) cross-references `1468-3069` and independently corroborates a fitment
+caveat — a buyer note about re-measuring for a shorter motor casing — consistent with,
+though not verbatim-identical to, the issue's attached AI research report's "mounting holes
+must be elongated on some applications" caveat. Both phrasings are kept distinct rather than
+merged into one claim, since neither source could be found corroborating the other's exact
+wording. RV Parts Express, also cited in that report, returned HTTP 403 and could not be
+independently checked.
+
+This does not add a new component or edge — both already existed — only a third
+`RelationshipEvidence` event (`retailer_cross_reference`, obs #127) on the existing edge, via
+`coleman_ac_fan_motor_corroboration()` (resolver version `coleman_ac_parts_v1`). Issue #39
 closed. `edge_resolver.py --check-fixture` confirms 0 mismatches.
 
 ## 10. Ceiling plenum — `8330A733` (issue #23, split from §9)
