@@ -26,6 +26,8 @@ NORCOLD_REPAIR_PART_TYPE = 603
 COLEMAN_AC_PART_TYPE = 604
 COLEMAN_AC_REPAIR_PART_TYPE = 605
 SUBURBAN_COOKTOP_REPAIR_PART_TYPE = 606
+COLEMAN_AC_PLENUM_PART_TYPE = 607
+COLEMAN_AC_PLENUM_REPAIR_PART_TYPE = 608
 
 PART_TYPES = (
     PartType(id=WATER_HEATER_PART_TYPE, display_name="Water Heater"),
@@ -39,6 +41,9 @@ PART_TYPES = (
     PartType(id=COLEMAN_AC_PART_TYPE, display_name="Rooftop Air Conditioner"),
     PartType(id=COLEMAN_AC_REPAIR_PART_TYPE, display_name="Rooftop Air Conditioner Repair Part"),
     PartType(id=SUBURBAN_COOKTOP_REPAIR_PART_TYPE, display_name="Cooktop/Range Repair Part"),
+    PartType(id=COLEMAN_AC_PLENUM_PART_TYPE, display_name="Rooftop AC Ceiling Plenum"),
+    PartType(id=COLEMAN_AC_PLENUM_REPAIR_PART_TYPE,
+             display_name="Rooftop AC Ceiling Plenum Repair Part"),
 )
 
 PART_TYPE_NAMES = {pt.id: pt.display_name for pt in PART_TYPES}

@@ -69,8 +69,8 @@ zero supply, and only then add listings.
   `supersedes`, `controls`, `fits`) — resolver functions, serializers, and API queries
   reference this shared vocabulary instead of ad hoc string literals.
 - `Docs/Tools/interchange_*.py` and `edge_resolver.py` persist components, typed edges,
-  caveats, required parts, and evidence. The current build produces 125 components and
-  381 edges (367 `fits`, 8 `substitutes`, 5 `supersedes`, 1 `controls`) with zero
+  caveats, required parts, and evidence. The current build produces 199 components and
+  577 edges (557 `fits`, 11 `supersedes`, 8 `substitutes`, 1 `controls`) with zero
   mismatches against `ground-truth.yaml`.
 - **Suburban** (first vendor arc): the canonical SW6DE/SW6DEL directional-replacement
   fixture case resolves with zero mismatches. Also carries two exact endpoint components
@@ -81,8 +81,9 @@ zero supply, and only then add listings.
   identity and its queryable `R/Y/W/GL/GH/B` interface, the open `AR7815` / `7330F3858`
   identifier-equivalence candidate, the `7330G3351`/`7330F3852` → `9420-351` and
   `7330F3361` → `9420-352`/`9420A382` supersession chains, and the third-wave
-  `7330E335`/`E385`/`E336` endpoint components are all persisted. See
-  `VENDOR-Coleman-Mach.md`.
+  `7330E335`/`E385`/`E336` endpoint components are all persisted, plus a rooftop AC head
+  (`48253B866`, 28 repair parts) and its ceiling plenum (`8330A733`, 8 repair parts) as
+  separate part types within the arc. See `VENDOR-Coleman-Mach.md`.
 - **Atwood** (third vendor arc): 19 exact endpoint water heater components plus a
   Pilot + Electronic Ignition repair-parts cross-reference (87 repair-part components,
   367 `fits` edges), all 19 endpoints carrying `opening_h`/`opening_w` cutout

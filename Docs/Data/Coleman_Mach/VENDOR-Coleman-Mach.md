@@ -1,6 +1,23 @@
 # VENDOR — Coleman-Mach / RV Products / Airxcel
 
 **Status:** exact endpoint and supersession fixture complete; broader adapter research in progress
+**Updated:** 2026-08-14 — built the `8330A733` ceiling plenum (issue #23) as its own exact
+endpoint component (part type 607) — the part split out from the `48253B866` rooftop AC head
+on 2026-08-09 (§9) and left unbuilt until now. Identity comes from an in-hand model-tag photo
+(obs #122) plus a terminal-block photo that physically matches Airxcel's own installation
+manual's terminal table (obs #123, doc `1976G278` (5-12)). Commercial description and order
+number (`63130`, "Cool-Only Ceiling Assembly, Lateral Ducted, without Thermostat, White")
+independently verified against a direct read of a contemporaneous Coleman-Mach/RVP dealer
+catalog (obs #124, tier 1) rather than trusted secondhand from the AI research report attached
+to the issue — which also caught that report's `8430A633` successor claim is not corroborated
+by this catalog's own current Chillgrille cross-reference page (§10). All 8 repair parts built
+from a direct read of RV Products/Airxcel's own repair-parts drawing `R-483B` (3-07) (obs #125,
+tier 1 manufacturer drawing, not a retailer transcription) as `fits` edges (part type 608) —
+stronger sourcing than the AC head's own retailer-only repair parts. Resolver functions
+`coleman_plenum_8330a733_component()` and `coleman_plenum_repair_parts_and_fits()`, resolver
+versions `coleman_plenum_endpoint_v1`/`coleman_plenum_parts_v1`. `edge_resolver.py
+--check-fixture` confirms 0 mismatches. See §10 below.
+
 **Updated:** 2026-08-09 — built the owner's in-hand rooftop AC (Mach 3 Plus, model `48253B866`,
 serial `051218899`) as an exact endpoint component (part type 604), split out from the
 `8330A733` ceiling plenum (issue #23) which turned out to be a separate physical part — see
@@ -858,6 +875,79 @@ own "USE 14504209" note is **not** built the same way — `14504209` doesn't oth
 in the table and isn't independently confirmed, so it stays a caveat inside the compressor
 component's description rather than an invented component, consistent with this project's
 standing rule against building identifiers from a single unconfirmed mention.
+
+`edge_resolver.py --check-fixture` confirms 0 mismatches for both the endpoint and the
+repair-parts/fits build.
+
+## 10. Ceiling plenum — `8330A733` (issue #23, split from §9)
+
+Issue #23 was originally opened for "the Coleman-Mach rooftop AC" and renamed once the
+`8330A733` number on the owner's coach data plates turned out to identify the room
+plenum, not the rooftop AC head (§9). Left unbuilt at that point pending further evidence;
+built now.
+
+**Identity (obs #122, 2026-08-05):** a small embossed tag riveted inside the plenum's own
+electrical/junction box reads `8330A733` — the same number that originally motivated this
+issue. The same photo set also captured the plenum's low-voltage terminal strip: a yellow
+terminal block (code `LAPP21`) printed `FREEZE B- Y GH GL`, with blue/yellow/green/gray/white
+wires landed on it. This independently corroborates Airxcel's own installation manual for
+this exact family (obs #123, doc `1976G278` (5-12) PP, fetched directly from
+`library.coleman-mach.com`): its terminal table names the identical five designations with
+the identical wire colors (B/Blue — completes -12VDC circuit for all relay coils; Y/Yellow —
+compressor relay; GH/Green — high fan relay; GL/Gray — low fan relay; FREEZE/White —
+evaporator freeze-sensor connections). Physical evidence and manufacturer documentation
+agree independently here, not one source repeating the other. The manual also states this
+plenum family "will mount to and operate all 47200, 48200 and 49200 series roof top air
+conditioners" (max 6" ceiling cavity depth, 14"–15" square roof opening) — a real, if
+family-level rather than SKU-specific, mechanical relationship to the in-hand `48253B866`
+AC head (§9) it sits directly below in the owner's coach. Not built as a `fits` edge between
+the two components: the claim is about a whole rooftop-unit generation, not the specific
+`48253B866` SKU, matching this project's standing caution about generic family-level claims
+(see §9's own unbuilt `48253B866 -> 38203-066` note) — the pairing stays a narrative fact
+here, not an invented edge.
+
+**Commercial description (obs #124, 2026-08-14):** a contemporaneous Coleman-Mach/RVP dealer
+catalog (Section K, Air Conditioners & Ventilation; hosted by Trailblazer RV; c.2012 edition
+per its own "MACH 8...coming early 2013" cover copy) names order `63130` / manufacturer
+`8330A733` as "Cool-Only Ceiling Assembly, Lateral Ducted, without Thermostat, White" — the
+identical row recurs across six different rooftop-AC-model pages (Roughneck `48203A8765`,
+Mach 15 `48204`, Mach 3+ `48203`, Mach I Power Saver `48207`, Mach III Power Saver `48208`,
+Polar Cub `49201`), i.e. offered as the standard lateral-ducted ADB across that whole
+lineup, not tied to one specific rooftop model. Read directly from the catalog PDF rather
+than trusted secondhand from the AI research report attached to issue #23 — which the direct
+read otherwise corroborates on every point checked (identity, description, color, function).
+
+One point where the direct read **overrides** the attached report: the report proposed
+`8430A633` as a "strong functional-successor candidate" for a supersession. This same
+catalog's own "CHILLGRILLE REPLACEMENT CEILING ASSEMBLY" cross-reference page (p.347) states
+plainly that "Model 8330 is for use with all 8000 and 9000 Series Coleman-Mach ducted air
+conditioners" and names *different* current replacement numbers in the `8330`-series family
+(`8330A6331`, `8330B6301`, `8330B633`) — not `8430A633`. Neither number is built as a
+`supersedes` edge here (no exact-SKU bulletin for either, same caution as §9's `14504209`
+compressor variant), but the report's specific `8430A633` claim is not carried forward into
+this build.
+
+Built as component `c_placeholder_coleman_plenum_8330a733` (part type 607,
+`coleman_plenum_8330a733_component()`, resolver version `coleman_plenum_endpoint_v1`).
+
+**Repair parts (obs #125, 2026-08-14):** RV Products/Airxcel's own repair-parts drawing
+`R-483B` (3-07), "REPAIR PARTS LIST FOR 8330A733 FLUSH MOUNT CEILING PLENUMS", read directly
+from the manufacturer's drawing image — a genuine manufacturer engineering drawing (tier 1),
+not a retailer's transcription of one, so this is stronger sourcing than §9's AC repair
+parts (retailer-page-only, tier 7). All 8 listed parts (duct divider, duct plate, mounting
+frame & bolt pkg., junction box complete, filter, plastic grille, small parts pkg., coil
+sensor) independently corroborate the attached AI research report's identical 8-part table.
+One part is further corroborated by a second, separate in-hand photo: the owner's physical
+grille has `6798 304` molded directly into the plastic (photographed 2026-07-31), matching
+this drawing's `6798-3041` grille under the same punctuation-normalization already seen
+elsewhere in this project's Coleman-Mach parts (e.g. §9's `83303501`/`8330101` retailer
+variants).
+
+All 8 parts built as repair-part components (part type 608) with `fits` edges to the plenum,
+via `coleman_plenum_repair_parts_and_fits()` (resolver version `coleman_plenum_parts_v1`),
+with `attribute_prior` + `manufacturer_assertion` evidence each (matching
+`atwood_gh6_6e_tank_91642_fits()`'s tier-1 pattern rather than §9's tier-7
+`retailer_cross_reference` one). No supersession pairs are named in this table.
 
 `edge_resolver.py --check-fixture` confirms 0 mismatches for both the endpoint and the
 repair-parts/fits build.

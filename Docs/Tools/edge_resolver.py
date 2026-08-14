@@ -40,7 +40,8 @@ from interchange_store import (
     insert_controls_detail, get_controls_detail,
 )
 from part_types import (
-    ATWOOD_PART_TYPE, COLEMAN_AC_PART_TYPE, COLEMAN_AC_REPAIR_PART_TYPE,
+    ATWOOD_PART_TYPE, COLEMAN_AC_PART_TYPE, COLEMAN_AC_PLENUM_PART_TYPE,
+    COLEMAN_AC_PLENUM_REPAIR_PART_TYPE, COLEMAN_AC_REPAIR_PART_TYPE,
     NORCOLD_REFRIGERATOR_PART_TYPE, NORCOLD_REPAIR_PART_TYPE,
     SUBURBAN_COOKTOP_PART_TYPE, SUBURBAN_COOKTOP_REPAIR_PART_TYPE, SUBURBAN_FURNACE_PART_TYPE,
     SUBURBAN_FURNACE_REPAIR_PART_TYPE, THERMOSTAT_PART_TYPE, WATER_HEATER_PART_TYPE,
@@ -76,6 +77,8 @@ NORCOLD_PARTS_RESOLVER_VERSION = "norcold_parts_v1"
 NORCOLD_DRAIN_HOSE_HEATER_RESOLVER_VERSION = "norcold_drain_hose_heater_v1"
 COLEMAN_AC_ENDPOINT_RESOLVER_VERSION = "coleman_ac_endpoint_v1"
 COLEMAN_AC_PARTS_RESOLVER_VERSION = "coleman_ac_parts_v1"
+COLEMAN_PLENUM_ENDPOINT_RESOLVER_VERSION = "coleman_plenum_endpoint_v1"
+COLEMAN_PLENUM_PARTS_RESOLVER_VERSION = "coleman_plenum_parts_v1"
 ATWOOD_GH6_6E_RESOLVER_VERSION = "atwood_gh6_6e_v1"
 ATWOOD_GH6_6E_PARTS_RESOLVER_VERSION = "atwood_gh6_6e_parts_v1"
 ATWOOD_GH6_6E_VALVE_RESOLVER_VERSION = "atwood_gh6_6e_valve_v1"
@@ -2239,6 +2242,152 @@ def coleman_ac_repair_parts_and_fits(conn, catalog_row, host_component_id):
             effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
 
     return results, supersession_edge.id
+
+
+COLEMAN_PLENUM_8330A733_IDENTIFIERS = {("coleman", "8330A733")}
+
+
+def coleman_plenum_8330a733_component(dataplate_row, catalog_row, component_id):
+    """
+    Build the owner's in-hand Coleman-Mach/RVP "8330A733" flush-mount
+    ceiling plenum as an exact endpoint component -- a new part type within
+    the existing Coleman-Mach vendor arc (issue #23), physically distinct
+    from the `48253B866` rooftop AC head it sits below (VENDOR-Coleman-Mach.md
+    sec 9): the AC head does the cooling, this plenum is the interior
+    duct/return-air/relay-box assembly bolted underneath it.
+
+    Identity comes from a small embossed tag riveted inside the plenum's own
+    electrical/junction box (obs #122, photographed in-hand 2026-08-05) --
+    the same "8330A733" number visible on the owner's coach that originally
+    motivated issue #23, before the AC head/plenum split was discovered. The
+    same photo set also shows the plenum's low-voltage terminal strip
+    ("FREEZE B- Y GH GL" on block LAPP21), which independently corroborates
+    Airxcel's own installation manual for this exact family (obs #123, doc
+    1976G278 (5-12)): its terminal table names the identical five
+    designations with the identical wire colors (B/Blue, Y/Yellow, GH/Green,
+    GL/Gray, FREEZE/White) -- physical evidence and manufacturer documentation
+    agreeing independently, not just one source repeating the other.
+
+    The commercial description ("Cool-Only Ceiling Assembly, Lateral Ducted,
+    without Thermostat, White", order #63130) is sourced to a direct read of
+    a contemporaneous Coleman-Mach/RVP dealer catalog (obs #124, tier 1 --
+    not secondhand from the attached AI research report, whose 8330A733
+    identity claim this independently corroborates). That catalog also
+    supplies the rooftop-unit family-compatibility statement recorded on
+    obs #123's `compatible_system_claim` (installs under any 47200/48200/
+    49200-series head) -- broad enough, and about a product family rather
+    than the specific in-hand `48253B866` SKU, that it is NOT built as a
+    `fits` edge to that component here, matching this project's standing
+    caution about generic family-level claims (see the AC endpoint's own
+    unbuilt `38203-066` replacement note). The two components' real-world
+    pairing -- same coach, same ceiling opening -- stays a narrative fact in
+    VENDOR-Coleman-Mach.md rather than an invented edge.
+
+    obs #124 also caught a discrepancy in the attached AI research report:
+    the report proposed `8430A633` as a "strong functional-successor
+    candidate", but this catalog's own current Chillgrille cross-reference
+    page names different model-8330-series numbers as the replacement
+    ceiling assemblies for ducted Coleman-Mach ACs. Neither is built as a
+    `supersedes` edge -- both stay caveats, but the report's specific
+    successor claim is not carried forward.
+    """
+    _validate_observation_source(dataplate_row, 122, "dataplate_photo", 2,
+                                  "plenum identity photo")
+    _validate_observation_source(catalog_row, 124, "manufacturer_pdf", 1,
+                                  "plenum catalog description")
+    plate = _normalized_attributes(dataplate_row)
+    plate_ids = {(i["ns"], i["value"]) for i in plate["physical_identifiers"]}
+    if plate_ids != COLEMAN_PLENUM_8330A733_IDENTIFIERS:
+        raise ValueError(f"unexpected Coleman plenum identifiers: {plate_ids}")
+
+    catalog = _normalized_attributes(catalog_row)
+    if catalog.get("vendor_catalog_number") != "63130":
+        raise ValueError(f"unexpected Coleman plenum order number: {catalog.get('vendor_catalog_number')}")
+
+    def text_attr(name, value, row):
+        return ComponentAttribute(
+            component_id, name, row["source_type"], row["id"], value_text=value,
+            resolver_version=COLEMAN_PLENUM_ENDPOINT_RESOLVER_VERSION)
+
+    component = Component(component_id, COLEMAN_AC_PLENUM_PART_TYPE, None)
+    identifiers = [Identifier(component_id, "coleman", "8330A733", "model_tag")]
+    attributes = [
+        text_attr("product_line", plate["product_type"], dataplate_row),
+        text_attr("description", catalog["product_type"], catalog_row),
+    ]
+    return component, identifiers, attributes
+
+
+def coleman_plenum_repair_parts_and_fits(conn, catalog_row, host_component_id):
+    """
+    Build the 8330A733 ceiling plenum's repair-part components and their
+    `fits` edges -- same one-host, many-repair-parts shape as
+    coleman_ac_repair_parts_and_fits()/atwood_repair_parts_and_fits(), sourced
+    to a direct read of RV Products/Airxcel's own repair-parts drawing
+    R-483B (3-07) (obs #125, tier 1 manufacturer engineering drawing --
+    independently corroborates the attached AI research report's identical
+    8-part table rather than trusting it secondhand). This is stronger
+    sourcing than the AC head's own repair parts (retailer-page-only, tier
+    7): a genuine manufacturer drawing, not a retailer's transcription of
+    one, so these edges get `manufacturer_assertion` evidence instead of
+    `retailer_cross_reference` -- matching atwood_gh6_6e_tank_91642_fits()'s
+    tier-1 pattern rather than coleman_ac_repair_parts_and_fits()'s tier-7
+    one.
+
+    One part (`6798-3041`, "Grille (Plastic)") is physically corroborated in
+    obs #125's own quoted_text: the owner's in-hand grille has "6798 304"
+    molded directly into the plastic (photographed 2026-07-31), matching
+    this drawing's number under the same punctuation-normalization already
+    seen elsewhere in this project's Coleman-Mach parts (e.g. the AC's own
+    "83303501"/"8330101" retailer variants).
+    """
+    _validate_observation_source(catalog_row, 125, "manufacturer_pdf", 1, "plenum repair parts")
+    catalog = _normalized_attributes(catalog_row)
+    parts = catalog.get("repair_part_fitment_table")
+    if not isinstance(parts, dict) or not parts:
+        raise ValueError(f"obs #125 catalog has no repair_part_fitment_table: {parts}")
+
+    results = []
+    for part_number, spec in parts.items():
+        if not isinstance(spec, dict) or "description" not in spec or "applies_to" not in spec:
+            raise ValueError(f"Coleman plenum repair part {part_number} missing required fields: {spec}")
+        if spec["applies_to"] != ["8330A733"]:
+            raise ValueError(f"Coleman plenum repair part {part_number} has unexpected applies_to: "
+                              f"{spec['applies_to']}")
+
+        component_id = f"c_placeholder_coleman_plenum_part_{part_number}"
+        component = Component(component_id, COLEMAN_AC_PLENUM_REPAIR_PART_TYPE, None)
+        identifiers = [Identifier(component_id, "coleman", part_number, "catalog")]
+        attributes = [ComponentAttribute(
+            component_id, "description", "manufacturer_pdf", catalog_row["id"],
+            value_text=spec["description"], resolver_version=COLEMAN_PLENUM_PARTS_RESOLVER_VERSION)]
+        insert_component(conn, component)
+        for identifier in identifiers:
+            insert_identifier(conn, identifier)
+        for attribute in attributes:
+            insert_component_attribute(conn, attribute)
+
+        edge = Edge(
+            type=EDGE_TYPE_FITS,
+            from_component_id=component_id,
+            to_component_id=host_component_id,
+            group_key="coleman_plenum_8330a733_repair_part",
+            status="candidate",
+            resolver_version=COLEMAN_PLENUM_PARTS_RESOLVER_VERSION,
+            notes=f"RV Products/Airxcel's own repair-parts drawing R-483B (3-07) names "
+                  f"{part_number} as fitting the 8330A733 ceiling plenum.",
+        )
+        insert_edge(conn, edge)
+        for event_type, alpha, beta, source_id in (
+            ("attribute_prior", 1.0, 1.0, None),
+            ("manufacturer_assertion", 2.0, 0.0, catalog_row["id"]),
+        ):
+            insert_evidence(conn, RelationshipEvidence(
+                edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+                effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+        results.append((component, identifiers, attributes, [edge.id]))
+
+    return results
 
 
 def atwood_gh6_6e_tank_91642_fits(conn, catalog_row, host_component_id):
@@ -5575,6 +5724,110 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
 
     print(f"Coleman AC repair parts: "
           f"{mismatches - coleman_ac_parts_mismatches_before} mismatch(es)")
+
+    coleman_plenum_mismatches_before = mismatches
+    obs122 = load_observation(obs_db_path, 122)
+    obs124 = load_observation(obs_db_path, 124)
+    coleman_plenum_component_id = "c_placeholder_coleman_plenum_8330a733"
+    coleman_plenum_component, coleman_plenum_identifiers, coleman_plenum_attributes = \
+        coleman_plenum_8330a733_component(obs122, obs124, coleman_plenum_component_id)
+    insert_component(conn, coleman_plenum_component)
+    for identifier in coleman_plenum_identifiers:
+        insert_identifier(conn, identifier)
+    for attribute in coleman_plenum_attributes:
+        insert_component_attribute(conn, attribute)
+
+    fixture_coleman_plenum = next(
+        (c for c in components_doc if c.get("component_id") == coleman_plenum_component_id), None)
+    if fixture_coleman_plenum is None:
+        print(f"MISMATCH fixture is missing component: {coleman_plenum_component_id}")
+        mismatches += 1
+    else:
+        resolved_coleman_plenum_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (coleman_plenum_component_id,)).fetchall()
+        }
+        expected_coleman_plenum_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_coleman_plenum["identifiers"]
+        }
+        if resolved_coleman_plenum_identifiers != expected_coleman_plenum_identifiers:
+            print(f"MISMATCH Coleman plenum identifiers: "
+                  f"resolved={resolved_coleman_plenum_identifiers} "
+                  f"fixture={expected_coleman_plenum_identifiers}")
+            mismatches += 1
+
+        resolved_coleman_plenum_attribute_rows = get_component_attributes(
+            conn, coleman_plenum_component_id)
+        resolved_coleman_plenum_attributes = {}
+        for attribute in resolved_coleman_plenum_attribute_rows:
+            value = attribute.value_text if attribute.value_text is not None else (
+                attribute.value_number if attribute.value_number is not None
+                else attribute.value_boolean)
+            resolved_coleman_plenum_attributes[attribute.name] = (
+                value, attribute.provenance, attribute.source_observation_id)
+        expected_coleman_plenum_attributes = {
+            name: (definition["value"], definition["provenance"],
+                   definition["source_observation_id"])
+            for name, definition in fixture_coleman_plenum["attributes"].items()
+        }
+        if (len(resolved_coleman_plenum_attribute_rows) != len(expected_coleman_plenum_attributes)
+                or resolved_coleman_plenum_attributes != expected_coleman_plenum_attributes):
+            print(f"MISMATCH Coleman plenum attributes: "
+                  f"resolved={resolved_coleman_plenum_attributes} "
+                  f"fixture={expected_coleman_plenum_attributes}")
+            mismatches += 1
+
+    print(f"Coleman plenum endpoint: {mismatches - coleman_plenum_mismatches_before} mismatch(es)")
+
+    coleman_plenum_parts_mismatches_before = mismatches
+    obs125 = load_observation(obs_db_path, 125)
+    coleman_plenum_parts_results = coleman_plenum_repair_parts_and_fits(
+        conn, obs125, coleman_plenum_component_id)
+
+    for component, identifiers, attributes, edge_ids in coleman_plenum_parts_results:
+        component_id = component.component_id
+        fixture_part = next(
+            (c for c in components_doc if c.get("component_id") == component_id), None)
+        if fixture_part is None:
+            print(f"MISMATCH fixture is missing component: {component_id}")
+            mismatches += 1
+            continue
+        resolved_part_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (component_id,)).fetchall()
+        }
+        fixture_part_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_part["identifiers"]
+        }
+        if resolved_part_identifiers != fixture_part_identifiers:
+            print(f"MISMATCH Coleman plenum part identifiers for {component_id}: "
+                  f"resolved={resolved_part_identifiers} fixture={fixture_part_identifiers}")
+            mismatches += 1
+
+        fixture_fits_edge = next(
+            (e for e in edges_doc if e.get("type") == "fits"
+             and e.get("from") == component_id and e.get("to") == coleman_plenum_component_id), None)
+        if fixture_fits_edge is None:
+            print(f"MISMATCH ground-truth.yaml has no fits edge for {component_id}")
+            mismatches += 1
+        else:
+            edge_row = conn.execute(
+                "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
+                (edge_ids[0],)).fetchone()
+            if tuple(edge_row) != ("fits", fixture_fits_edge["from"], fixture_fits_edge["to"]):
+                print(f"MISMATCH {component_id} fits edge: resolved={tuple(edge_row)} "
+                      f"fixture=({fixture_fits_edge['type']}, {fixture_fits_edge['from']}, "
+                      f"{fixture_fits_edge['to']})")
+                mismatches += 1
+
+    print(f"Coleman plenum repair parts: "
+          f"{mismatches - coleman_plenum_parts_mismatches_before} mismatch(es)")
 
     atwood_gh6_6e_mismatches_before = mismatches
     obs111 = load_observation(obs_db_path, 111)
