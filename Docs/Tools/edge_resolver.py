@@ -2823,6 +2823,162 @@ def atwood_91605_93870_supersession(conn, catalog_row):
     return (old_component, old_identifiers, old_attributes), edge.id
 
 
+ATWOOD_GH6_6E_ELECTRONIC_TABLE_RESOLVER_VERSION = "atwood_gh6_6e_electronic_table_v1"
+ATWOOD_GH6_6E_CONFIRMED_PARTS = ("93865", "93868", "92742", "91857", "91470")
+ATWOOD_GH6_6E_ZERO_COVERAGE_PARTS = ("91420", "91504", "91606")
+ATWOOD_GH6_6E_NOT_APPLICABLE_PART = "91580"
+
+
+def atwood_gh6_6e_electronic_table_parts(conn, jan2014_row, jan2007_row, host_component_id):
+    """
+    Resolve six of #35's deferred low-confidence items (issues #40, #41,
+    #43, #44, #45, #46) by re-reading the same Electronic Water Heaters
+    Replacement Part Reference table already used for the endpoint/valve
+    build (obs #96/#116), at a GH6-6E column those earlier reads never
+    recorded -- the January 2007 table (obs #96) was scoped to the 8
+    Electronic models built before GH6-6E existed as a component, and the
+    January 2014 table (obs #116) was read only for its combined valve row.
+    obs #128 (Jan 2014) and obs #129 (Jan 2007) are fresh, coordinate-precise
+    pdftotext-bbox reads of the same two documents, this time capturing the
+    GH6-6E column for all nine disputed rows -- independently corroborating
+    or refuting the AI research report attached to #35's children, per the
+    "second document family, not the same report" standard already applied
+    to the gas-valve chain (#42).
+
+    Five parts are confirmed GH6-6E-applicable in BOTH editions
+    (ATWOOD_GH6_6E_CONFIRMED_PARTS): `93865` (circuit board), `93868`
+    (electrode), `92742` (6-gallon orifice), `91857` (drain plug kit -- its
+    2014 row has no extractable text label, a PDF text-layer gap confirmed
+    via direct visual read and corroborated by the adjacent '92698 Petcock'
+    row checking exactly the one column 91857 skips), and `91470` (front
+    thermostat). All five were already built as components by the original
+    Pilot/Electronic-table batches (obs #95/#96) for OTHER Atwood models --
+    looked up by identifier here (same pattern as
+    atwood_electronic_repair_parts_and_fits()'s docstring point 3) rather
+    than re-minted, and given a new `fits` edge to GH6-6E plus, for `91470`
+    only, a second `description` attribute.
+
+    `91470` carries a genuine specification revision, not a data error: obs
+    #129 (Jan 2007) states "130° Front Mount thermostat" for GH6-6E; obs
+    #128 (Jan 2014) states "120°" for the same part number and model. A
+    plain-text search of the undated (2003) edition independently confirms
+    130° there too (not built as a formal observation -- a single grep
+    check, not a table read), so the value was stable at 130° for at least
+    2003-2007 and was revised down to 120° by January 2014. Both values are
+    preserved as separate `description` attributes with distinct provenance
+    rather than one overwriting the other -- issue #45 resolved as a
+    documented spec revision, not a contradiction. This closes #45's
+    "disputed calibration" framing without picking a winner between the two
+    editions.
+
+    Three parts are confirmed to have ZERO checked models in EITHER edition
+    (ATWOOD_GH6_6E_ZERO_COVERAGE_PARTS) -- not GH6-6E-specific rejections,
+    but rows Atwood's own table shows as inapplicable to every current
+    model it lists: `91420` (superseded circuit board), `91504` (a bundle
+    SKU "Includes 93865 & 93868"), `91606` (remote-sense electrode,
+    superseded by the local-sense `93868` these tables actually check).
+    None of the three carries an explicit "(USE X)"/"OBSOLETE" wording the
+    way the fan-motor or gas-valve rows do, so none is built as a
+    `supersedes` edge -- inventing one would go beyond what either edition
+    states. This resolves #40 and #41's "chain" framing: there is no
+    multi-hop chain in either manufacturer document, only a real current
+    part (93865/93868) and a real but currently-inapplicable old one
+    (91420/91606), with no stated relationship between them.
+
+    `91580` (`ATWOOD_GH6_6E_NOT_APPLICABLE_PART`, a 110VAC bolt-on electric
+    element) is checked in both editions only for the GCH6-6E combination
+    gas/electric model and the G10-2E/G10-3E family -- NOT GH6-6E, whose
+    own in-hand dataplate (obs #111, already in this fixture) already
+    records `power_type: gas_only`. This resolves #46's "contradictory
+    listing": the report's apparent confusion was almost certainly GCH6-6E
+    (combination model, checked) vs. GH6-6E (gas-only, not checked) --
+    visually similar model numbers, one letter apart. Not built as a
+    component or edge for GH6-6E.
+
+    Four numbers named in the attached research report -- `93867`/`91367`
+    (#40's claimed further chain hops) and `92743`/`91561` (#43/#44's
+    claimed successor/predecessor) -- do not appear anywhere in obs #128 or
+    obs #129, nor (per a plain grep, documented in both observations'
+    quoted_text, not re-verified here) in any of the other three locally
+    held Atwood PDFs. None is built.
+    """
+    _validate_observation_source(jan2014_row, 128, "manufacturer_pdf", 1,
+                                  "GH6-6E electronic table, Jan 2014")
+    _validate_observation_source(jan2007_row, 129, "manufacturer_pdf", 1,
+                                  "GH6-6E electronic table, Jan 2007")
+    parts_2014 = _normalized_attributes(jan2014_row).get("repair_part_fitment_table")
+    parts_2007 = _normalized_attributes(jan2007_row).get("repair_part_fitment_table")
+    if not isinstance(parts_2014, dict) or not isinstance(parts_2007, dict):
+        raise ValueError("obs #128/#129 missing repair_part_fitment_table")
+
+    for part_number in ATWOOD_GH6_6E_ZERO_COVERAGE_PARTS:
+        for label, parts in (("2014", parts_2014), ("2007", parts_2007)):
+            if parts.get(part_number, {}).get("applies_to") != []:
+                raise ValueError(f"expected {part_number} to show zero coverage in {label}: "
+                                  f"{parts.get(part_number)}")
+    for label, parts in (("2014", parts_2014), ("2007", parts_2007)):
+        if "GH6-6E" in parts.get(ATWOOD_GH6_6E_NOT_APPLICABLE_PART, {}).get("applies_to", []):
+            raise ValueError(f"expected {ATWOOD_GH6_6E_NOT_APPLICABLE_PART} to exclude GH6-6E "
+                              f"in {label}: {parts.get(ATWOOD_GH6_6E_NOT_APPLICABLE_PART)}")
+
+    results = []
+    for part_number in ATWOOD_GH6_6E_CONFIRMED_PARTS:
+        for label, parts in (("2014", parts_2014), ("2007", parts_2007)):
+            if parts.get(part_number, {}).get("applies_to") != ["GH6-6E"]:
+                raise ValueError(f"expected {part_number} to fit GH6-6E in {label}: "
+                                  f"{parts.get(part_number)}")
+
+        existing = get_components_by_identifier(conn, "atwood", part_number)
+        if not existing:
+            raise ValueError(f"expected {part_number} to already exist as a component "
+                              f"(built by an earlier Atwood repair-parts batch)")
+        component = existing[0]
+        component_ids = [c.component_id for c in existing]
+
+        attributes = []
+        edge_ids = []
+        for component_id in component_ids:
+            if part_number == "91470":
+                # A distinct attribute name (not "description") -- the component
+                # already carries a "description" attribute from the original
+                # Electronic-table batch (obs #96, "130° Front Mount thermostat"),
+                # and ground-truth.yaml's per-component attributes are a name-keyed
+                # mapping that can't hold two values under the same name. Recording
+                # the revised 120° value under its own name preserves both
+                # editions' values instead of one silently overwriting the other.
+                attribute = ComponentAttribute(
+                    component_id, "thermostat_setpoint_f", "manufacturer_pdf", jan2014_row["id"],
+                    value_number=120.0, unit="F",
+                    resolver_version=ATWOOD_GH6_6E_ELECTRONIC_TABLE_RESOLVER_VERSION)
+                insert_component_attribute(conn, attribute)
+                attributes.append(attribute)
+
+            edge = Edge(
+                type=EDGE_TYPE_FITS,
+                from_component_id=component_id,
+                to_component_id=host_component_id,
+                group_key="atwood_gh6_6e_electronic_table_part",
+                status="candidate",
+                resolver_version=ATWOOD_GH6_6E_ELECTRONIC_TABLE_RESOLVER_VERSION,
+                notes=f"Atwood's own January 2014 and January 2007 Electronic Water "
+                      f"Heaters Replacement Part Reference tables both check {part_number} "
+                      f"for GH6-6E.",
+            )
+            insert_edge(conn, edge)
+            for event_type, alpha, beta, source_id in (
+                ("attribute_prior", 1.0, 1.0, None),
+                ("manufacturer_assertion", 2.0, 0.0, jan2014_row["id"]),
+                ("manufacturer_assertion", 2.0, 0.0, jan2007_row["id"]),
+            ):
+                insert_evidence(conn, RelationshipEvidence(
+                    edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+                    effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+            edge_ids.append(edge.id)
+        results.append((component, [], attributes, edge_ids))
+
+    return results
+
+
 def identifier_candidate_from_observation(obs_row):
     attrs = _normalized_attributes(obs_row)
     relation = attrs.get("sku_relationship")
@@ -6322,6 +6478,70 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
 
     print(f"Atwood 91605->93870 supersession: "
           f"{mismatches - atwood_91605_mismatches_before} mismatch(es)")
+
+    atwood_gh6_6e_electronic_table_mismatches_before = mismatches
+    atwood_gh6_6e_electronic_table_fixture = next(
+        (d["atwood_gh6_6e_electronic_table_fixture"] for d in docs
+         if isinstance(d, dict) and "atwood_gh6_6e_electronic_table_fixture" in d), None)
+    if atwood_gh6_6e_electronic_table_fixture is None:
+        print("MISMATCH ground-truth.yaml is missing atwood_gh6_6e_electronic_table_fixture")
+        mismatches += 1
+    else:
+        obs128 = load_observation(obs_db_path, 128)
+        obs129 = load_observation(obs_db_path, 129)
+        atwood_gh6_6e_electronic_table_results = atwood_gh6_6e_electronic_table_parts(
+            conn, obs128, obs129, gh6_6e_component_id)
+
+        if len(atwood_gh6_6e_electronic_table_results) != \
+                atwood_gh6_6e_electronic_table_fixture["total_parts"]:
+            print(f"MISMATCH Atwood GH6-6E electronic-table part count: "
+                  f"resolved={len(atwood_gh6_6e_electronic_table_results)} "
+                  f"fixture={atwood_gh6_6e_electronic_table_fixture['total_parts']}")
+            mismatches += 1
+        total_gh6_6e_table_edges = sum(
+            len(edge_ids) for _, _, _, edge_ids in atwood_gh6_6e_electronic_table_results)
+        if total_gh6_6e_table_edges != atwood_gh6_6e_electronic_table_fixture["total_fits_edges"]:
+            print(f"MISMATCH Atwood GH6-6E electronic-table fits-edge count: "
+                  f"resolved={total_gh6_6e_table_edges} "
+                  f"fixture={atwood_gh6_6e_electronic_table_fixture['total_fits_edges']}")
+            mismatches += 1
+
+        gh6_6e_table_results_by_part = dict(
+            zip(ATWOOD_GH6_6E_CONFIRMED_PARTS, atwood_gh6_6e_electronic_table_results))
+        for spot_check in atwood_gh6_6e_electronic_table_fixture["spot_checks"]:
+            part = spot_check["part"]
+            if part not in gh6_6e_table_results_by_part:
+                print(f"MISMATCH Atwood GH6-6E electronic-table part {part} missing from "
+                      f"resolver output")
+                mismatches += 1
+                continue
+            component, identifiers, attrs, edge_ids = gh6_6e_table_results_by_part[part]
+            resolved_targets = {
+                row["to_component_id"] for row in conn.execute(
+                    "SELECT to_component_id FROM edges WHERE id IN ({})".format(
+                        ",".join("?" for _ in edge_ids)), edge_ids).fetchall()
+            }
+            if resolved_targets != {gh6_6e_component_id}:
+                print(f"MISMATCH Atwood GH6-6E electronic-table part {part} fits target: "
+                      f"resolved={resolved_targets} fixture={{gh6_6e_component_id}}")
+                mismatches += 1
+
+        setpoint_fixture = atwood_gh6_6e_electronic_table_fixture["thermostat_setpoint_f"]
+        _, _, attrs_91470, _ = gh6_6e_table_results_by_part["91470"]
+        resolved_setpoint = (
+            (attrs_91470[0].value_number, attrs_91470[0].provenance,
+             attrs_91470[0].source_observation_id)
+            if attrs_91470 else None)
+        expected_setpoint = (
+            float(setpoint_fixture["value"]), setpoint_fixture["provenance"],
+            setpoint_fixture["source_observation_id"])
+        if resolved_setpoint != expected_setpoint:
+            print(f"MISMATCH Atwood GH6-6E 91470 thermostat_setpoint_f: "
+                  f"resolved={resolved_setpoint} fixture={expected_setpoint}")
+            mismatches += 1
+
+    print(f"Atwood GH6-6E electronic-table parts (issues #40/#41/#43/#44/#45/#46): "
+          f"{mismatches - atwood_gh6_6e_electronic_table_mismatches_before} mismatch(es)")
 
     suburban_remainder_mismatches_before = mismatches
     obs11 = load_observation(obs_db_path, 11)

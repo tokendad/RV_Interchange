@@ -2,6 +2,15 @@
 
 **Status:** endpoint components + repair-parts cross-reference built, plus one in-hand
 teardown anchor (GH6-6E) and its gas-valve supersession chain
+**Updated:** 2026-08-14 — closed all six remaining #35 children (issues #40/#41/#43/#44/
+#45/#46) by re-reading the Electronic table's GH6-6E column in both the Jan 2014 and Jan
+2007 editions (obs #128/#129). 5 parts confirmed and linked to GH6-6E with new `fits`
+edges (0 new components — all already existed from other models); `91470`'s disputed
+120°/130° thermostat calibration resolved as a genuine spec revision between editions,
+both values kept; `91580` electric element confirmed inapplicable to the gas-only GH6-6E;
+3 parts confirmed to have zero current applicability in either edition and are not built;
+4 numbers from the attached research report were searched for and not found anywhere.
+See §11.
 **Updated:** 2026-08-09 — GH6-6E gas-valve chain built (issue #42, split from #35): `91605
 -> 93870 -> 93844`, with `93870`/`93844` `fits` GH6-6E. See §9. Totals now: 20 endpoint +
 91 repair-part components, 370 `fits` + 2 `supersedes` edges.
@@ -421,3 +430,70 @@ real data change, not a test patch). Atwood repair-parts total across all three 
 **95 components, 483 `fits` edges** (87 + 8 new; 367 + 116 new, minus double-counting
 none — the merged edges are additive on the existing `91230` component, not a separate
 total).
+
+## 11. Seventh wave: GH6-6E electronic-table parts (obs #128, #129) — closes #35's remaining children
+
+Issue #35's deferred low-confidence items — split into #40 (circuit board), #41
+(electrode), #43 (orifice), #44 (drain plug), #45 (thermostat calibration), and #46
+(electric element), with the gas-valve item already closed via #42 (§9) — are resolved by
+re-reading the same Electronic Water Heaters Replacement Part Reference table already used
+for the endpoint/valve builds (obs #96/#116), this time at GH6-6E's own column. Neither
+earlier read had captured it: obs #96 (Jan 2007) was scoped to the 8 Electronic models
+built before GH6-6E existed as a component; obs #116 (Jan 2014) was read only for its
+combined valve row. Two fresh observations — #128 (Jan 2014) and #129 (Jan 2007) — read
+both editions' full disputed-row set via the same coordinate-precise `pdftotext -bbox`
+column matching as §7.1, independently corroborating or refuting the AI research report
+attached to #35's children per the "second document family" standard.
+
+**Confirmed GH6-6E-applicable in both editions:** `93865` (circuit board, spade electrode
+connection), `93868` (electrode, local sense), `92742` (6-gallon main-burner orifice),
+`91857` (drain plug kit 1/2") — closing #41, #43, #44, and half of #40. `91857`'s 2014 row
+has no extractable text label in the source PDF (a text-layer gap specific to that one
+row); confirmed via direct visual read and corroborated by the adjacent "92698 Petcock
+Drain Valve" row directly below it, which checks exactly the single column 91857 skips —
+the two rows partition the model set with no overlap, confirming the bbox row/column
+alignment. All 5 parts already existed as components (built by the Pilot/Electronic
+batches, §7/§9) for other models — looked up by identifier rather than re-minted (same
+pattern as §10's XT table), and given a new `fits` edge to GH6-6E, double-sourced against
+both editions.
+
+**`91470` (front-mount thermostat) — #45 resolved as a genuine specification revision, not
+a contradiction.** obs #129 (Jan 2007) states "130°"; obs #128 (Jan 2014) states "120°" for
+the identical part number and model. A plain-text grep of the undated (2003) edition
+independently confirms 130° there too, so the value was stable from at least 2003 through
+2007 and was revised down to 120° by January 2014. Both values are kept — the existing
+"description" attribute from obs #96 (130°, 2007) is left as-is, and a new
+`thermostat_setpoint_f` attribute (120°, source obs #128) is added alongside it, since
+ground-truth.yaml's per-component attributes are name-keyed and can't hold two values
+under the same "description" key.
+
+**Confirmed inapplicable to GH6-6E in both editions, closing #46:** `91580` (110VAC
+bolt-on electric element) is checked only for the combination gas/electric `GCH6-6E` model
+and the `G10-2E`/`G10-3E` family — not `GH6-6E`, whose own in-hand dataplate (obs #111,
+already in this fixture) records `power_type: gas_only`. The report's apparent confusion
+was almost certainly `GCH6-6E` (checked) vs. `GH6-6E` (gas-only, not checked) — visually
+similar model numbers one letter apart. Not built as a component or edge for GH6-6E.
+
+**Zero applicability in either edition, closing the other half of #40 and all of #41's
+"chain" framing:** `91420` (circuit board, post-electrode-connection), `91504` (a bundle
+SKU, "Includes 93865 & 93868"), and `91606` (remote-sense electrode) each show zero
+checked models across both tables — not GH6-6E-specific rejections, genuinely inapplicable
+to every current model either edition lists. None carries the explicit "(USE X)"/"OBSOLETE"
+wording the fan-motor or gas-valve rows use, so none is built as a `supersedes` edge —
+there is no multi-hop chain in either manufacturer document, only a real current part
+(`93865`/`93868`) and a real but currently-unavailable old one, with no stated relationship
+between them.
+
+**Four numbers named in the attached research report do not appear anywhere:** `93867`/
+`91367` (#40's claimed further chain hops) and `92743`/`91561` (#43/#44's claimed
+successor/predecessor) — grep-verified against obs #128, obs #129, and all three other
+locally held Atwood PDFs, zero hits for all four. None is built.
+
+0 new components (all 5 parts already existed), 5 new `fits` edges, 1 new attribute —
+`atwood_gh6_6e_electronic_table_parts()` in `edge_resolver.py`, resolver version
+`atwood_gh6_6e_electronic_table_v1`. `ground-truth.yaml`'s fixture entry
+(`atwood_gh6_6e_electronic_table_fixture`) follows the same total-counts-plus-spot-checks
+shape as §7/§9/§10.
+
+`edge_resolver.py --check-fixture`: 0 mismatches. `edge_resolver.py --self-test`: PASS.
+`pytest`: 46/46 green. Issues #35, #40, #41, #43, #44, #45, #46 all closed.

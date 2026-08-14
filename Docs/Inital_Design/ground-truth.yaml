@@ -2317,6 +2317,36 @@ atwood_ext_repair_parts_fixture:
 
 ---
 
+# Atwood GH6-6E electronic-table parts (obs #128 Jan 2014 / #129 Jan 2007,
+# same Electronic Water Heaters Replacement Part Reference table as obs
+# #96/#116, re-read for GH6-6E's own column -- issues #40/#41/#43/#44/#45/
+# #46, closing the #35 low-confidence-research umbrella alongside #42's
+# already-closed gas-valve chain). All 5 parts already exist as components
+# from the Pilot/Electronic batches above; this only adds a `fits` edge to
+# GH6-6E for each (double-sourced: both editions independently check it),
+# plus a `thermostat_setpoint_f` attribute on 91470 recording the January
+# 2014 edition's revised 120° value (the existing "description" attribute
+# from obs #96 keeps the earlier 130° reading -- see
+# atwood_gh6_6e_electronic_table_parts()'s docstring). 91420, 91504, 91606
+# (zero applicability in both editions) and 91580 (applies only to the
+# combination-electric GCH6-6E and G10-2E/G10-3E, not gas-only GH6-6E) are
+# deliberately not built -- see the same docstring.
+atwood_gh6_6e_electronic_table_fixture:
+  total_parts: 5
+  total_fits_edges: 5
+  spot_checks:
+    - part: "93865"
+    - part: "93868"
+    - part: "92742"
+    - part: "91857"
+    - part: "91470"
+  thermostat_setpoint_f:
+    value: 120.0
+    provenance: manufacturer_pdf
+    source_observation_id: 128
+
+---
+
 # Suburban SRNA3SBBM cooktop/range repair-parts cross-reference (obs #117, issue #37).
 # Same "fits" edge type and same structural (not per-row) validation approach as the
 # Atwood tables above -- single host, so applies_to is always [SRNA3SBBM].
