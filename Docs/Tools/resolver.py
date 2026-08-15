@@ -293,6 +293,16 @@ CANONICAL = {
     "min_gas_pressure_in_wc":    "documented minimum gas supply pressure, inches water column",
     "max_working_pressure_psi":  "documented maximum tank working pressure, psi",
     "test_pressure_psi":         "documented factory test pressure, psi",
+
+    # Furrion FWH09AFA-AM in-hand teardown anchor (2026-08-15), 5th Stage 1
+    # vendor. See Docs/Data/Furrion/VENDOR-Furrion.md.
+    "capacity_gpm":              "documented continuous flow rate, gallons per minute (tankless water heater)",
+    "fuel_type":                 "documented fuel type (e.g. Propane, Natural Gas)",
+    "max_water_temp_f":          "documented maximum outlet water temperature, Fahrenheit",
+    "orifice_mm":                "documented burner orifice diameter, mm",
+    "manifold_pressure_pa":      "documented gas manifold pressure, Pa (lowest altitude band on a multi-band table)",
+    "gas_code":                  "manufacturer-assigned gas/altitude conversion code physically observed on a parameter label",
+    "flue_damper_part_number":   "manufacturer-named automatic flue damper device part number, physically labeled as required/installed on one in-hand unit",
 }
 
 # --------------------------------------------------------------------------
@@ -535,6 +545,15 @@ ALIASES = {
     "manifold_pressure_in_wc": "manifold_pressure_wc",
     "max_working_pressure_psi": "max_working_pressure_psi",
     "test_pressure_psi": "test_pressure_psi",
+
+    # Furrion FWH09AFA-AM in-hand teardown anchor (2026-08-15)
+    "capacity_gpm": "capacity_gpm",
+    "fuel_type": "fuel_type",
+    "max_water_temp_f": "max_water_temp_f",
+    "orifice_mm": "orifice_mm",
+    "manifold_pressure_pa": "manifold_pressure_pa",
+    "gas_code": "gas_code",
+    "flue_damper_part_number": "flue_damper_part_number",
 }
 
 # --------------------------------------------------------------------------

@@ -41,7 +41,7 @@ from interchange_store import (
 )
 from part_types import (
     ATWOOD_PART_TYPE, COLEMAN_AC_PART_TYPE, COLEMAN_AC_PLENUM_PART_TYPE,
-    COLEMAN_AC_PLENUM_REPAIR_PART_TYPE, COLEMAN_AC_REPAIR_PART_TYPE,
+    COLEMAN_AC_PLENUM_REPAIR_PART_TYPE, COLEMAN_AC_REPAIR_PART_TYPE, FURRION_PART_TYPE,
     NORCOLD_REFRIGERATOR_PART_TYPE, NORCOLD_REPAIR_PART_TYPE,
     SUBURBAN_COOKTOP_PART_TYPE, SUBURBAN_COOKTOP_REPAIR_PART_TYPE, SUBURBAN_FURNACE_PART_TYPE,
     SUBURBAN_FURNACE_REPAIR_PART_TYPE, THERMOSTAT_PART_TYPE, WATER_HEATER_PART_TYPE,
@@ -82,6 +82,8 @@ COLEMAN_PLENUM_PARTS_RESOLVER_VERSION = "coleman_plenum_parts_v1"
 ATWOOD_GH6_6E_RESOLVER_VERSION = "atwood_gh6_6e_v1"
 ATWOOD_GH6_6E_PARTS_RESOLVER_VERSION = "atwood_gh6_6e_parts_v1"
 ATWOOD_GH6_6E_VALVE_RESOLVER_VERSION = "atwood_gh6_6e_valve_v1"
+FURRION_ENDPOINT_RESOLVER_VERSION = "furrion_endpoint_v1"
+FURRION_PARTS_RESOLVER_VERSION = "furrion_parts_v1"
 ATWOOD_6_GAL_OPENING = (12.625, 16.25)
 ATWOOD_10_GAL_OPENING = (15.625, 16.25)
 COLEMAN_VISUAL_MATCH_CANDIDATE = {
@@ -2032,6 +2034,144 @@ def norcold_630762_component(dealer_row, component_id):
         value_text=dealer["product_type"], resolver_version=NORCOLD_PARTS_RESOLVER_VERSION)]
 
     return component, identifiers, attributes
+
+
+def furrion_fwh09afa_am_component(nameplate_row, safety_row, internal_row, component_id):
+    """
+    Build the owner's in-hand Furrion tankless gas water heater as an exact
+    endpoint component -- the 5th Stage 1 vendor. See
+    Docs/Data/Furrion/VENDOR-Furrion.md.
+
+    Identity is two identifiers on one physical unit, same "coexist, not a
+    conflict" framing already established for Norcold's N811/N811RT
+    (norcold_n811_component()) and Coleman-Mach's AR7815/7330F3858: the
+    permanent exterior rating plate reads `FWH09AFA-AM` (obs #130) while an
+    internal chassis label on the burner/blower assembly itself, behind that
+    plate, reads the shorter `FWH09A-AM` (obs #134) -- carrying its own
+    serial and a "PARAMETERLIST" sticker. No evidence here says which is a
+    "base model" and which is a full order code (unlike Norcold's decoded
+    grammar, no manufacturer document decodes this pair) -- both are simply
+    recorded as coexisting identifiers on the same unit, neither normalized
+    away.
+
+    Specs come from the exterior rating plate (obs #130, the 0-2,000ft
+    altitude band -- input BTU and orifice are identical across both bands
+    on this plate, only manifold pressure and max fan speed change) and the
+    safety/installation label's rough-opening figures (obs #131).
+    """
+    _validate_observation_source(nameplate_row, 130, "dataplate_photo", 2,
+                                  "exterior rating plate")
+    _validate_observation_source(safety_row, 131, "dataplate_photo", 2,
+                                  "safety/installation label")
+    _validate_observation_source(internal_row, 134, "dataplate_photo", 2,
+                                  "internal chassis label")
+
+    nameplate = _normalized_attributes(nameplate_row)
+    safety = _normalized_attributes(safety_row)
+    internal = _normalized_attributes(internal_row)
+
+    if nameplate.get("model") != "FWH09AFA-AM":
+        raise ValueError(f"unexpected Furrion nameplate model: {nameplate.get('model')}")
+    if internal.get("model") != "FWH09A-AM":
+        raise ValueError(f"unexpected Furrion internal chassis model: {internal.get('model')}")
+
+    def text_attr(name, value, source_row, provenance="dataplate_photo"):
+        return ComponentAttribute(
+            component_id, name, provenance, source_row["id"], value_text=value,
+            resolver_version=FURRION_ENDPOINT_RESOLVER_VERSION)
+
+    def number_attr(name, value, source_row, unit=None, provenance="dataplate_photo"):
+        return ComponentAttribute(
+            component_id, name, provenance, source_row["id"], value_number=value,
+            unit=unit, resolver_version=FURRION_ENDPOINT_RESOLVER_VERSION)
+
+    component = Component(component_id, FURRION_PART_TYPE, None)
+    identifiers = [
+        Identifier(component_id, "furrion", "FWH09AFA-AM", "exterior_rating_plate"),
+        Identifier(component_id, "furrion", "FWH09A-AM", "internal_chassis_label"),
+    ]
+    attributes = [
+        text_attr("serial", internal["serial_number"], internal_row),
+        text_attr("gas_code", internal["gas_code"], internal_row),
+        text_attr("fuel_type", nameplate["fuel_type"], nameplate_row),
+        number_attr("capacity_gpm", float(nameplate["capacity_gpm"]), nameplate_row, unit="GPM"),
+        number_attr("input_btuh", float(nameplate["input_btuh"]), nameplate_row, unit="BTU/h"),
+        number_attr("min_gas_pressure_in_wc", float(nameplate["min_gas_pressure_in_wc"]),
+                    nameplate_row, unit="in WC"),
+        number_attr("max_working_pressure_psi", float(nameplate["max_working_pressure_psi"]),
+                    nameplate_row, unit="psi"),
+        number_attr("dc_voltage_v", float(nameplate["dc_voltage_v"]), nameplate_row, unit="V"),
+        number_attr("dc_amperage_a", float(nameplate["dc_amperage_a"]), nameplate_row, unit="A"),
+        number_attr("max_water_temp_f", float(nameplate["max_water_temp_f"]), nameplate_row, unit="F"),
+        number_attr("orifice_mm", float(nameplate["orifice_mm"]), nameplate_row, unit="mm"),
+        number_attr("manifold_pressure_pa", float(nameplate["manifold_pressure_pa"]),
+                    nameplate_row, unit="Pa"),
+        number_attr("rough_opening_h_in", float(safety["rough_opening_h_in"]), safety_row, unit="in"),
+        number_attr("rough_opening_w_in", float(safety["rough_opening_w_in"]), safety_row, unit="in"),
+        number_attr("rough_opening_d_in", float(safety["rough_opening_d_in"]), safety_row, unit="in"),
+    ]
+
+    return component, identifiers, attributes
+
+
+def furrion_flue_damper_fits(conn, safety_row, host_component_id):
+    """
+    Build the Furrion-required `JSQ6075FDF1(CZ)` automatic flue damper
+    device as a repair-part component and its `fits` edge to the in-hand
+    FWH09AFA-AM -- sourced to the appliance's own safety/installation label
+    (obs #131), which names it directly in an "INSTALLATION AND SERVICE"
+    paragraph as a required-use component ("must be equipped with...
+    automatic flue damper device Part No. JSQ6075FDF1(CZ)"). This is
+    stronger sourcing than a retailer repair-parts table (the usual tier for
+    a first `fits` edge in this project) -- it is the manufacturer's own
+    label, physically affixed to this exact unit, not a separate catalog
+    lookup. The `JSQ` prefix does not match Furrion's own `FWH`-prefixed
+    unit-model numbering, but Suburban and Norcold repair parts also use
+    numbering schemes distinct from their host unit's model number (e.g.
+    Suburban's `232881` switch), so this stays namespace `furrion` rather
+    than being invented a new manufacturer.
+    """
+    _validate_observation_source(safety_row, 131, "dataplate_photo", 2,
+                                  "safety/installation label")
+    safety = _normalized_attributes(safety_row)
+    part_number = safety.get("flue_damper_part_number")
+    if part_number != "JSQ6075FDF1(CZ)":
+        raise ValueError(f"unexpected Furrion flue damper part number: {part_number}")
+
+    component_id = "c_placeholder_furrion_part_jsq6075fdf1cz"
+    component = Component(component_id, FURRION_PART_TYPE, None)
+    identifiers = [Identifier(component_id, "furrion", part_number, "safety_label")]
+    attributes = [ComponentAttribute(
+        component_id, "description", "dataplate_photo", safety_row["id"],
+        value_text="Automatic flue damper device",
+        resolver_version=FURRION_PARTS_RESOLVER_VERSION)]
+    insert_component(conn, component)
+    for identifier in identifiers:
+        insert_identifier(conn, identifier)
+    for attribute in attributes:
+        insert_component_attribute(conn, attribute)
+
+    edge = Edge(
+        type=EDGE_TYPE_FITS,
+        from_component_id=component_id,
+        to_component_id=host_component_id,
+        group_key="furrion_flue_damper",
+        status="candidate",
+        resolver_version=FURRION_PARTS_RESOLVER_VERSION,
+        notes="Furrion's own safety/installation label on the in-hand FWH09AFA-AM names "
+              "JSQ6075FDF1(CZ) as the automatic flue damper device the appliance must be "
+              "equipped with.",
+    )
+    insert_edge(conn, edge)
+    for event_type, alpha, beta, source_id in (
+        ("attribute_prior", 1.0, 1.0, None),
+        ("manufacturer_assertion", 2.0, 0.0, safety_row["id"]),
+    ):
+        insert_evidence(conn, RelationshipEvidence(
+            edge_id=edge.id, event_type=event_type, effect_alpha=alpha,
+            effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
+
+    return component, identifiers, attributes, [edge.id]
 
 
 COLEMAN_AC_48253B866_IDENTIFIERS = {("coleman", "48253B866")}
@@ -6714,6 +6854,113 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
 
     print(f"Suburban remaining fixtures: "
           f"{mismatches - suburban_remainder_mismatches_before} mismatch(es)")
+
+    furrion_mismatches_before = mismatches
+    obs130 = load_observation(obs_db_path, 130)
+    obs131 = load_observation(obs_db_path, 131)
+    obs134 = load_observation(obs_db_path, 134)
+    furrion_component_id = "c_placeholder_wh_furrion_fwh09afa_am"
+    furrion_component, furrion_identifiers, furrion_attributes = furrion_fwh09afa_am_component(
+        obs130, obs131, obs134, furrion_component_id)
+    insert_component(conn, furrion_component)
+    for identifier in furrion_identifiers:
+        insert_identifier(conn, identifier)
+    for attribute in furrion_attributes:
+        insert_component_attribute(conn, attribute)
+
+    fixture_furrion = next(
+        (c for c in components_doc if c.get("component_id") == furrion_component_id), None)
+    if fixture_furrion is None:
+        print(f"MISMATCH fixture is missing component: {furrion_component_id}")
+        mismatches += 1
+    else:
+        resolved_furrion = conn.execute(
+            "SELECT * FROM components WHERE component_id = ?", (furrion_component_id,)).fetchone()
+        if (resolved_furrion["part_type_id"], resolved_furrion["interchange_code"]) != (
+                fixture_furrion["part_type_id"], fixture_furrion["interchange_code"]):
+            print(f"MISMATCH Furrion component: "
+                  f"resolved={dict(resolved_furrion)} fixture={fixture_furrion}")
+            mismatches += 1
+
+        resolved_furrion_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (furrion_component_id,)).fetchall()
+        }
+        expected_furrion_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_furrion["identifiers"]
+        }
+        if resolved_furrion_identifiers != expected_furrion_identifiers:
+            print(f"MISMATCH Furrion identifiers: resolved={resolved_furrion_identifiers} "
+                  f"fixture={expected_furrion_identifiers}")
+            mismatches += 1
+
+        resolved_furrion_attribute_rows = get_component_attributes(conn, furrion_component_id)
+        resolved_furrion_attributes = {}
+        for attribute in resolved_furrion_attribute_rows:
+            value = attribute.value_text if attribute.value_text is not None else (
+                attribute.value_number if attribute.value_number is not None
+                else attribute.value_boolean)
+            resolved_furrion_attributes[attribute.name] = (
+                value, attribute.provenance, attribute.source_observation_id)
+        expected_furrion_attributes = {
+            name: (definition["value"], definition["provenance"],
+                   definition["source_observation_id"])
+            for name, definition in fixture_furrion["attributes"].items()
+        }
+        if (len(resolved_furrion_attribute_rows) != len(expected_furrion_attributes)
+                or resolved_furrion_attributes != expected_furrion_attributes):
+            print(f"MISMATCH Furrion attributes: resolved={resolved_furrion_attributes} "
+                  f"fixture={expected_furrion_attributes}")
+            mismatches += 1
+
+    flue_damper_component, flue_damper_identifiers, flue_damper_attributes, \
+        flue_damper_edge_ids = furrion_flue_damper_fits(conn, obs131, furrion_component_id)
+
+    flue_damper_component_id = "c_placeholder_furrion_part_jsq6075fdf1cz"
+    fixture_flue_damper = next(
+        (c for c in components_doc if c.get("component_id") == flue_damper_component_id), None)
+    if fixture_flue_damper is None:
+        print(f"MISMATCH fixture is missing component: {flue_damper_component_id}")
+        mismatches += 1
+    else:
+        resolved_flue_damper_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (flue_damper_component_id,)).fetchall()
+        }
+        fixture_flue_damper_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_flue_damper["identifiers"]
+        }
+        if resolved_flue_damper_identifiers != fixture_flue_damper_identifiers:
+            print(f"MISMATCH Furrion flue damper identifiers: "
+                  f"resolved={resolved_flue_damper_identifiers} "
+                  f"fixture={fixture_flue_damper_identifiers}")
+            mismatches += 1
+
+    fixture_flue_damper_edge = next(
+        (e for e in edges_doc if e.get("type") == "fits"
+         and e.get("group") == "furrion_flue_damper"), None)
+    if fixture_flue_damper_edge is None:
+        print("MISMATCH ground-truth.yaml has no furrion_flue_damper fits edge")
+        mismatches += 1
+    else:
+        edge_row = conn.execute(
+            "SELECT type, from_component_id, to_component_id FROM edges WHERE id = ?",
+            (flue_damper_edge_ids[0],)).fetchone()
+        if tuple(edge_row) != (
+                "fits", fixture_flue_damper_edge["from"], fixture_flue_damper_edge["to"]):
+            print(f"MISMATCH Furrion flue damper fits edge: resolved={tuple(edge_row)} "
+                  f"fixture=({fixture_flue_damper_edge['type']}, "
+                  f"{fixture_flue_damper_edge['from']}, {fixture_flue_damper_edge['to']})")
+            mismatches += 1
+
+    print(f"Furrion FWH09AFA-AM endpoint + flue damper: "
+          f"{mismatches - furrion_mismatches_before} mismatch(es)")
 
     print(f"\n{mismatches} total mismatches against ground-truth.yaml")
     return 1 if mismatches else 0

@@ -1367,6 +1367,37 @@ components:
         flange_diameter) are in_hand_measured and don't depend on the ID
         being right.
 
+  - component_id: c_placeholder_wh_furrion_fwh09afa_am
+    part_type_id: 418
+    interchange_code: null
+    identifiers:
+      - {ns: furrion, value: "FWH09AFA-AM", visibility: exterior_rating_plate}
+      - {ns: furrion, value: "FWH09A-AM", visibility: internal_chassis_label}
+    attributes:
+      serial:                    {value: "10001121985122100056", provenance: dataplate_photo, source_observation_id: 134}
+      gas_code:                  {value: "FA", provenance: dataplate_photo, source_observation_id: 134}
+      fuel_type:                 {value: "Propane", provenance: dataplate_photo, source_observation_id: 130}
+      capacity_gpm:               {value: 2.4, unit: GPM, provenance: dataplate_photo, source_observation_id: 130}
+      input_btuh:                 {value: 60000, unit: "BTU/h", provenance: dataplate_photo, source_observation_id: 130}
+      min_gas_pressure_in_wc:     {value: 11, unit: "in WC", provenance: dataplate_photo, source_observation_id: 130}
+      max_working_pressure_psi:   {value: 65, unit: psi, provenance: dataplate_photo, source_observation_id: 130}
+      dc_voltage_v:                {value: 12, unit: V, provenance: dataplate_photo, source_observation_id: 130}
+      dc_amperage_a:                {value: 3, unit: A, provenance: dataplate_photo, source_observation_id: 130}
+      max_water_temp_f:           {value: 124, unit: F, provenance: dataplate_photo, source_observation_id: 130}
+      orifice_mm:                  {value: 1.1, unit: mm, provenance: dataplate_photo, source_observation_id: 130}
+      manifold_pressure_pa:        {value: 1920, unit: Pa, provenance: dataplate_photo, source_observation_id: 130}
+      rough_opening_h_in:          {value: 12.625, unit: in, provenance: dataplate_photo, source_observation_id: 131}
+      rough_opening_w_in:          {value: 12.75, unit: in, provenance: dataplate_photo, source_observation_id: 131}
+      rough_opening_d_in:          {value: 23.5, unit: in, provenance: dataplate_photo, source_observation_id: 131}
+
+  - component_id: c_placeholder_furrion_part_jsq6075fdf1cz
+    part_type_id: 418
+    interchange_code: null
+    identifiers:
+      - {ns: furrion, value: "JSQ6075FDF1(CZ)", visibility: safety_label}
+    attributes:
+      description: {value: "Automatic flue damper device", provenance: dataplate_photo, source_observation_id: 131}
+
 ---
 
 edges:
@@ -2182,6 +2213,15 @@ edges:
     evidence:
       - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
       - {event_type: retailer_cross_reference, alpha: 1, beta: 0, source_observation_id: 115}
+
+  - type: fits
+    from: c_placeholder_furrion_part_jsq6075fdf1cz
+    to: c_placeholder_wh_furrion_fwh09afa_am
+    group: furrion_flue_damper
+    status: candidate
+    evidence:
+      - {event_type: attribute_prior, alpha: 1, beta: 1, source_observation_id: null}
+      - {event_type: manufacturer_assertion, alpha: 2, beta: 0, source_observation_id: 131}
 
 
 identifier_equivalence_candidates:
