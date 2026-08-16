@@ -2175,30 +2175,48 @@ def furrion_flue_damper_fits(conn, safety_row, host_component_id):
     return component, identifiers, attributes, [edge.id]
 
 
-def girard_gswh2_component(rating_row, back_panel_row, component_id):
+def girard_gswh2_component(rating_row, back_panel_row, sell_sheet_row, service_manual_row,
+                            owners_manual_row, component_id):
     """
     Build the owner's in-hand Girard GSWH-2 tankless gas water heater as an
     exact endpoint component -- the 6th Stage 1 vendor. See
     Docs/Data/Girard/VENDOR-Girard.md.
 
-    Single identifier, unlike Norcold/Coleman-Mach/Furrion's coexisting-pair
-    cases -- only one model number (`GSWH-2`) appears on this unit, printed
-    on the interior rating/compliance label (obs #135). That label carries
-    no spec table (no BTU input, no GPM capacity, no dimensions) -- only
-    compliance text, the no-pilot/auto-ignition statement, and the pressure
-    relief valve warning. The exterior back-panel label (obs #136) supplies
-    the only numeric specs available this pass: 12VDC power and a 14in WC
-    maximum LP gas inlet pressure. Both labels carry the same barcode serial
-    (`2GWH0303465`), confirmed by direct comparison, establishing they
-    describe the same physical unit.
+    Single identifier on the unit's own Girard rating plate (obs #135) --
+    unlike Norcold/Coleman-Mach/Furrion's coexisting-pair cases, only one
+    model number (`GSWH-2`) appears anywhere. A second identifier is added
+    this pass from the service manual's own title page (obs #138), which
+    reads "MODEL (LIPPERT PN) GSWH-2 (2022107534)" -- the first document
+    naming a Lippert-issued part number for this unit; no Lippert mark
+    appears on the physical unit itself (obs #135/#136).
+
+    Pass 1 (obs #135/#136, in-hand photos) found no spec table on either
+    label -- only 12VDC power and a 14in WC max LP gas inlet pressure. Pass
+    2 (obs #137 sell sheet, #138 service manual, #139 owner's manual, all
+    manufacturer PDFs) supplies the full spec table: 42,000 BTU input,
+    11-14in WC inlet pressure range (corroborating obs #136's 14in WC max
+    reading and adding the 11in WC minimum), 1.5-7.8in WC manifold pressure,
+    125 PSI max water pressure, 12.5x12.5x15.5in physical unit size, a
+    140°F ECO cutoff, and a 13x13in rough opening. Weight is recorded as two
+    distinct attributes rather than collapsed -- the sell sheet's 23lb unit
+    weight and the service manual's 22lb SHIPPING weight are not the same
+    fact.
     """
     _validate_observation_source(rating_row, 135, "dataplate_photo", 2,
                                   "rating/compliance label")
     _validate_observation_source(back_panel_row, 136, "dataplate_photo", 2,
                                   "back panel connections/nameplate")
+    _validate_observation_source(sell_sheet_row, 137, "manufacturer_pdf", 2, "sell sheet")
+    _validate_observation_source(service_manual_row, 138, "manufacturer_pdf", 2,
+                                  "service manual")
+    _validate_observation_source(owners_manual_row, 139, "manufacturer_pdf", 2,
+                                  "owner's manual")
 
     rating = _normalized_attributes(rating_row)
     back_panel = _normalized_attributes(back_panel_row)
+    sell_sheet = _normalized_attributes(sell_sheet_row)
+    service_manual = _normalized_attributes(service_manual_row)
+    owners_manual = _normalized_attributes(owners_manual_row)
 
     if rating.get("model") != "GSWH-2":
         raise ValueError(f"unexpected Girard rating-plate model: {rating.get('model')}")
@@ -2206,6 +2224,12 @@ def girard_gswh2_component(rating_row, back_panel_row, component_id):
         raise ValueError(
             f"Girard rating-plate serial {rating.get('serial_number')!r} does not match "
             f"back-panel serial {back_panel.get('serial_number')!r}")
+    if sell_sheet.get("model") != "GSWH-2" or service_manual.get("model") != "GSWH-2" \
+            or owners_manual.get("model") != "GSWH-2":
+        raise ValueError("a Girard pass-2 manual observation does not name model GSWH-2")
+    if service_manual.get("lippert_part_number") != "2022107534":
+        raise ValueError(
+            f"unexpected Girard Lippert PN: {service_manual.get('lippert_part_number')!r}")
 
     def text_attr(name, value, source_row):
         return ComponentAttribute(
@@ -2217,8 +2241,16 @@ def girard_gswh2_component(rating_row, back_panel_row, component_id):
             component_id, name, "dataplate_photo", source_row["id"], value_number=value,
             unit=unit, resolver_version=GIRARD_ENDPOINT_RESOLVER_VERSION)
 
+    def manual_number_attr(name, value, source_row, unit=None):
+        return ComponentAttribute(
+            component_id, name, "manufacturer_pdf", source_row["id"], value_number=value,
+            unit=unit, resolver_version=GIRARD_ENDPOINT_RESOLVER_VERSION)
+
     component = Component(component_id, GIRARD_PART_TYPE, None)
-    identifiers = [Identifier(component_id, "girard", "GSWH-2", "rating_plate")]
+    identifiers = [
+        Identifier(component_id, "girard", "GSWH-2", "rating_plate"),
+        Identifier(component_id, "lippert", "2022107534", "service_manual_title_page"),
+    ]
     attributes = [
         text_attr("serial", rating["serial_number"], rating_row),
         text_attr("fuel_type", back_panel["fuel_type"], back_panel_row),
@@ -2226,9 +2258,137 @@ def girard_gswh2_component(rating_row, back_panel_row, component_id):
         number_attr("dc_voltage_v", float(back_panel["dc_voltage_v"]), back_panel_row, unit="V"),
         number_attr("max_gas_pressure_in_wc", float(back_panel["max_gas_pressure_in_wc"]),
                     back_panel_row, unit="in WC"),
+        manual_number_attr("input_btuh", float(service_manual["input_btuh"]),
+                            service_manual_row, unit="BTU/h"),
+        manual_number_attr("dc_amperage_a", float(service_manual["dc_amperage_a"]),
+                            service_manual_row, unit="A"),
+        manual_number_attr("min_gas_pressure_in_wc", float(service_manual["min_gas_pressure_in_wc"]),
+                            service_manual_row, unit="in WC"),
+        manual_number_attr("manifold_pressure_min_in_wc",
+                            float(service_manual["manifold_pressure_min_in_wc"]),
+                            service_manual_row, unit="in WC"),
+        manual_number_attr("manifold_pressure_max_in_wc",
+                            float(service_manual["manifold_pressure_max_in_wc"]),
+                            service_manual_row, unit="in WC"),
+        manual_number_attr("max_working_pressure_psi",
+                            float(service_manual["max_working_pressure_psi"]),
+                            service_manual_row, unit="psi"),
+        manual_number_attr("product_size_h", float(service_manual["product_size_h"]),
+                            service_manual_row, unit="in"),
+        manual_number_attr("product_size_w", float(service_manual["product_size_w"]),
+                            service_manual_row, unit="in"),
+        manual_number_attr("product_size_d", float(service_manual["product_size_d"]),
+                            service_manual_row, unit="in"),
+        manual_number_attr("shipping_weight_lb", float(service_manual["shipping_weight_lb"]),
+                            service_manual_row, unit="lb"),
+        manual_number_attr("eco_max_temp_f", float(service_manual["eco_max_temp_f"]),
+                            service_manual_row, unit="F"),
+        ComponentAttribute(component_id, "unit_weight_lb", "manufacturer_pdf",
+                            sell_sheet_row["id"], value_number=float(sell_sheet["unit_weight_lb"]),
+                            unit="lb", resolver_version=GIRARD_ENDPOINT_RESOLVER_VERSION),
+        ComponentAttribute(component_id, "rough_opening_h_in", "manufacturer_pdf",
+                            owners_manual_row["id"],
+                            value_number=float(owners_manual["rough_opening_h_in"]), unit="in",
+                            resolver_version=GIRARD_ENDPOINT_RESOLVER_VERSION),
+        ComponentAttribute(component_id, "rough_opening_w_in", "manufacturer_pdf",
+                            owners_manual_row["id"],
+                            value_number=float(owners_manual["rough_opening_w_in"]), unit="in",
+                            resolver_version=GIRARD_ENDPOINT_RESOLVER_VERSION),
     ]
 
     return component, identifiers, attributes
+
+
+_GIRARD_CONVERSION_ROLE = "conversion_door_flange_kit"
+_GIRARD_RETROFIT_KITS = {
+    "girard_retrofit_atwood_6gal": ("Atwood", 6, "2GWHDA6"),
+    "girard_retrofit_atwood_10gal": ("Atwood", 10, "2GWHDAS10"),
+    "girard_retrofit_suburban_10_12gal": ("Suburban", 10, "2GWHDAS10"),
+}
+
+
+def girard_gswh2_retrofit_edge(conn, addendum_row, from_id, girard_component_id, group_key):
+    """
+    One manufacturer-documented Girard GSWH-2 retrofit edge (obs #140's
+    conversion-door addendum): an existing tank unit's larger cutout is
+    REFRAMED DOWN to the GSWH-2's smaller 13x13in opening via a door/flange
+    conversion kit, plus a wooden support frame and vertical bracing --
+    the opposite shape from Suburban's own IW60RL retrofit
+    (resolve_iw60rl_retrofit_edge), where a replacement panel COVERS an
+    existing opening rather than reframing it down. Called once per target
+    family (Atwood 6gal, Atwood 10gal, Suburban 10-12gal) -- see
+    ground-truth.yaml's three girard_retrofit_* edges.
+
+    The Suburban target is `c_placeholder_wh_12del` (SW12DEL, 12 gallon,
+    cutout 16.38x16.38in) even though the addendum's own worked example is
+    titled "10 GA. SUBURBAN" (cutout 16.25x16.25in, obs #140) -- the sell
+    sheet (obs #137) states the 2GWHDAS10 kit "REPLACES 10-12 GALLON
+    SUBURBAN AND ATWOOD" as one kit/target family, and the two cutout
+    figures are within 1/8in of each other (Girard's own addendum
+    measurement vs. Suburban's retailer-spec-block cutout), consistent with
+    ordinary rounding rather than a different physical opening. The Atwood
+    targets remain the generic brand/capacity family placeholders already
+    used by the IW60RL retrofit edges (c_placeholder_wh_atwood_6gal/_10gal)
+    -- no specific in-fixture Atwood SKU to point at instead.
+    """
+    _validate_observation_source(addendum_row, 140, "manufacturer_pdf", 2,
+                                  "conversion door addendum")
+    expected_brand, expected_capacity, expected_kit = _GIRARD_RETROFIT_KITS[group_key]
+    addendum = json.loads(addendum_row["extracted"])
+    kits = addendum.get("conversion_kits")
+    if not isinstance(kits, list):
+        raise ValueError("Girard conversion addendum has no conversion_kits table")
+    matches = [k for k in kits if k.get("target_brand") == expected_brand
+               and k.get("target_capacity_gal") == expected_capacity
+               and k.get("part_number") == expected_kit]
+    if len(matches) != 1:
+        raise ValueError(
+            f"Girard conversion addendum is missing the {expected_brand} "
+            f"{expected_capacity}gal / {expected_kit} row")
+    kit = matches[0]
+
+    edge = Edge(type=EDGE_TYPE_SUBSTITUTES, from_component_id=from_id,
+                to_component_id=girard_component_id, group_key=group_key)
+    insert_edge(conn, edge)
+    insert_substitution_detail(conn, EdgeSubstitutionDetail(
+        edge_id=edge.id, basis="manufacturer_documented",
+        verdict="fits_with_modification"))
+    insert_caveat(conn, EdgeCaveat(
+        edge_id=edge.id, blocking=True,
+        text=f"Existing {expected_brand} {expected_capacity}gal cutout "
+             f"({kit['existing_cutout_w_in']}in x {kit['existing_cutout_h_in']}in) must be "
+             f"REFRAMED DOWN to the GSWH-2's smaller 13in x 13in opening, supported on all "
+             f"sides by a wooden frame and mounted with #8 3/4in flat head screws. "
+             f"{kit['bracing_note']}"))
+    if kit.get("flush_mount_corner_caveat"):
+        insert_caveat(conn, EdgeCaveat(
+            edge_id=edge.id, blocking=True,
+            text=f"The {expected_kit} conversion door kit does not cover the corners of an "
+             f"Atwood {expected_capacity}gal water heater with a FLUSH MOUNT door -- "
+             f"modification/fabrication is needed to cover the corners. Not applicable to a "
+             f"Suburban flush mount door."))
+    insert_required_part(conn, EdgeRequiredPart(
+        edge_id=edge.id, ns="girard", value=expected_kit, role=_GIRARD_CONVERSION_ROLE))
+
+    # All three Girard retrofit edges are docked to alpha=3 (0.80), unlike
+    # the IW60RL Suburban edges' alpha=4 (0.833) -- even the Suburban target
+    # here (a real SW12DEL component, not a family placeholder) rests on a
+    # same-kit/close-dimension inference across two documents (obs #137's
+    # "10-12 GALLON SUBURBAN" kit description plus obs #140's ~16.25in vs.
+    # SW12DEL's own 16.38in cutout) rather than an exact single-document
+    # cutout match, so it doesn't earn the higher IW60RL-Suburban tier.
+    manufacturer_event_alpha = 3.0
+
+    prior_alpha, prior_beta = prior_for_basis("manufacturer_documented")
+    insert_evidence(conn, RelationshipEvidence(
+        edge_id=edge.id, event_type="attribute_prior", effect_alpha=prior_alpha,
+        effect_beta=prior_beta, occurred_at=now_iso()))
+    insert_evidence(conn, RelationshipEvidence(
+        edge_id=edge.id, event_type="manufacturer_documented",
+        effect_alpha=manufacturer_event_alpha, effect_beta=0.0, occurred_at=now_iso(),
+        source_observation_id=addendum_row["id"]))
+
+    return edge.id
 
 
 COLEMAN_AC_48253B866_IDENTIFIERS = {("coleman", "48253B866")}
@@ -7022,9 +7182,13 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
     girard_mismatches_before = mismatches
     obs135 = load_observation(obs_db_path, 135)
     obs136 = load_observation(obs_db_path, 136)
+    obs137 = load_observation(obs_db_path, 137)
+    obs138 = load_observation(obs_db_path, 138)
+    obs139 = load_observation(obs_db_path, 139)
+    obs140 = load_observation(obs_db_path, 140)
     girard_component_id = "c_placeholder_wh_girard_gswh2"
     girard_component, girard_identifiers, girard_attributes = girard_gswh2_component(
-        obs135, obs136, girard_component_id)
+        obs135, obs136, obs137, obs138, obs139, girard_component_id)
     insert_component(conn, girard_component)
     for identifier in girard_identifiers:
         insert_identifier(conn, identifier)
@@ -7079,7 +7243,34 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
                   f"fixture={expected_girard_attributes}")
             mismatches += 1
 
-    print(f"Girard GSWH-2 endpoint: "
+    girard_retrofit_specs = (
+        ("c_placeholder_wh_atwood_6gal", "girard_retrofit_atwood_6gal"),
+        ("c_placeholder_wh_atwood_10gal", "girard_retrofit_atwood_10gal"),
+        ("c_placeholder_wh_12del", "girard_retrofit_suburban_10_12gal"),
+    )
+    for from_id, group_key in girard_retrofit_specs:
+        edge_id = girard_gswh2_retrofit_edge(
+            conn, obs140, from_id, girard_component_id, group_key)
+        fixture_edge = next(
+            (e for e in edges_doc if e.get("group") == group_key), None)
+        if fixture_edge is None:
+            print(f"MISMATCH ground-truth.yaml has no {group_key} edge")
+            mismatches += 1
+            continue
+        resolved_verdict = conn.execute(
+            "SELECT verdict FROM edge_substitution_detail WHERE edge_id = ?",
+            (edge_id,)).fetchone()["verdict"]
+        if resolved_verdict != fixture_edge["a_to_b"]["verdict"]:
+            print(f"MISMATCH {group_key} verdict: fixture="
+                  f"{fixture_edge['a_to_b']['verdict']} resolved={resolved_verdict}")
+            mismatches += 1
+        resolved_value = compute_confidence(get_evidence_for_edge(conn, edge_id))["value"]
+        if round(resolved_value, 2) != fixture_edge["confidence"]["value"]:
+            print(f"MISMATCH {group_key} confidence value: fixture="
+                  f"{fixture_edge['confidence']['value']} resolved={resolved_value}")
+            mismatches += 1
+
+    print(f"Girard GSWH-2 endpoint + retrofit edges: "
           f"{mismatches - girard_mismatches_before} mismatch(es)")
 
     print(f"\n{mismatches} total mismatches against ground-truth.yaml")

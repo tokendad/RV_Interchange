@@ -308,6 +308,17 @@ CANONICAL = {
     # See Docs/Data/Girard/VENDOR-Girard.md.
     "max_gas_pressure_in_wc":    "documented maximum inlet gas supply pressure, inches water column (distinct from min_gas_pressure_in_wc)",
     "manufacturer_address":      "manufacturer's printed address/phone/website, as observed on a physical label",
+
+    # Girard GSWH-2 service/owner's manual pass-2 (2026-08-16, issue #53).
+    "manifold_pressure_min_in_wc": "documented minimum gas manifold pressure, inches water column (multi-band range low end)",
+    "manifold_pressure_max_in_wc": "documented maximum gas manifold pressure, inches water column (multi-band range high end)",
+    "eco_max_temp_f":            "documented Emergency Cut Off (ECO) maximum temperature, Fahrenheit",
+    "unit_weight_lb":            "documented unit weight (not shipping weight), pounds",
+    "shipping_weight_lb":        "documented shipping weight (carton, not unit), pounds",
+    "lippert_part_number":       "Lippert-issued part number for a Girard/Lippert-brand unit, as printed in a manufacturer document",
+    "product_size_h":            "documented physical unit height (not a cutout/rough-opening), in",
+    "product_size_w":            "documented physical unit width (not a cutout/rough-opening), in",
+    "product_size_d":            "documented physical unit depth (not a cutout/rough-opening), in",
 }
 
 # --------------------------------------------------------------------------
@@ -514,6 +525,7 @@ ALIASES = {
     "replaces": "accessory_data",
     "installation_without_replacement_panel": "accessory_data",
     "cutout_required": "accessory_data",
+    "conversion_kits": "accessory_data",
 
     # provenance-adjacent real content
     "alt_text": "alt_text_claim",
@@ -563,6 +575,17 @@ ALIASES = {
     # Girard GSWH-2 in-hand teardown anchor (2026-08-16)
     "max_gas_pressure_in_wc": "max_gas_pressure_in_wc",
     "manufacturer_address": "manufacturer_address",
+
+    # Girard GSWH-2 service/owner's manual pass-2 (2026-08-16, issue #53)
+    "manifold_pressure_min_in_wc": "manifold_pressure_min_in_wc",
+    "manifold_pressure_max_in_wc": "manifold_pressure_max_in_wc",
+    "eco_max_temp_f": "eco_max_temp_f",
+    "unit_weight_lb": "unit_weight_lb",
+    "shipping_weight_lb": "shipping_weight_lb",
+    "lippert_part_number": "lippert_part_number",
+    "product_size_h": "product_size_h",
+    "product_size_w": "product_size_w",
+    "product_size_d": "product_size_d",
 }
 
 # --------------------------------------------------------------------------

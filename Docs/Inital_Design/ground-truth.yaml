@@ -1403,12 +1403,27 @@ components:
     interchange_code: null
     identifiers:
       - {ns: girard, value: "GSWH-2", visibility: rating_plate}
+      - {ns: lippert, value: "2022107534", visibility: service_manual_title_page}
     attributes:
-      serial:                    {value: "2GWH0303465", provenance: dataplate_photo, source_observation_id: 135}
-      fuel_type:                 {value: "Propane", provenance: dataplate_photo, source_observation_id: 136}
-      compatibility_statement:   {value: "Induced draft direct vent tankless water heater for installation in a manufactured home or recreational vehicle, suitable for potable water heating only. Must be installed per local codes or, absent local codes, ANSI Z223.1/NFPA54 and/or CSA B149.1 (manufactured home) or NFPA 1192 and/or CAN/CSA-Z240 RV Series (recreational vehicle).", provenance: dataplate_photo, source_observation_id: 135}
-      dc_voltage_v:               {value: 12, unit: V, provenance: dataplate_photo, source_observation_id: 136}
-      max_gas_pressure_in_wc:     {value: 14, unit: "in WC", provenance: dataplate_photo, source_observation_id: 136}
+      serial:                      {value: "2GWH0303465", provenance: dataplate_photo, source_observation_id: 135}
+      fuel_type:                   {value: "Propane", provenance: dataplate_photo, source_observation_id: 136}
+      compatibility_statement:     {value: "Induced draft direct vent tankless water heater for installation in a manufactured home or recreational vehicle, suitable for potable water heating only. Must be installed per local codes or, absent local codes, ANSI Z223.1/NFPA54 and/or CSA B149.1 (manufactured home) or NFPA 1192 and/or CAN/CSA-Z240 RV Series (recreational vehicle).", provenance: dataplate_photo, source_observation_id: 135}
+      dc_voltage_v:                 {value: 12, unit: V, provenance: dataplate_photo, source_observation_id: 136}
+      max_gas_pressure_in_wc:       {value: 14, unit: "in WC", provenance: dataplate_photo, source_observation_id: 136}
+      input_btuh:                   {value: 42000, unit: "BTU/h", provenance: manufacturer_pdf, source_observation_id: 138}
+      dc_amperage_a:                 {value: 3, unit: A, provenance: manufacturer_pdf, source_observation_id: 138}
+      min_gas_pressure_in_wc:       {value: 11, unit: "in WC", provenance: manufacturer_pdf, source_observation_id: 138}
+      manifold_pressure_min_in_wc:  {value: 1.5, unit: "in WC", provenance: manufacturer_pdf, source_observation_id: 138}
+      manifold_pressure_max_in_wc:  {value: 7.8, unit: "in WC", provenance: manufacturer_pdf, source_observation_id: 138}
+      max_working_pressure_psi:     {value: 125, unit: psi, provenance: manufacturer_pdf, source_observation_id: 138}
+      product_size_h:                {value: 12.5, unit: in, provenance: manufacturer_pdf, source_observation_id: 138}
+      product_size_w:                {value: 12.5, unit: in, provenance: manufacturer_pdf, source_observation_id: 138}
+      product_size_d:                {value: 15.5, unit: in, provenance: manufacturer_pdf, source_observation_id: 138}
+      shipping_weight_lb:            {value: 22, unit: lb, provenance: manufacturer_pdf, source_observation_id: 138}
+      eco_max_temp_f:                {value: 140, unit: F, provenance: manufacturer_pdf, source_observation_id: 138}
+      unit_weight_lb:                {value: 23, unit: lb, provenance: manufacturer_pdf, source_observation_id: 137}
+      rough_opening_h_in:            {value: 13, unit: in, provenance: manufacturer_pdf, source_observation_id: 139}
+      rough_opening_w_in:            {value: 13, unit: in, provenance: manufacturer_pdf, source_observation_id: 139}
 
 ---
 
@@ -1735,6 +1750,137 @@ edges:
       verdict: not_observed
       caveats: []
       note: "Reverse direction not documented, same reasoning as the Suburban edges."
+
+  - type: substitutes
+    a: c_placeholder_wh_atwood_6gal
+    b: c_placeholder_wh_girard_gswh2
+    group: girard_retrofit_atwood_6gal
+    asymmetric: true
+    basis: manufacturer_documented
+    requires_part: {ns: girard, value: "2GWHDA6", role: conversion_door_flange_kit}
+    source: >
+      Obs #140 (Girard's own installation manual addendum for aftermarket
+      installations): existing Atwood 6-gallon cutout (16.25in x 12.625in)
+      REFRAMED DOWN to the GSWH-2's 13in x 13in opening via kit 2GWHDA6 —
+      opposite shape from the IW60RL retrofit edges above (a larger existing
+      opening covered by a panel, not resized). Same family-placeholder
+      caveat as the IW60RL Atwood edges: no specific in-fixture Atwood SKU.
+    confidence:
+      alpha: 4
+      beta: 1
+      value: 0.80
+      certainty: 3
+      note: Same reasoning as the IW60RL Atwood retrofit edges — manufacturer-documented, but for a target family this fixture has zero independent research on.
+    a_to_b:
+      verdict: fits_with_modification
+      caveats:
+        - blocking: true
+          text: >
+            Existing Atwood 6-gallon cutout (16.25in x 12.625in) must be
+            REFRAMED DOWN to the GSWH-2's smaller 13in x 13in opening,
+            supported on all sides by a wooden frame and mounted with #8
+            3/4in flat head screws; a 2x2in vertical brace is required.
+        - blocking: true
+          text: >
+            The 2GWHDA6 conversion door kit does not cover the corners of an
+            Atwood 6-gallon water heater with a FLUSH MOUNT door —
+            modification/fabrication is needed to cover the corners.
+        - blocking: false
+          text: "Target is a manufacturer-named family, not a specific Atwood model — cutout dimensions for this family are unconfirmed in this fixture."
+      note: Cross-vendor retrofit path, sourced entirely from Girard's own addendum.
+    b_to_a:
+      verdict: not_observed
+      caveats: []
+      note: "Reverse direction not documented."
+
+  - type: substitutes
+    a: c_placeholder_wh_atwood_10gal
+    b: c_placeholder_wh_girard_gswh2
+    group: girard_retrofit_atwood_10gal
+    asymmetric: true
+    basis: manufacturer_documented
+    requires_part: {ns: girard, value: "2GWHDAS10", role: conversion_door_flange_kit}
+    source: >
+      Obs #140: existing Atwood 10-gallon cutout (16.25in x 15.75in)
+      REFRAMED DOWN to the GSWH-2's 13in x 13in opening via kit 2GWHDAS10 —
+      the same kit also covers the Suburban 10-12 gallon target below (obs
+      #137's sell sheet: "REPLACES 10-12 GALLON SUBURBAN AND ATWOOD").
+    confidence:
+      alpha: 4
+      beta: 1
+      value: 0.80
+      certainty: 3
+      note: Same reasoning as the Atwood 6-gallon edge above.
+    a_to_b:
+      verdict: fits_with_modification
+      caveats:
+        - blocking: true
+          text: >
+            Existing Atwood 10-gallon cutout (16.25in x 15.75in) must be
+            REFRAMED DOWN to the GSWH-2's smaller 13in x 13in opening,
+            supported on all sides by a wooden frame and mounted with #8
+            3/4in flat head screws; two 2x2in vertical braces are required.
+        - blocking: true
+          text: >
+            The 2GWHDAS10 conversion door kit does not cover the corners of
+            an Atwood 10-gallon water heater with a FLUSH MOUNT door —
+            modification/fabrication is needed to cover the corners.
+        - blocking: false
+          text: "Target is a manufacturer-named family, not a specific Atwood model — cutout dimensions for this family are unconfirmed in this fixture."
+      note: Cross-vendor retrofit path, sourced entirely from Girard's own addendum.
+    b_to_a:
+      verdict: not_observed
+      caveats: []
+      note: "Reverse direction not documented."
+
+  - type: substitutes
+    a: c_placeholder_wh_12del
+    b: c_placeholder_wh_girard_gswh2
+    group: girard_retrofit_suburban_10_12gal
+    asymmetric: true
+    basis: manufacturer_documented
+    requires_part: {ns: girard, value: "2GWHDAS10", role: conversion_door_flange_kit}
+    source: >
+      Obs #140's worked example is titled "10 GA. SUBURBAN" (cutout 16.25in
+      x 16.25in) rather than SW12DEL specifically, but obs #137's sell sheet
+      states the 2GWHDAS10 kit "REPLACES 10-12 GALLON SUBURBAN AND ATWOOD"
+      as one kit/target family, and 16.25in is within 1/8in of SW12DEL's own
+      16.38in retailer-spec-block cutout (c_placeholder_wh_12del) — treated
+      as ordinary rounding between Girard's own addendum measurement and
+      Suburban's retailer spec, not a different physical opening. Target is
+      the real SW12DEL component (not a family placeholder), unlike the two
+      Atwood edges above.
+    confidence:
+      alpha: 4
+      beta: 1
+      value: 0.80
+      certainty: 3
+      note: >
+        Docked to the same 0.80 as the Atwood retrofit edges (not the
+        IW60RL Suburban edges' 0.833) because the target identification
+        itself rests on a same-kit/close-dimension inference across two
+        documents rather than an exact cutout match — a real Suburban
+        component, but not a certain one for this specific edge.
+    a_to_b:
+      verdict: fits_with_modification
+      caveats:
+        - blocking: true
+          text: >
+            Existing Suburban 10-12 gallon cutout (~16.25-16.38in x
+            16.25-16.38in) must be REFRAMED DOWN to the GSWH-2's smaller
+            13in x 13in opening, supported on all sides by a wooden frame
+            and mounted with #8 3/4in flat head screws; two 2x2in vertical
+            braces are required.
+        - blocking: false
+          text: >
+            No corner-modification issue for a Suburban flush mount door
+            (the 2GWHDAS10 kit's corner gap only applies to Atwood flush
+            mount doors).
+      note: Cross-vendor retrofit path, sourced entirely from Girard's own addendum plus the sell sheet's kit table.
+    b_to_a:
+      verdict: not_observed
+      caveats: []
+      note: "Reverse direction not documented."
 
   - type: fits
     from: c_placeholder_furnace_part_2608a
