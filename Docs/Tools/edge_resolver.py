@@ -42,7 +42,7 @@ from interchange_store import (
 from part_types import (
     ATWOOD_PART_TYPE, COLEMAN_AC_PART_TYPE, COLEMAN_AC_PLENUM_PART_TYPE,
     COLEMAN_AC_PLENUM_REPAIR_PART_TYPE, COLEMAN_AC_REPAIR_PART_TYPE, FURRION_PART_TYPE,
-    NORCOLD_REFRIGERATOR_PART_TYPE, NORCOLD_REPAIR_PART_TYPE,
+    GIRARD_PART_TYPE, NORCOLD_REFRIGERATOR_PART_TYPE, NORCOLD_REPAIR_PART_TYPE,
     SUBURBAN_COOKTOP_PART_TYPE, SUBURBAN_COOKTOP_REPAIR_PART_TYPE, SUBURBAN_FURNACE_PART_TYPE,
     SUBURBAN_FURNACE_REPAIR_PART_TYPE, THERMOSTAT_PART_TYPE, WATER_HEATER_PART_TYPE,
 )
@@ -84,6 +84,7 @@ ATWOOD_GH6_6E_PARTS_RESOLVER_VERSION = "atwood_gh6_6e_parts_v1"
 ATWOOD_GH6_6E_VALVE_RESOLVER_VERSION = "atwood_gh6_6e_valve_v1"
 FURRION_ENDPOINT_RESOLVER_VERSION = "furrion_endpoint_v1"
 FURRION_PARTS_RESOLVER_VERSION = "furrion_parts_v1"
+GIRARD_ENDPOINT_RESOLVER_VERSION = "girard_endpoint_v1"
 ATWOOD_6_GAL_OPENING = (12.625, 16.25)
 ATWOOD_10_GAL_OPENING = (15.625, 16.25)
 COLEMAN_VISUAL_MATCH_CANDIDATE = {
@@ -2172,6 +2173,62 @@ def furrion_flue_damper_fits(conn, safety_row, host_component_id):
             effect_beta=beta, source_observation_id=source_id, occurred_at=now_iso()))
 
     return component, identifiers, attributes, [edge.id]
+
+
+def girard_gswh2_component(rating_row, back_panel_row, component_id):
+    """
+    Build the owner's in-hand Girard GSWH-2 tankless gas water heater as an
+    exact endpoint component -- the 6th Stage 1 vendor. See
+    Docs/Data/Girard/VENDOR-Girard.md.
+
+    Single identifier, unlike Norcold/Coleman-Mach/Furrion's coexisting-pair
+    cases -- only one model number (`GSWH-2`) appears on this unit, printed
+    on the interior rating/compliance label (obs #135). That label carries
+    no spec table (no BTU input, no GPM capacity, no dimensions) -- only
+    compliance text, the no-pilot/auto-ignition statement, and the pressure
+    relief valve warning. The exterior back-panel label (obs #136) supplies
+    the only numeric specs available this pass: 12VDC power and a 14in WC
+    maximum LP gas inlet pressure. Both labels carry the same barcode serial
+    (`2GWH0303465`), confirmed by direct comparison, establishing they
+    describe the same physical unit.
+    """
+    _validate_observation_source(rating_row, 135, "dataplate_photo", 2,
+                                  "rating/compliance label")
+    _validate_observation_source(back_panel_row, 136, "dataplate_photo", 2,
+                                  "back panel connections/nameplate")
+
+    rating = _normalized_attributes(rating_row)
+    back_panel = _normalized_attributes(back_panel_row)
+
+    if rating.get("model") != "GSWH-2":
+        raise ValueError(f"unexpected Girard rating-plate model: {rating.get('model')}")
+    if rating.get("serial_number") != back_panel.get("serial_number"):
+        raise ValueError(
+            f"Girard rating-plate serial {rating.get('serial_number')!r} does not match "
+            f"back-panel serial {back_panel.get('serial_number')!r}")
+
+    def text_attr(name, value, source_row):
+        return ComponentAttribute(
+            component_id, name, "dataplate_photo", source_row["id"], value_text=value,
+            resolver_version=GIRARD_ENDPOINT_RESOLVER_VERSION)
+
+    def number_attr(name, value, source_row, unit=None):
+        return ComponentAttribute(
+            component_id, name, "dataplate_photo", source_row["id"], value_number=value,
+            unit=unit, resolver_version=GIRARD_ENDPOINT_RESOLVER_VERSION)
+
+    component = Component(component_id, GIRARD_PART_TYPE, None)
+    identifiers = [Identifier(component_id, "girard", "GSWH-2", "rating_plate")]
+    attributes = [
+        text_attr("serial", rating["serial_number"], rating_row),
+        text_attr("fuel_type", back_panel["fuel_type"], back_panel_row),
+        text_attr("compatibility_statement", rating["compatibility_statement"], rating_row),
+        number_attr("dc_voltage_v", float(back_panel["dc_voltage_v"]), back_panel_row, unit="V"),
+        number_attr("max_gas_pressure_in_wc", float(back_panel["max_gas_pressure_in_wc"]),
+                    back_panel_row, unit="in WC"),
+    ]
+
+    return component, identifiers, attributes
 
 
 COLEMAN_AC_48253B866_IDENTIFIERS = {("coleman", "48253B866")}
@@ -6961,6 +7018,69 @@ def check_fixture(ground_truth_path, obs_db_path, db_path=":memory:"):
 
     print(f"Furrion FWH09AFA-AM endpoint + flue damper: "
           f"{mismatches - furrion_mismatches_before} mismatch(es)")
+
+    girard_mismatches_before = mismatches
+    obs135 = load_observation(obs_db_path, 135)
+    obs136 = load_observation(obs_db_path, 136)
+    girard_component_id = "c_placeholder_wh_girard_gswh2"
+    girard_component, girard_identifiers, girard_attributes = girard_gswh2_component(
+        obs135, obs136, girard_component_id)
+    insert_component(conn, girard_component)
+    for identifier in girard_identifiers:
+        insert_identifier(conn, identifier)
+    for attribute in girard_attributes:
+        insert_component_attribute(conn, attribute)
+
+    fixture_girard = next(
+        (c for c in components_doc if c.get("component_id") == girard_component_id), None)
+    if fixture_girard is None:
+        print(f"MISMATCH fixture is missing component: {girard_component_id}")
+        mismatches += 1
+    else:
+        resolved_girard = conn.execute(
+            "SELECT * FROM components WHERE component_id = ?", (girard_component_id,)).fetchone()
+        if (resolved_girard["part_type_id"], resolved_girard["interchange_code"]) != (
+                fixture_girard["part_type_id"], fixture_girard["interchange_code"]):
+            print(f"MISMATCH Girard component: "
+                  f"resolved={dict(resolved_girard)} fixture={fixture_girard}")
+            mismatches += 1
+
+        resolved_girard_identifiers = {
+            (row["ns"], row["value"], row["visibility"])
+            for row in conn.execute(
+                "SELECT ns, value, visibility FROM identifiers WHERE component_id = ?",
+                (girard_component_id,)).fetchall()
+        }
+        expected_girard_identifiers = {
+            (i["ns"], str(i["value"]), i.get("visibility"))
+            for i in fixture_girard["identifiers"]
+        }
+        if resolved_girard_identifiers != expected_girard_identifiers:
+            print(f"MISMATCH Girard identifiers: resolved={resolved_girard_identifiers} "
+                  f"fixture={expected_girard_identifiers}")
+            mismatches += 1
+
+        resolved_girard_attribute_rows = get_component_attributes(conn, girard_component_id)
+        resolved_girard_attributes = {}
+        for attribute in resolved_girard_attribute_rows:
+            value = attribute.value_text if attribute.value_text is not None else (
+                attribute.value_number if attribute.value_number is not None
+                else attribute.value_boolean)
+            resolved_girard_attributes[attribute.name] = (
+                value, attribute.provenance, attribute.source_observation_id)
+        expected_girard_attributes = {
+            name: (definition["value"], definition["provenance"],
+                   definition["source_observation_id"])
+            for name, definition in fixture_girard["attributes"].items()
+        }
+        if (len(resolved_girard_attribute_rows) != len(expected_girard_attributes)
+                or resolved_girard_attributes != expected_girard_attributes):
+            print(f"MISMATCH Girard attributes: resolved={resolved_girard_attributes} "
+                  f"fixture={expected_girard_attributes}")
+            mismatches += 1
+
+    print(f"Girard GSWH-2 endpoint: "
+          f"{mismatches - girard_mismatches_before} mismatch(es)")
 
     print(f"\n{mismatches} total mismatches against ground-truth.yaml")
     return 1 if mismatches else 0

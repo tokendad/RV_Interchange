@@ -29,6 +29,7 @@ SUBURBAN_COOKTOP_REPAIR_PART_TYPE = 606
 COLEMAN_AC_PLENUM_PART_TYPE = 607
 COLEMAN_AC_PLENUM_REPAIR_PART_TYPE = 608
 FURRION_PART_TYPE = 418
+GIRARD_PART_TYPE = 419
 
 PART_TYPES = (
     PartType(id=WATER_HEATER_PART_TYPE, display_name="Water Heater"),
@@ -46,6 +47,7 @@ PART_TYPES = (
     PartType(id=COLEMAN_AC_PLENUM_REPAIR_PART_TYPE,
              display_name="Rooftop AC Ceiling Plenum Repair Part"),
     PartType(id=FURRION_PART_TYPE, display_name="Water Heater"),
+    PartType(id=GIRARD_PART_TYPE, display_name="Water Heater"),
 )
 
 PART_TYPE_NAMES = {pt.id: pt.display_name for pt in PART_TYPES}

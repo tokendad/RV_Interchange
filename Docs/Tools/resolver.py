@@ -303,6 +303,11 @@ CANONICAL = {
     "manifold_pressure_pa":      "documented gas manifold pressure, Pa (lowest altitude band on a multi-band table)",
     "gas_code":                  "manufacturer-assigned gas/altitude conversion code physically observed on a parameter label",
     "flue_damper_part_number":   "manufacturer-named automatic flue damper device part number, physically labeled as required/installed on one in-hand unit",
+
+    # Girard GSWH-2 in-hand teardown anchor (2026-08-16), 6th Stage 1 vendor.
+    # See Docs/Data/Girard/VENDOR-Girard.md.
+    "max_gas_pressure_in_wc":    "documented maximum inlet gas supply pressure, inches water column (distinct from min_gas_pressure_in_wc)",
+    "manufacturer_address":      "manufacturer's printed address/phone/website, as observed on a physical label",
 }
 
 # --------------------------------------------------------------------------
@@ -554,6 +559,10 @@ ALIASES = {
     "manifold_pressure_pa": "manifold_pressure_pa",
     "gas_code": "gas_code",
     "flue_damper_part_number": "flue_damper_part_number",
+
+    # Girard GSWH-2 in-hand teardown anchor (2026-08-16)
+    "max_gas_pressure_in_wc": "max_gas_pressure_in_wc",
+    "manufacturer_address": "manufacturer_address",
 }
 
 # --------------------------------------------------------------------------

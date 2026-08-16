@@ -22,6 +22,7 @@ MANUFACTURERS = (
     Manufacturer(ns="atwood", display_name="Atwood"),
     Manufacturer(ns="norcold", display_name="Norcold"),
     Manufacturer(ns="furrion", display_name="Furrion"),
+    Manufacturer(ns="girard", display_name="Girard"),
 )
 
 MANUFACTURER_NAMES = {m.ns: m.display_name for m in MANUFACTURERS}

@@ -1398,6 +1398,18 @@ components:
     attributes:
       description: {value: "Automatic flue damper device", provenance: dataplate_photo, source_observation_id: 131}
 
+  - component_id: c_placeholder_wh_girard_gswh2
+    part_type_id: 419
+    interchange_code: null
+    identifiers:
+      - {ns: girard, value: "GSWH-2", visibility: rating_plate}
+    attributes:
+      serial:                    {value: "2GWH0303465", provenance: dataplate_photo, source_observation_id: 135}
+      fuel_type:                 {value: "Propane", provenance: dataplate_photo, source_observation_id: 136}
+      compatibility_statement:   {value: "Induced draft direct vent tankless water heater for installation in a manufactured home or recreational vehicle, suitable for potable water heating only. Must be installed per local codes or, absent local codes, ANSI Z223.1/NFPA54 and/or CSA B149.1 (manufactured home) or NFPA 1192 and/or CAN/CSA-Z240 RV Series (recreational vehicle).", provenance: dataplate_photo, source_observation_id: 135}
+      dc_voltage_v:               {value: 12, unit: V, provenance: dataplate_photo, source_observation_id: 136}
+      max_gas_pressure_in_wc:     {value: 14, unit: "in WC", provenance: dataplate_photo, source_observation_id: 136}
+
 ---
 
 edges:
