@@ -14,6 +14,9 @@ COMPOSE = ROOT / "deploy" / "docker-compose.yaml"
 def rendered_compose(*profiles):
     if shutil.which("docker") is None:
         pytest.skip("docker compose is required for the deployment contract test")
+    env = os.environ.copy()
+    env.pop("COMPOSE_PROFILES", None)
+    env["RVINTERCHANGE_TUNNEL_TOKEN"] = "test-token"
     command = ["docker", "compose", "-f", str(COMPOSE)]
     for profile in profiles:
         command.extend(["--profile", profile])
@@ -24,7 +27,7 @@ def rendered_compose(*profiles):
         text=True,
         capture_output=True,
         check=True,
-        env={**os.environ, "RVINTERCHANGE_TUNNEL_TOKEN": "test-token"},
+        env=env,
     )
     return json.loads(result.stdout)
 
