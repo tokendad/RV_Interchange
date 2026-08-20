@@ -116,3 +116,21 @@ def test_public_nginx_sets_the_required_security_headers():
     for header in required_headers:
         assert header in config
     assert "'unsafe-inline'" not in config
+
+
+def test_review_image_owns_admin_assets():
+    dockerfile = read("review/Dockerfile")
+    assert "review/index.html" in dockerfile
+    assert "review/admin.js" in dockerfile
+    assert "web/api-client.js" in dockerfile
+    assert "web/style.css" in dockerfile
+
+
+def test_review_proxy_exposes_only_existing_debug_contract():
+    config = read("review/nginx.conf")
+    assert "location ^~ /public/v1/" in config
+    assert "location ^~ /debug/v1/" in config
+    assert "location ^~ /review/v1/" in config
+    assert "return 503" in config
+    for private_path in ("/docs", "/redoc", "/openapi.json"):
+        assert private_path in config
