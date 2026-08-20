@@ -74,7 +74,7 @@ def test_coverage_endpoint(client):
     suburban = next(m for m in body["manufacturers"] if m["manufacturer"] == "Suburban")
     assert suburban["components"] == 1
     assert {m["manufacturer"] for m in body["manufacturers"]} == \
-        {"Suburban", "Coleman-Mach", "Atwood", "Norcold"}
+        {"Suburban", "Coleman-Mach", "Atwood", "Norcold", "Furrion", "Girard", "Lippert"}
     assert body["totals"]["components"] == 1
 
 

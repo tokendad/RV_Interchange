@@ -7,8 +7,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from manufacturers import MANUFACTURERS, MANUFACTURER_NAMES
 
 
-def test_manufacturers_cover_the_four_shipped_vendors():
-    assert {m.ns for m in MANUFACTURERS} == {"suburban", "coleman", "atwood", "norcold"}
+def test_manufacturers_cover_all_shipped_vendors():
+    assert {m.ns for m in MANUFACTURERS} == {
+        "suburban", "coleman", "atwood", "norcold", "furrion", "girard", "lippert",
+    }
 
 
 def test_manufacturer_names_is_derived_from_registry():
@@ -20,6 +22,9 @@ def test_known_manufacturer_display_names():
     assert MANUFACTURER_NAMES["suburban"] == "Suburban"
     assert MANUFACTURER_NAMES["atwood"] == "Atwood"
     assert MANUFACTURER_NAMES["norcold"] == "Norcold"
+    assert MANUFACTURER_NAMES["furrion"] == "Furrion"
+    assert MANUFACTURER_NAMES["girard"] == "Girard"
+    assert MANUFACTURER_NAMES["lippert"] == "Lippert"
 
 
 def test_non_manufacturer_namespaces_are_absent():

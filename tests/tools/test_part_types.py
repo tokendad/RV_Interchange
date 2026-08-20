@@ -20,6 +20,8 @@ from part_types import (
     SUBURBAN_FURNACE_REPAIR_PART_TYPE,
     THERMOSTAT_PART_TYPE,
     WATER_HEATER_PART_TYPE,
+    FURRION_PART_TYPE,
+    GIRARD_PART_TYPE,
 )
 
 
@@ -31,6 +33,7 @@ def test_part_types_cover_every_exported_constant():
         NORCOLD_REFRIGERATOR_PART_TYPE, NORCOLD_REPAIR_PART_TYPE,
         COLEMAN_AC_PART_TYPE, COLEMAN_AC_REPAIR_PART_TYPE,
         COLEMAN_AC_PLENUM_PART_TYPE, COLEMAN_AC_PLENUM_REPAIR_PART_TYPE,
+        FURRION_PART_TYPE, GIRARD_PART_TYPE,
     }
     registry_ids = {pt.id for pt in PART_TYPES}
     assert registry_ids == exported_ids

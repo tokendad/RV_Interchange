@@ -366,5 +366,7 @@ def test_get_coverage_lists_every_known_manufacturer_even_with_no_data():
     conn = init_db(":memory:")
     result = CoverageService.get_coverage(conn)
     names = {m["manufacturer"] for m in result["manufacturers"]}
-    assert names == {"Suburban", "Coleman-Mach", "Atwood", "Norcold"}
+    assert names == {
+        "Suburban", "Coleman-Mach", "Atwood", "Norcold", "Furrion", "Girard", "Lippert",
+    }
     assert all(m["components"] == 0 for m in result["manufacturers"])
