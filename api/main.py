@@ -16,7 +16,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "Docs" / "Tools"))
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api.services import CoverageService, IdentifierService, ReplacementService, SearchService
@@ -41,18 +40,6 @@ if not logger.handlers:
     logger.addHandler(logging.StreamHandler())
 
 app = FastAPI(title="RV Interchange Public API", version="1")
-
-# Personal-use-only CORS: the test website (Task 10) is the one and only browser
-# caller, always on this fixed local port, reachable from localhost or the LAN. Not
-# "*" — see the Docker deployment plan's note that this stack is not public.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:8485", "http://127.0.0.1:8485"],
-    allow_origin_regex=r"http://(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}):8485",
-    allow_methods=["GET"],
-    allow_headers=["*"],
-)
-
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -82,6 +69,11 @@ def get_conn():
         yield conn
     finally:
         conn.close()
+
+
+@app.get("/health/")
+def health():
+    return {"status": "ok"}
 
 
 @app.get("/public/v1/resolve", response_model=ResolveResponse)

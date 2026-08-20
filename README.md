@@ -117,6 +117,7 @@ uvicorn api.main:app --reload
 
 Endpoints:
 
+- `GET /health/` — container/proxy health check; returns `{"status":"ok"}`.
 - `GET /public/v1/resolve?ns=<ns>&identifier=<id>` — resolve an identifier to its component.
 - `GET /public/v1/replacements?ns=<ns>&identifier=<id>` — directional substitution/supersession
   results.
@@ -137,6 +138,9 @@ The `web/` directory is a small static/JS frontend (search-first lookup page plu
 admin/debug page) served from its own Dockerfile, alongside the API's Dockerfile in
 `api/`. Both are wired into the shared `/data/DockerConfigs/docker-compose.yaml` as
 `rvinterchange-api` and `rvinterchange-web`:
+
+Browser callers use the same origin through Nginx; the FastAPI service does not enable
+CORS.
 
 ```bash
 cd /data/DockerConfigs && docker compose up -d --build rvinterchange-api rvinterchange-web

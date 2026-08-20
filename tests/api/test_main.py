@@ -42,6 +42,24 @@ def test_resolve_endpoint(client):
     }
 
 
+def test_health_endpoint(client):
+    response = client.get("/health/")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_cross_origin_preflight_is_not_enabled(client):
+    response = client.options(
+        "/public/v1/search",
+        headers={
+            "Origin": "https://attacker.example",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert response.status_code == 405
+    assert "access-control-allow-origin" not in response.headers
+
+
 def test_resolve_endpoint_not_found(client):
     response = client.get("/public/v1/resolve", params={"ns": "suburban", "identifier": "NOPE"})
     assert response.status_code == 404
