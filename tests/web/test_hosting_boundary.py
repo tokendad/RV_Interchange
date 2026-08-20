@@ -120,17 +120,40 @@ def test_public_nginx_sets_the_required_security_headers():
 
 def test_review_image_owns_admin_assets():
     dockerfile = read("review/Dockerfile")
-    assert "review/index.html" in dockerfile
-    assert "review/admin.js" in dockerfile
-    assert "web/api-client.js" in dockerfile
-    assert "web/style.css" in dockerfile
+    copy_sources = {
+        line.split()[1] for line in dockerfile.splitlines() if line.startswith("COPY ")
+    }
+    assert copy_sources == {
+        "review/nginx.conf",
+        "review/index.html",
+        "review/admin.js",
+        "web/api-client.js",
+        "web/style.css",
+    }
+    assert not (ROOT / "web/admin.html").exists()
+    assert not (ROOT / "web/admin.js").exists()
 
 
 def test_review_proxy_exposes_only_existing_debug_contract():
-    config = read("review/nginx.conf")
-    assert "location ^~ /public/v1/" in config
-    assert "location ^~ /debug/v1/" in config
-    assert "location ^~ /review/v1/" in config
-    assert "return 503" in config
-    for private_path in ("/docs", "/redoc", "/openapi.json"):
-        assert private_path in config
+    blocks = location_blocks(read("review/nginx.conf"))
+    proxied = {name for name, body in blocks.items() if "proxy_pass" in body}
+    assert proxied == {
+        "location = /public/v1/search",
+        "location = /public/v1/resolve",
+        "location = /public/v1/replacements",
+        "location = /debug/v1/logs",
+    }
+    assert "return 503" in blocks["location ^~ /review/v1/"]
+    for denied in (
+        "location ^~ /submission/v1/",
+        "location = /docs",
+        "location = /redoc",
+        "location = /openapi.json",
+        "location /",
+    ):
+        assert "proxy_pass" not in blocks[denied]
+
+
+def test_review_back_link_targets_the_canonical_public_site():
+    html = read("review/index.html")
+    assert 'href="https://rvinterchange.com/"' in html
