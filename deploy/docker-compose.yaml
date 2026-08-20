@@ -1,0 +1,74 @@
+name: rvinterchange
+
+services:
+  rvinterchange-api:
+    container_name: rvinterchange-api
+    build:
+      context: ..
+      dockerfile: api/Dockerfile
+    image: rvinterchange-api:latest
+    restart: unless-stopped
+    environment:
+      TZ: America/New_York
+      RVI_LOG_DIR: /app/logs
+    volumes:
+      - ../Docs/Tools:/app/Docs/Tools:ro
+      - /data/DockerConfigs/RVInterchange/logs:/app/logs
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8484/health/')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  rvinterchange-web:
+    container_name: rvinterchange-web
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+    image: rvinterchange-web:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8485:80"
+    depends_on:
+      rvinterchange-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  rvinterchange-review:
+    container_name: rvinterchange-review
+    build:
+      context: ..
+      dockerfile: review/Dockerfile
+    image: rvinterchange-review:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8486:80"
+    depends_on:
+      rvinterchange-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  rvinterchange-cloudflared:
+    container_name: rvinterchange-cloudflared
+    image: cloudflare/cloudflared:2026.7.2
+    restart: unless-stopped
+    profiles: ["tunnel"]
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${RVINTERCHANGE_TUNNEL_TOKEN:-}
+    depends_on:
+      rvinterchange-web:
+        condition: service_healthy
+      rvinterchange-review:
+        condition: service_healthy
