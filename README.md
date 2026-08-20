@@ -132,19 +132,27 @@ See `docs/superpowers/plans/2026-08-03-stage2-public-api.md` for the Phase 1 sco
 `docs/superpowers/plans/2026-08-04-stage2-frontend-phase2.md` for the Phase 2
 (search-first frontend + admin/debug page) plan.
 
-## Test website (Stage 2, Docker)
+## Public site and local hosting
 
-The `web/` directory is a small static/JS frontend (search-first lookup page plus an
-admin/debug page) served from its own Dockerfile, alongside the API's Dockerfile in
-`api/`. Both are wired into the shared `/data/DockerConfigs/docker-compose.yaml` as
-`rvinterchange-api` and `rvinterchange-web`:
+The public lookup site is available at <https://rvinterchange.com>. The operational
+review interface is available at <https://review.rvinterchange.com> and requires
+Cloudflare Access authentication.
 
-Browser callers use the same origin through Nginx; the FastAPI service does not enable
-CORS.
+The repository-owned Compose project runs the API, public web frontend, protected review
+frontend, and Cloudflare Tunnel connector. Start or update the complete stack with:
 
 ```bash
-cd /data/DockerConfigs && docker compose up -d --build rvinterchange-api rvinterchange-web
+docker compose --env-file /data/DockerConfigs/.env -f deploy/docker-compose.yaml --profile tunnel up -d --build
 ```
+
+Loopback diagnostics are available at `http://127.0.0.1:8485` for the public frontend and
+`http://127.0.0.1:8486` for the review frontend. The API has no host port. Browser callers
+use same-origin API requests through Nginx; the FastAPI service does not enable CORS.
+
+`Docs/Tools/components.db` is mounted read-only into the API container. Rebuild it with the
+canonical command documented above before starting a fresh checkout. See
+[`docs/operations/rvinterchange-local-hosting.md`](docs/operations/rvinterchange-local-hosting.md)
+for deployment, verification, and rollback procedures.
 
 ## Tests
 
