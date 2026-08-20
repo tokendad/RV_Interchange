@@ -1,4 +1,4 @@
-const RVI_API_BASE = `${window.location.protocol}//${window.location.hostname}:8484`;
+const RVI_API_BASE = window.location.origin;
 
 async function rviFetch(path) {
   const url = `${RVI_API_BASE}${path}`;
