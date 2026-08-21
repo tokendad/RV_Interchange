@@ -1,7 +1,8 @@
-# Public submission queue and local-first hosting — design
+# Public-submission moderation queue and local-first hosting — design
 
 **Date:** 2026-08-20
-**Status:** approved 2026-08-20, including Cloudflare-only email revision
+**Status:** approved 2026-08-20, including Cloudflare-only email and frontend/authority
+reconciliation revisions
 **Issues:** [#47 Public Queue and Submission](https://github.com/tokendad/RV_Interchange/issues/47), [#32 Hosting - DNS - Google Cloud](https://github.com/tokendad/RV_Interchange/issues/32)
 
 ## Decision summary
@@ -9,9 +10,9 @@
 RV Interchange will accept public evidence through a quarantined submission system. A
 public submission is never itself a canonical observation and never writes directly to
 components, identifiers, edges, confidence records, or the published `components.db`.
-A reviewer must normalize and accept the evidence before an idempotent promotion step
-appends it to `observations.db`. Graph integration remains a separate, fixture-validated
-research step.
+An admin must decide and normalize the evidence before an idempotent, publisher-authorized
+promotion step appends it to `observations.db`. Graph integration remains a separate,
+fixture-validated research step.
 
 The first deployment remains on the local Docker host. `rvinterchange.com` will use
 Cloudflare DNS, Cloudflare Tunnel, Turnstile, and edge protections. The public site and
@@ -63,8 +64,10 @@ clear.
   photos, measurements, successful installations, failed installations, and corrections.
 - Require a verified email address without requiring a conventional user account.
 - Preserve untrusted input outside the canonical evidence and derived graph stores.
-- Let a reviewer accept, reject, request information, or mark individual claims as
+- Let an admin accept, reject, request information, or mark individual claims as
   duplicates.
+- Let manually approved Trusted reviewers append advisory endorsements, disputes, and spam
+  assessments without granting them claim-decision or publication authority.
 - Preserve an append-only audit trail for review decisions and canonical promotion.
 - Make promotion idempotent and traceable from a public submission to a canonical
   observation.
@@ -80,6 +83,7 @@ clear.
   or publication status.
 - Automatic acceptance, graph integration, confidence changes, or publication based on
   contributor reputation.
+- Automatic granting of a Trusted role based on submission counts or contributor history.
 - A public wiki, discussion forum, marketplace, or general-purpose account system.
 - Automatic fetching or scraping of submitted URLs in the first release.
 - Public PDF upload in the first release. Submitters provide a URL and page, table, or
@@ -105,6 +109,12 @@ the system working and independently testable.
    normalized observation draft, idempotent canonical promotion, and integration status.
 4. **Public contribution experience:** the three guided submission flows, email templates,
    needs-information follow-up, contact page, accessibility, and end-to-end validation.
+
+A redacted public evidence ledger is explicitly deferred until the intake, moderation,
+promotion, and disclosure rules have been exercised with real accepted records. The first
+release includes guided submission, contributor-owned status, the private moderation queue,
+manual Trusted-role management, and admin promotion. It does not ship an empty public queue or
+derive a public view directly from moderation tables.
 
 Google Cloud migration is a later plan, not a fifth task hidden inside the local launch.
 
@@ -151,9 +161,31 @@ Every review request validates the Cloudflare Access JWT in
 `Cf-Access-Jwt-Assertion`, including issuer, audience, signature, and expiration. The
 validated email must also appear in a local reviewer allowlist with an explicit role.
 The API never trusts the presence of an Access header without cryptographic validation.
-The `reviewer` role may triage submissions, decide claims, and prepare observation drafts.
-The narrower `publisher` capability is additionally required to promote a ready draft or
-record graph integration. Reviewer membership alone never grants publication authority.
+
+The first release has two product roles inside the review application:
+
+- `trusted`: manually granted and revocable. Trusted reviewers may read sanitized queue
+  evidence and append an Endorse, Dispute, or Spam assessment with a required reason. Endorse
+  and Dispute target individual material claims; Spam targets the submission. Trusted
+  reviewers cannot decide claims, prepare or mark observation drafts ready, promote evidence,
+  record integration, manage roles, alter source tiers, or change canonical data.
+- `admin`: includes queue triage, claim decisions, information requests, duplicate handling,
+  observation-draft preparation, Trusted-role management, and final approval. The narrower
+  `publisher` capability is still required to promote a ready draft or record graph
+  integration. The sole initial admin may hold that capability, but it remains distinct so a
+  later deployment can separate duties without changing the workflow.
+
+The first publisher-capable admin is established through an explicit deployment bootstrap,
+not through a public or ordinary admin request. After bootstrap, only a publisher-capable admin
+may grant or revoke `publisher`; an ordinary admin may grant or revoke `trusted` and `admin`
+roles but cannot mint publisher authority, including for itself, or replace or revoke a grant
+that contains it. The API rejects any change that would remove the last active
+publisher-capable admin. Promotion and integration endpoints independently require both the
+`admin` role and active `publisher` capability.
+
+Role gating in browser JavaScript is presentation only. Every private read and mutation is
+authorized by the review API. Grant and revocation changes take effect on the next API request
+even when the reviewer has an existing browser session.
 
 ### Cloudflare Tunnel
 
@@ -224,6 +256,18 @@ theirs to submit and do not intentionally contain people, addresses, license pla
 other unnecessary personal information. Consent versions and timestamp are stored with
 the submission.
 
+### Public and review visual systems
+
+The public contribution and contributor-status screens retain the existing public lookup
+site's navigation, footer, light surfaces, navy header, and gold accent. They reuse the
+approved observation-form and status-page information hierarchy, field grouping, explanatory
+copy, and responsive behavior without presenting the private review brand or controls.
+
+The private moderation queue uses the Nocturne review design: dark surfaces, lavender accent,
+dense split-view queue, evidence cards, resolver context, duplicate suggestions, and keyboard
+navigation. The public and review applications remain separate builds and hostnames; neither
+application ships the other's private or public-only assets.
+
 ## Verified-email session
 
 No conventional account or password is required.
@@ -238,8 +282,8 @@ No conventional account or password is required.
 6. The session expires after 24 hours and may create up to five submissions.
 
 Email comparison uses a normalized keyed digest. The address itself is encrypted at rest
-with an application key stored outside the repository. Reviewer screens show a masked
-address except when a reviewer explicitly requests contact for a needs-information action.
+with an application key stored outside the repository. Review screens show a masked address.
+Only an admin performing an explicit needs-information action may request decrypted contact.
 
 ## Submission data model
 
@@ -326,19 +370,98 @@ create normalized accepted content.
 
 - `id`: UUID primary key.
 - `submission_id` and optional `claim_id`.
-- `reviewer_id`.
+- `reviewer_identity` and `reviewer_grant_id` identifying the active grant that authorized the
+  action.
+- Optional `observation_draft_id` and `promotion_id` for draft-readiness, promotion, and
+  integration events.
 - `action`: controlled workflow action.
 - `reason_code` and private `note`.
 - `created_at`.
 
 Rows are append-only. A current status column is a query optimization; review events are
-the audit record.
+the audit record. Every privileged mutation records the normalized actor identity, authorizing
+grant, role, and capability snapshot used for that request so later revocation or re-granting
+cannot make the historical authority ambiguous.
+
+### `reviewer_grants`
+
+- `id`: UUID primary key.
+- `reviewer_identity`: normalized identity derived from the validated Access token.
+- `role`: `trusted` or `admin`.
+- `capabilities_json`: bounded capability set; `publisher` remains separately assignable.
+- `granted_by_identity`, `granted_by_grant_id`, and `granted_at`. The deployment-created
+  bootstrap grant instead records an explicit immutable bootstrap authority marker.
+
+An active admin may grant or revoke `trusted` and `admin` access. Only a publisher-capable
+admin may add or remove `publisher`. Grant and revocation history is append-only for audit
+purposes; revocation never deletes earlier assessments or decisions.
+
+The table has a composite unique key on `(reviewer_identity, id)`. Every identity/grant pair in
+the schema—including current access pointers, actor attribution, draft creation, promotion,
+integration, grant delegation, and revocation—uses a composite foreign key to that key. An API
+authorization check succeeds only when the validated identity, presented current-grant pointer,
+and referenced immutable grant all match.
+
+### `reviewer_current_grants`
+
+- `reviewer_identity`: normalized identity, primary key.
+- `reviewer_grant_id`: unique reference to the sole current immutable grant.
+
+Granting, revoking, and re-granting access update this current-grant pointer in the same
+transaction that appends the corresponding grant or revocation audit row. The primary key
+prevents duplicate active grants for one identity, including concurrent requests. Every review
+API authorization reads this table on each request; cached browser or application sessions do
+not preserve access after the pointer is removed.
+
+### `reviewer_grant_revocations`
+
+- `id`: UUID primary key.
+- `reviewer_grant_id`: unique reference to the revoked grant.
+- `revoked_by_identity`, `revoked_by_grant_id`, and `revoked_at`.
+
+Grant rows are immutable. Revocation appends a separate unique row and atomically removes the
+matching current-grant pointer. A grant is active only when it has no revocation row and is the
+identity's current pointer. Re-granting access creates a new grant rather than reactivating or
+rewriting an old one. Revocation by identity closes the current grant selected inside the same
+write transaction, preventing a concurrent grant from leaving an unintended second access
+path.
+
+The grant/revocation transaction also locks and counts current publisher-bearing grants. It
+rejects removing, replacing, demoting, or revoking the final publisher-capable admin. A documented
+offline recovery bootstrap may restore publisher authority after database loss or corruption;
+it uses deployment credentials unavailable to the application, never rewrites audit rows, and
+appends an explicit recovery-bootstrap grant before the review API is returned to service.
+
+### `trusted_assessments`
+
+- `id`: UUID primary key.
+- `submission_id` and optional `claim_id`.
+- `reviewer_grant_id`.
+- `assessment`: `endorse`, `dispute`, or `spam`.
+- `reason`: required validated plain text from 20 through 2,000 characters; context-specific
+  escaping occurs when rendered.
+- `supersedes_assessment_id`: nullable reference to the reviewer's previous assessment of the
+  same target.
+- `created_at`.
+
+The schema gives `submission_claims` a composite unique key on `(submission_id, id)` and uses a
+composite foreign key so an assessment's claim must belong to its submission. A CHECK constraint
+requires Endorse and Dispute to have a claim target and Spam to have no claim target.
+Reassessment appends a new row that supersedes the current assessment; prior rows remain
+immutable. These records provide review-confidence context to the admin only. They do not
+change submission or claim status, source tier, independent-source counts, observation drafts,
+promotions, or the canonical databases.
+
+`supersedes_assessment_id` must reference the same normalized reviewer identity and target and
+may be superseded only once. Supersession continuity follows the identity across revocation and
+re-granting, while each row retains the specific grant that authorized it. The active assessment
+is the terminal row in that append-only chain.
 
 ### `observation_drafts`
 
 - `id`: UUID primary key.
 - `submission_id`.
-- `reviewer_id`.
+- `created_by_identity` and `created_by_grant_id`.
 - `source_type`, `source_name`, `source_url`.
 - `raw_content`: reviewer-approved evidence description or document excerpt within the
   project's quotation policy.
@@ -361,10 +484,11 @@ preserve the audit trail without hiding relationships inside JSON.
 - `id`: UUID primary key.
 - `observation_draft_id`: unique idempotency key.
 - `canonical_observation_id`.
-- `reviewer_id`.
+- `promoted_by_identity` and `promoted_by_grant_id`.
 - `promoted_at`.
 - `integration_state`: `pending`, `integrated`, or `not_applicable`.
-- `integrated_at` and `integration_reference`.
+- `integrated_by_identity`, `integrated_by_grant_id`, `integrated_at`, and
+  `integration_reference`.
 
 `integration_reference` records the repository commit or research artifact that integrates
 the evidence. It is metadata, not permission to commit automatically.
@@ -397,7 +521,7 @@ received ──> under_review ──> accepted
 - `received`: email is verified, validation passed, and every artifact is clean.
 - `held`: automated checks require operator attention; it never appears in the normal
   review queue.
-- `under_review`: a reviewer has claimed the item.
+- `under_review`: an admin has claimed the item for a decision.
 - `needs_information`: contributor response is required; a signed follow-up link permits
   only additions, never edits to earlier evidence.
 - `accepted`: all material claims were accepted and at least one observation draft is
@@ -410,6 +534,11 @@ received ──> under_review ──> accepted
 
 Review decisions never delete or rewrite an earlier review event. Corrections append a new
 event and, when required, a new observation draft.
+
+Trusted assessments never cause a workflow transition. A Trusted endorsement is not an
+independent evidence source. If a Trusted reviewer has firsthand evidence, they submit a
+separate public observation that passes the same source-independence and review rules as every
+other contribution.
 
 ## Artifact quarantine
 
@@ -451,21 +580,53 @@ The review detail screen shows:
 - Target catalog component, identifiers, attributes, and affected edge when resolvable.
 - Potential duplicate submissions, observation hashes, and source URLs.
 - Each proposed claim with independent accept, reject, and duplicate actions.
+- Trusted assessments summarized per claim, with the individual reviewer identity, reason,
+  timestamp, and supersession history available to the admin.
 - Controlled reason code and private-note fields.
 - A normalized observation draft preview.
 - The exact canonical observation payload before promotion.
 - Review and promotion history.
 
-Reviewer actions are optimistic-concurrency protected. Updating a stale version returns a
+Review actions are optimistic-concurrency protected. Updating a stale version returns a
 conflict and reloads the current decision history instead of overwriting another reviewer.
+
+The role- and capability-gated action area has three presentations:
+
+- Trusted reviewers receive claim-level Endorse and Dispute controls plus submission-level
+  Spam, all requiring a reason. They do not receive admin decision or promotion controls.
+- Admin receives Trusted context, claim decisions, information requests, duplicate handling,
+  normalized-draft preparation, canonical-payload confirmation, and Trusted-role management.
+- Publisher-capable admin additionally receives promotion, integration-recording, and
+  publisher-grant controls. The API repeats these capability checks independently of the UI.
+
+Trusted queue responses exclude decrypted contributor contact, private admin notes, abuse
+correlation data, normalized observation drafts, exact canonical payloads, promotion controls,
+integration controls, and role-management data. The admin response may include those fields
+only when the caller has the corresponding capability; revealing contributor contact also
+requires an explicit needs-information action.
+
+The prototype's single Accept action is therefore split into claim decision, draft readiness,
+canonical promotion, and later graph integration. A successful action updates server state;
+the UI never treats a toast as proof of a completed mutation.
+
+### Review interaction failure behavior
+
+- A failed assessment or decision preserves the typed reason and presents an actionable error.
+- A stale mutation returns a conflict, reloads the current history, and never overwrites a
+  newer assessment or decision.
+- Role revocation is enforced on the next API request, regardless of an existing browser
+  session.
+- Decision results, duplicate findings, and validation errors use accessible live regions.
+- Keyboard shortcuts are suppressed while focus is in an input, textarea, select, or other
+  editable control, and ordinary visible controls remain available for every shortcut action.
 
 ## Canonical promotion
 
 Promotion has these invariants:
 
 1. Only a `ready` observation draft with at least one accepted claim can be promoted.
-2. The reviewer must reconfirm the source type, source name, raw description, normalized
-   extracted JSON, and artifact references.
+2. A publisher-capable admin must reconfirm the source type, source name, raw description,
+   normalized extracted JSON, and artifact references.
 3. `observation_draft_id` is the idempotency key. Repeating a successful promotion returns
    the existing canonical observation ID.
 4. `observations.db` gains an origin reference that is unique for promoted public evidence.
@@ -489,9 +650,9 @@ Promotion adds `field_report` to the controlled observation source types. Review
 manufacturer pages/documents, data-plate photos, and manual measurements retain the trust
 tier assigned to that evidence kind under the existing policy. A `field_report` defaults
 to tier 4. `reviewed_public_submission` receives explicit source-tier mappings so it never
-falls through to the current tier-9 unknown-source default. A reviewer may lower a tier
-when the artifact is incomplete or ambiguous, but cannot raise it because of contributor
-history.
+falls through to the current tier-9 unknown-source default. A publisher-capable admin may
+lower a tier when the artifact is incomplete or ambiguous, but cannot raise it because of
+contributor history.
 
 ## Public and review API surface
 
@@ -517,12 +678,17 @@ path or query parameters.
 - `GET /review/v1/queue`
 - `GET /review/v1/submissions/{id}`
 - `POST /review/v1/submissions/{id}/claim`
+- `POST /review/v1/claims/{id}/assessments`
+- `POST /review/v1/submissions/{id}/spam-assessments`
 - `POST /review/v1/claims/{id}/decisions`
 - `POST /review/v1/submissions/{id}/information-requests`
 - `POST /review/v1/submissions/{id}/observation-drafts`
 - `POST /review/v1/observation-drafts/{id}/ready`
 - `POST /review/v1/observation-drafts/{id}/promotions`
 - `POST /review/v1/promotions/{id}/integration-records`
+- `GET /review/v1/reviewer-grants`
+- `POST /review/v1/reviewer-grants`
+- `POST /review/v1/reviewer-grants/{id}/revocations`
 
 Mutation requests include the last observed record version. Review APIs never accept an
 arbitrary canonical observation ID, source tier, confidence effect, or graph mutation from
@@ -536,9 +702,9 @@ the public payload.
 verified personal inbox. The destination address is operational account data and is not
 recorded in the repository. The routing rule is for support, privacy, security, and general
 correspondence. Email sent there does not automatically become a submission because
-unstructured email cannot satisfy the queue's validation, consent, or claim boundaries. A
-reviewer may send the writer a link to the appropriate contribution flow. The public
-contact page provides the address and routes data reports toward the structured
+unstructured email cannot satisfy the queue's validation, consent, or claim boundaries. An
+admin or designated mailbox operator may send the writer a link to the appropriate contribution
+flow. The public contact page provides the address and routes data reports toward the structured
 contribution flows; it does not add a second unstructured web contact form.
 
 The initial routing-only release does not promise branded replies from `contact@`. Replies
@@ -593,6 +759,9 @@ reports.
 - Public status responses contain workflow state and public reason copy only. They never
   contain reviewer names, private notes, abuse flags, other submissions, internal source
   tiers, or confidence calculations.
+- A future public evidence ledger reads from an explicit redacted projection of eligible
+  promoted evidence. It never queries or serializes moderation rows directly and fails closed
+  when a record has not passed its disclosure policy.
 - Secrets, intake databases, uploaded files, and backups are excluded from Git and Docker
   build contexts.
 
@@ -610,6 +779,11 @@ Contributor history cannot:
 - Auto-promote an observation.
 - Auto-integrate or publish graph data.
 - Reduce the independent-source requirement.
+
+Trusted access is a manual admin grant, not an earned reputation tier. Submission counts may
+inform the admin's decision to grant access but never cause an automatic role grant. Trusted
+assessments are a separate review-confidence signal and do not confer evidence weight on the
+reviewer or contributor.
 
 This maintains the existing rule that evidence is evaluated by source and event, capped per
 actor/source, rather than treating a person as an authority.
@@ -659,6 +833,10 @@ data.
 - Schema initialization and migration on a temporary on-disk SQLite database.
 - Every allowed and forbidden workflow transition.
 - Append-only review history.
+- Manual reviewer grants, single-current-grant enforcement, concurrent grant/revocation
+  handling, immediate revocation, and append-only Trusted-assessment supersession across
+  re-granting.
+- Composite assessment-target integrity and assessment-type CHECK constraints.
 - Optimistic concurrency conflict behavior.
 - Idempotent promotion and interrupted-receipt reconciliation.
 - Retention selection without deleting accepted referenced artifacts.
@@ -675,6 +853,14 @@ data.
 - Capability-token status and follow-up authorization.
 - Review Access JWT validation, audience mismatch, expiration, unlisted reviewer, and role
   enforcement.
+- Authorization-matrix coverage for ordinary admins and publisher-capable admins, including
+  denial of self-minted publisher authority and audit attribution to the active grant.
+- Trusted access to sanitized queue evidence and assessment endpoints, with explicit denial of
+  queue claiming, claim decisions, draft readiness, promotion, integration, and role
+  management.
+- Proof that Endorse, Dispute, and Spam assessments change no workflow status, source tier,
+  independent-source count, draft, promotion, or canonical record.
+- Contributor isolation: a verified contributor cannot read another contributor's submission.
 - Escaping and information-exposure assertions for public and review responses.
 - Email outbox retry and permanent-failure behavior through a fake mailer.
 
@@ -705,6 +891,9 @@ data.
 - Clear recovery after email delay, expired session, duplicate submission, and needs-info
   follow-up.
 - Mobile layouts preserve 44-pixel touch targets and do not require horizontal scrolling.
+- Semantic queue selection, labelled filter and assessment groups, live announcements for
+  decisions and duplicate findings, and suppression of shortcuts while typing.
+- Readable Nocturne label sizes and contrast, logical focus order, and zoom-safe queue reflow.
 
 ## Release gates
 
@@ -723,15 +912,25 @@ The submission form is not made public until all of these are true:
   submission-intake release, not this hosting release.
 - A backup has been restored successfully on a clean temporary environment.
 - Promotion idempotency and canonical rebuild tests pass.
-- A reviewer can process representative successful-install, failed-install, documentation,
+- An admin can process representative successful-install, failed-install, documentation,
   and correction submissions end to end.
+- A manually granted Trusted reviewer can assess representative claims but cannot advance a
+  workflow state or invoke an admin or publisher operation; revocation is effective on the
+  next request.
 - Unverified, rejected, and accepted artifact retention behavior has been exercised.
 - The public privacy and contribution terms explain email use, artifact retention, evidence
   licensing, and the difference between acceptance and publication.
 
-## Issue structure after approval
+## Authoritative issue tracking
 
-Issue #47 should remain the product/design epic. Its child issues should cover:
+[Issue #47](https://github.com/tokendad/RV_Interchange/issues/47) is the authoritative
+tracking location for all public-submission, moderation, Trusted-review, contributor-status,
+canonical-promotion, and deferred-public-ledger work described by this design. Decisions,
+scope changes, implementation plans, commits or pull requests, verification results,
+deployment state, and unresolved blockers are summarized there.
+
+Child issues are optional execution aids, not independent trackers. When used, each child is
+linked from #47 and its material status changes are rolled up to #47. The work areas are:
 
 1. Intake schema and repositories.
 2. Verification sessions, Turnstile, and application rate limits.
@@ -739,12 +938,12 @@ Issue #47 should remain the product/design epic. Its child issues should cover:
 4. Submission API and status capabilities.
 5. Email outbox and Cloudflare transactional mail.
 6. Reviewer identity and authorization.
-7. Review queue and claim decisions.
+7. Review queue, Trusted assessments, and claim decisions.
 8. Observation drafts and idempotent promotion.
 9. Public contribution flows and follow-up experience.
 10. Privacy, security, backup, and operational launch checks.
 
-Issue #32 should remain the hosting epic. Its child issues should cover:
+Issue #32 retains the detailed history of the already separated hosting foundation:
 
 1. Same-origin Nginx routing and public-image separation.
 2. Production Compose network and port isolation.
@@ -755,4 +954,6 @@ Issue #32 should remain the hosting epic. Its child issues should cover:
    the later submission-intake plan.
 7. Health checks, backup, restore, and operating guide.
 
-The implementation plans will reference these boundaries after this design is approved.
+Any hosting dependency or change that affects the public-submission project is also summarized
+in #47. No child issue, implementation plan, or hosting issue supersedes #47 as the project
+status source.

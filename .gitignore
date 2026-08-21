@@ -75,3 +75,7 @@ CLAUDE.md
 *.tiff
 *.webp
 *.heic
+
+# Public brand assets are application resources, not evidence photos.
+!web/assets/
+!web/assets/*.png

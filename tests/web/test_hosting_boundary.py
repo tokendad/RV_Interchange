@@ -45,6 +45,16 @@ def test_public_image_excludes_admin_assets():
     assert "admin.js" not in dockerfile
 
 
+def test_public_image_includes_cloudflare_logo_assets():
+    source_icon = ROOT / "web/assets/icon.png"
+    transparent_logo = ROOT / "web/assets/rvinterchange-logo.png"
+
+    assert source_icon.is_file()
+    assert transparent_logo.is_file()
+    assert transparent_logo.read_bytes()[25] == 6  # PNG IHDR color type: RGBA
+    assert "COPY assets /usr/share/nginx/html/assets" in read("web/Dockerfile")
+
+
 def test_public_nginx_has_an_explicit_proxy_allowlist():
     config = read("web/nginx.conf")
     blocks = location_blocks(config)

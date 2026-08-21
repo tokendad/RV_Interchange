@@ -14,4 +14,5 @@ COPY results.js /usr/share/nginx/html/results.js
 COPY detail.js /usr/share/nginx/html/detail.js
 COPY discontinued.js /usr/share/nginx/html/discontinued.js
 COPY style.css /usr/share/nginx/html/style.css
+COPY assets /usr/share/nginx/html/assets
 EXPOSE 80
