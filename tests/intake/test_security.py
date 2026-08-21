@@ -115,6 +115,15 @@ def test_signed_session_rejects_tampering_without_disclosure(mutation):
     assert tampered not in str(caught.value)
 
 
+def test_signed_session_rejects_non_ascii_signature_as_invalid_token():
+    codec = TokenCodec(b"s" * 32)
+    parts = codec.sign_session("session-secret", expires=1_800_000_000).split(".")
+    parts[3] = "non-ascii-é"
+
+    with pytest.raises(ValueError, match="^invalid session token$"):
+        codec.verify_session(".".join(parts), now=1_700_000_000)
+
+
 def test_signed_session_rejects_expiry_without_token_disclosure():
     codec = TokenCodec(b"s" * 32)
     raw = "session-secret"

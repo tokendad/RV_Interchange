@@ -135,7 +135,11 @@ class TokenCodec:
         expected_signature = _urlsafe_signature(
             hmac.new(self._key, payload.encode("utf-8"), hashlib.sha256).digest()
         )
-        if not hmac.compare_digest(signature, expected_signature):
+        try:
+            signature_matches = hmac.compare_digest(signature, expected_signature)
+        except TypeError:
+            raise ValueError("invalid session token") from None
+        if not signature_matches:
             raise ValueError("invalid session token")
         if now >= expires:
             raise ValueError("expired session token")
