@@ -175,6 +175,14 @@ The first release has two product roles inside the review application:
   integration. The sole initial admin may hold that capability, but it remains distinct so a
   later deployment can separate duties without changing the workflow.
 
+The first publisher-capable admin is established through an explicit deployment bootstrap,
+not through a public or ordinary admin request. After bootstrap, only a publisher-capable admin
+may grant or revoke `publisher`; an ordinary admin may grant or revoke `trusted` and `admin`
+roles but cannot mint publisher authority, including for itself, or replace or revoke a grant
+that contains it. The API rejects any change that would remove the last active
+publisher-capable admin. Promotion and integration endpoints independently require both the
+`admin` role and active `publisher` capability.
+
 Role gating in browser JavaScript is presentation only. Every private read and mutation is
 authorized by the review API. Grant and revocation changes take effect on the next API request
 even when the reviewer has an existing browser session.
@@ -274,8 +282,8 @@ No conventional account or password is required.
 6. The session expires after 24 hours and may create up to five submissions.
 
 Email comparison uses a normalized keyed digest. The address itself is encrypted at rest
-with an application key stored outside the repository. Reviewer screens show a masked
-address except when a reviewer explicitly requests contact for a needs-information action.
+with an application key stored outside the repository. Review screens show a masked address.
+Only an admin performing an explicit needs-information action may request decrypted contact.
 
 ## Submission data model
 
@@ -362,13 +370,18 @@ create normalized accepted content.
 
 - `id`: UUID primary key.
 - `submission_id` and optional `claim_id`.
-- `reviewer_id`.
+- `reviewer_identity` and `reviewer_grant_id` identifying the active grant that authorized the
+  action.
+- Optional `observation_draft_id` and `promotion_id` for draft-readiness, promotion, and
+  integration events.
 - `action`: controlled workflow action.
 - `reason_code` and private `note`.
 - `created_at`.
 
 Rows are append-only. A current status column is a query optimization; review events are
-the audit record.
+the audit record. Every privileged mutation records the normalized actor identity, authorizing
+grant, role, and capability snapshot used for that request so later revocation or re-granting
+cannot make the historical authority ambiguous.
 
 ### `reviewer_grants`
 
@@ -376,20 +389,48 @@ the audit record.
 - `reviewer_identity`: normalized identity derived from the validated Access token.
 - `role`: `trusted` or `admin`.
 - `capabilities_json`: bounded capability set; `publisher` remains separately assignable.
-- `granted_by` and `granted_at`.
+- `granted_by_identity`, `granted_by_grant_id`, and `granted_at`. The deployment-created
+  bootstrap grant instead records an explicit immutable bootstrap authority marker.
 
-Only an active admin may grant or revoke review access. Grant and revocation history is
-append-only for audit purposes; revocation never deletes earlier assessments or decisions.
+An active admin may grant or revoke `trusted` and `admin` access. Only a publisher-capable
+admin may add or remove `publisher`. Grant and revocation history is append-only for audit
+purposes; revocation never deletes earlier assessments or decisions.
+
+The table has a composite unique key on `(reviewer_identity, id)`. Every identity/grant pair in
+the schema—including current access pointers, actor attribution, draft creation, promotion,
+integration, grant delegation, and revocation—uses a composite foreign key to that key. An API
+authorization check succeeds only when the validated identity, presented current-grant pointer,
+and referenced immutable grant all match.
+
+### `reviewer_current_grants`
+
+- `reviewer_identity`: normalized identity, primary key.
+- `reviewer_grant_id`: unique reference to the sole current immutable grant.
+
+Granting, revoking, and re-granting access update this current-grant pointer in the same
+transaction that appends the corresponding grant or revocation audit row. The primary key
+prevents duplicate active grants for one identity, including concurrent requests. Every review
+API authorization reads this table on each request; cached browser or application sessions do
+not preserve access after the pointer is removed.
 
 ### `reviewer_grant_revocations`
 
 - `id`: UUID primary key.
 - `reviewer_grant_id`: unique reference to the revoked grant.
-- `revoked_by` and `revoked_at`.
+- `revoked_by_identity`, `revoked_by_grant_id`, and `revoked_at`.
 
-Grant rows are immutable. Revocation appends a separate unique row, and a grant is active only
-when it has no revocation row. Re-granting access creates a new grant rather than reactivating
-or rewriting an old one.
+Grant rows are immutable. Revocation appends a separate unique row and atomically removes the
+matching current-grant pointer. A grant is active only when it has no revocation row and is the
+identity's current pointer. Re-granting access creates a new grant rather than reactivating or
+rewriting an old one. Revocation by identity closes the current grant selected inside the same
+write transaction, preventing a concurrent grant from leaving an unintended second access
+path.
+
+The grant/revocation transaction also locks and counts current publisher-bearing grants. It
+rejects removing, replacing, demoting, or revoking the final publisher-capable admin. A documented
+offline recovery bootstrap may restore publisher authority after database loss or corruption;
+it uses deployment credentials unavailable to the application, never rewrites audit rows, and
+appends an explicit recovery-bootstrap grant before the review API is returned to service.
 
 ### `trusted_assessments`
 
@@ -397,25 +438,30 @@ or rewriting an old one.
 - `submission_id` and optional `claim_id`.
 - `reviewer_grant_id`.
 - `assessment`: `endorse`, `dispute`, or `spam`.
-- `reason`: required escaped plain text.
+- `reason`: required validated plain text from 20 through 2,000 characters; context-specific
+  escaping occurs when rendered.
 - `supersedes_assessment_id`: nullable reference to the reviewer's previous assessment of the
   same target.
 - `created_at`.
 
-Endorse and Dispute require a claim target. Spam targets the whole submission. Reassessment
-appends a new row that supersedes the current assessment; prior rows remain immutable. These
-records provide review-confidence context to the admin only. They do not change submission or
-claim status, source tier, independent-source counts, observation drafts, promotions, or the
-canonical databases.
+The schema gives `submission_claims` a composite unique key on `(submission_id, id)` and uses a
+composite foreign key so an assessment's claim must belong to its submission. A CHECK constraint
+requires Endorse and Dispute to have a claim target and Spam to have no claim target.
+Reassessment appends a new row that supersedes the current assessment; prior rows remain
+immutable. These records provide review-confidence context to the admin only. They do not
+change submission or claim status, source tier, independent-source counts, observation drafts,
+promotions, or the canonical databases.
 
-`supersedes_assessment_id` must reference the same reviewer and target and may be superseded
-only once. The active assessment is the terminal row in that append-only chain.
+`supersedes_assessment_id` must reference the same normalized reviewer identity and target and
+may be superseded only once. Supersession continuity follows the identity across revocation and
+re-granting, while each row retains the specific grant that authorized it. The active assessment
+is the terminal row in that append-only chain.
 
 ### `observation_drafts`
 
 - `id`: UUID primary key.
 - `submission_id`.
-- `reviewer_id`.
+- `created_by_identity` and `created_by_grant_id`.
 - `source_type`, `source_name`, `source_url`.
 - `raw_content`: reviewer-approved evidence description or document excerpt within the
   project's quotation policy.
@@ -438,10 +484,11 @@ preserve the audit trail without hiding relationships inside JSON.
 - `id`: UUID primary key.
 - `observation_draft_id`: unique idempotency key.
 - `canonical_observation_id`.
-- `reviewer_id`.
+- `promoted_by_identity` and `promoted_by_grant_id`.
 - `promoted_at`.
 - `integration_state`: `pending`, `integrated`, or `not_applicable`.
-- `integrated_at` and `integration_reference`.
+- `integrated_by_identity`, `integrated_by_grant_id`, `integrated_at`, and
+  `integration_reference`.
 
 `integration_reference` records the repository commit or research artifact that integrates
 the evidence. It is metadata, not permission to commit automatically.
@@ -540,16 +587,17 @@ The review detail screen shows:
 - The exact canonical observation payload before promotion.
 - Review and promotion history.
 
-Reviewer actions are optimistic-concurrency protected. Updating a stale version returns a
+Review actions are optimistic-concurrency protected. Updating a stale version returns a
 conflict and reloads the current decision history instead of overwriting another reviewer.
 
-The role-gated action area has two production states:
+The role- and capability-gated action area has three presentations:
 
 - Trusted reviewers receive claim-level Endorse and Dispute controls plus submission-level
   Spam, all requiring a reason. They do not receive admin decision or promotion controls.
 - Admin receives Trusted context, claim decisions, information requests, duplicate handling,
-  normalized-draft preparation, canonical-payload confirmation, promotion, integration
-  recording, and Trusted-role management.
+  normalized-draft preparation, canonical-payload confirmation, and Trusted-role management.
+- Publisher-capable admin additionally receives promotion, integration-recording, and
+  publisher-grant controls. The API repeats these capability checks independently of the UI.
 
 Trusted queue responses exclude decrypted contributor contact, private admin notes, abuse
 correlation data, normalized observation drafts, exact canonical payloads, promotion controls,
@@ -602,9 +650,9 @@ Promotion adds `field_report` to the controlled observation source types. Review
 manufacturer pages/documents, data-plate photos, and manual measurements retain the trust
 tier assigned to that evidence kind under the existing policy. A `field_report` defaults
 to tier 4. `reviewed_public_submission` receives explicit source-tier mappings so it never
-falls through to the current tier-9 unknown-source default. A reviewer may lower a tier
-when the artifact is incomplete or ambiguous, but cannot raise it because of contributor
-history.
+falls through to the current tier-9 unknown-source default. A publisher-capable admin may
+lower a tier when the artifact is incomplete or ambiguous, but cannot raise it because of
+contributor history.
 
 ## Public and review API surface
 
@@ -654,9 +702,9 @@ the public payload.
 verified personal inbox. The destination address is operational account data and is not
 recorded in the repository. The routing rule is for support, privacy, security, and general
 correspondence. Email sent there does not automatically become a submission because
-unstructured email cannot satisfy the queue's validation, consent, or claim boundaries. A
-reviewer may send the writer a link to the appropriate contribution flow. The public
-contact page provides the address and routes data reports toward the structured
+unstructured email cannot satisfy the queue's validation, consent, or claim boundaries. An
+admin or designated mailbox operator may send the writer a link to the appropriate contribution
+flow. The public contact page provides the address and routes data reports toward the structured
 contribution flows; it does not add a second unstructured web contact form.
 
 The initial routing-only release does not promise branded replies from `contact@`. Replies
@@ -785,8 +833,10 @@ data.
 - Schema initialization and migration on a temporary on-disk SQLite database.
 - Every allowed and forbidden workflow transition.
 - Append-only review history.
-- Manual reviewer grants, immediate revocation, and append-only Trusted-assessment
-  supersession.
+- Manual reviewer grants, single-current-grant enforcement, concurrent grant/revocation
+  handling, immediate revocation, and append-only Trusted-assessment supersession across
+  re-granting.
+- Composite assessment-target integrity and assessment-type CHECK constraints.
 - Optimistic concurrency conflict behavior.
 - Idempotent promotion and interrupted-receipt reconciliation.
 - Retention selection without deleting accepted referenced artifacts.
@@ -803,6 +853,8 @@ data.
 - Capability-token status and follow-up authorization.
 - Review Access JWT validation, audience mismatch, expiration, unlisted reviewer, and role
   enforcement.
+- Authorization-matrix coverage for ordinary admins and publisher-capable admins, including
+  denial of self-minted publisher authority and audit attribution to the active grant.
 - Trusted access to sanitized queue evidence and assessment endpoints, with explicit denial of
   queue claiming, claim decisions, draft readiness, promotion, integration, and role
   management.
