@@ -28,11 +28,10 @@ def transaction(conn: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
     conn.execute("BEGIN IMMEDIATE")
     try:
         yield conn
+        conn.commit()
     except BaseException:
         conn.rollback()
         raise
-    else:
-        conn.commit()
 
 
 def migrate(path: str | Path) -> None:

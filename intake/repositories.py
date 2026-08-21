@@ -269,7 +269,7 @@ class SubmissionRepository:
         outbox_repository = OutboxRepository(self.conn)
         for message in outbox:
             values = dict(message)
-            values.setdefault("submission_id", submission_id)
+            values["submission_id"] = submission_id
             outbox_repository.enqueue(values)
         return submission_id
 

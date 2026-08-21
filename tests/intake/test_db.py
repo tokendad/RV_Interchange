@@ -8,6 +8,11 @@ from intake.config import Settings
 from intake import db
 
 
+class _CommitFailingConnection(sqlite3.Connection):
+    def commit(self):
+        raise sqlite3.OperationalError("simulated commit failure")
+
+
 def test_migration_is_idempotent(tmp_path):
     path = tmp_path / "submissions.db"
 
@@ -70,6 +75,24 @@ def test_transaction_rolls_back_all_writes(tmp_path):
                 raise RuntimeError("abort")
 
         assert conn.execute("SELECT COUNT(*) FROM contributors").fetchone()[0] == 0
+
+
+def test_transaction_rolls_back_when_commit_fails(tmp_path):
+    path = tmp_path / "commit-failure.db"
+    conn = sqlite3.connect(
+        path,
+        isolation_level=None,
+        factory=_CommitFailingConnection,
+    )
+    conn.execute("CREATE TABLE pending_write (value TEXT NOT NULL)")
+
+    with pytest.raises(sqlite3.OperationalError, match="simulated commit failure"):
+        with db.transaction(conn):
+            conn.execute("INSERT INTO pending_write (value) VALUES (?)", ("visible",))
+
+    assert conn.in_transaction is False
+    assert conn.execute("SELECT COUNT(*) FROM pending_write").fetchone()[0] == 0
+    conn.close()
 
 
 def test_foreign_keys_and_controlled_states_are_enforced(tmp_path):

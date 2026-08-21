@@ -245,6 +245,28 @@ def test_submission_and_all_children_rollback_together(persisted):
         assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
 
 
+def test_outbox_child_ignores_conflicting_caller_submission_id(persisted):
+    db, repositories, conn = persisted
+
+    with db.transaction(conn):
+        contributor_id = _contributor(repositories, conn)
+        submissions = repositories.SubmissionRepository(conn)
+        conflicting_id = submissions.create_with_children(
+            _submission_payload(contributor_id), [], [], [], []
+        )
+        outbox = _children()[3]
+        outbox[0]["submission_id"] = conflicting_id
+
+        submission_id = submissions.create_with_children(
+            _submission_payload(contributor_id), [], [], [], outbox
+        )
+
+    assert submission_id != conflicting_id
+    assert conn.execute(
+        "SELECT submission_id FROM email_outbox"
+    ).fetchone()[0] == submission_id
+
+
 def test_json_is_stored_compact_and_with_sorted_keys(persisted):
     db, repositories, conn = persisted
 
