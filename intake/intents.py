@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import unicodedata
 from typing import Annotated, Any, Literal, Union
 from urllib.parse import urlsplit
@@ -28,6 +29,9 @@ ClaimType = Literal[
     "supersession_assertion",
     "correction",
 ]
+
+_ABSOLUTE_URI_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
+_URL_KEY_ALIASES = {"href", "link", "uri", "url", "website"}
 
 
 class _StrictInput(BaseModel):
@@ -129,9 +133,10 @@ def _reject_prohibited_key(tokens: tuple[str, ...]) -> None:
 
 def _validate_url_like(tokens: tuple[str, ...], value: Any) -> None:
     compact = "".join(tokens)
+    aliases = {token[:-1] if token.endswith("s") else token for token in tokens}
     if not (
-        any(token.rstrip("s") in {"uri", "url"} for token in tokens)
-        or compact.endswith(("uri", "uris", "url", "urls"))
+        aliases.intersection(_URL_KEY_ALIASES)
+        or any(compact.endswith((alias, f"{alias}s")) for alias in _URL_KEY_ALIASES)
     ):
         return
     if isinstance(value, list):
@@ -139,6 +144,12 @@ def _validate_url_like(tokens: tuple[str, ...], value: Any) -> None:
             validate_https_url(item)
         return
     validate_https_url(value)
+
+
+def _validate_url_shaped_string(value: str) -> None:
+    candidate = value.lstrip()
+    if candidate.startswith("//") or _ABSOLUTE_URI_SCHEME.match(candidate):
+        validate_https_url(value)
 
 
 def _validate_untrusted_value(value: Any) -> Any:
@@ -153,6 +164,8 @@ def _validate_untrusted_value(value: Any) -> Any:
     elif isinstance(value, list):
         for nested in value:
             _validate_untrusted_value(nested)
+    elif isinstance(value, str):
+        _validate_url_shaped_string(value)
     elif value is not None and not isinstance(value, (str, int, float, bool)):
         raise ValueError("invalid proposed claim")
     return value

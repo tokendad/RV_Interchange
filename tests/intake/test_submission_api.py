@@ -557,6 +557,57 @@ def test_claim_validation_checks_nested_source_url_variants(harness, url_key):
     _assert_no_submission_writes(harness)
 
 
+@pytest.mark.parametrize(
+    "proposed",
+    [
+        {"sourceHref": "http://example.com/untrusted"},
+        {"evidenceLink": "https://person@example.com/untrusted"},
+        {"website": "ftp://example.com/untrusted"},
+        {"outer": {"items": ["ordinary evidence", "javascript:alert(1)"]}},
+        {"outer": [{"reference": "//example.com/untrusted"}]},
+    ],
+    ids=[
+        "source-href-http",
+        "evidence-link-userinfo",
+        "website-ftp",
+        "nested-list-scheme",
+        "nested-list-scheme-relative",
+    ],
+)
+def test_claim_validation_rejects_insecure_url_values_regardless_of_key(
+    harness, proposed
+):
+    metadata = _metadata()
+    metadata["claims"][0]["proposed"] = proposed
+
+    response = harness.post(metadata)
+
+    assert response.status_code == 422
+    _assert_no_submission_writes(harness)
+
+
+def test_claim_validation_accepts_https_aliases_nested_lists_and_plain_text(harness):
+    metadata = _metadata()
+    metadata["claims"][0]["proposed"] = {
+        "sourceHref": "https://example.com/source",
+        "outer": {
+            "evidenceLink": [
+                "https://example.com/evidence/one",
+                "https://example.com/evidence/two",
+            ],
+            "website": "https://example.com/project",
+            "references": [
+                "ordinary evidence text",
+                {"unconventionalKey": "https://example.com/reference"},
+            ],
+        },
+    }
+
+    response = harness.post(metadata)
+
+    assert response.status_code == 201
+
+
 def test_caller_cannot_supply_submission_or_canonical_ids(harness):
     metadata = _metadata()
     metadata["id"] = "4cf3371c-80f4-40cd-b07d-c085280cfa80"
