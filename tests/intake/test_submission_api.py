@@ -608,6 +608,24 @@ def test_claim_validation_accepts_https_aliases_nested_lists_and_plain_text(harn
     assert response.status_code == 201
 
 
+@pytest.mark.parametrize(
+    "proposed",
+    [
+        {"observation": "Note: installed successfully"},
+        {"outer": {"measurement": "Torque: 30 Nm"}},
+        {"outer": [{"items": ["Part: ABC-123"]}]},
+    ],
+    ids=["note", "nested-torque", "nested-list-part"],
+)
+def test_claim_validation_accepts_colon_bearing_ordinary_text(harness, proposed):
+    metadata = _metadata()
+    metadata["claims"][0]["proposed"] = proposed
+
+    response = harness.post(metadata)
+
+    assert response.status_code == 201
+
+
 def test_caller_cannot_supply_submission_or_canonical_ids(harness):
     metadata = _metadata()
     metadata["id"] = "4cf3371c-80f4-40cd-b07d-c085280cfa80"

@@ -30,7 +30,21 @@ ClaimType = Literal[
     "correction",
 ]
 
-_ABSOLUTE_URI_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
+_LEADING_URI_SCHEME = re.compile(r"^(?P<scheme>[A-Za-z][A-Za-z0-9+.-]*):")
+_RECOGNIZED_URI_SCHEMES = {
+    "data",
+    "file",
+    "ftp",
+    "ftps",
+    "http",
+    "https",
+    "javascript",
+    "mailto",
+    "ssh",
+    "tel",
+    "ws",
+    "wss",
+}
 _URL_KEY_ALIASES = {"href", "link", "uri", "url", "website"}
 
 
@@ -148,7 +162,14 @@ def _validate_url_like(tokens: tuple[str, ...], value: Any) -> None:
 
 def _validate_url_shaped_string(value: str) -> None:
     candidate = value.lstrip()
-    if candidate.startswith("//") or _ABSOLUTE_URI_SCHEME.match(candidate):
+    if candidate.startswith("//"):
+        validate_https_url(value)
+        return
+    match = _LEADING_URI_SCHEME.match(candidate)
+    if match is not None and (
+        candidate[match.end() :].startswith("//")
+        or match.group("scheme").casefold() in _RECOGNIZED_URI_SCHEMES
+    ):
         validate_https_url(value)
 
 
