@@ -32,6 +32,7 @@ from intake.rate_limits import (
     daily_ip_digest,
 )
 from intake.repositories import (
+    RateLimitRepository,
     SessionRepository,
     SubmissionLimitExceeded,
     SubmissionRepository,
@@ -149,6 +150,48 @@ def _check_upload_limits(artifacts: list[UploadFile]) -> None:
         )
 
 
+def _preflight_limits(
+    request: Request,
+    session_digest: str,
+    expected_session_id: str,
+    now: datetime,
+) -> None:
+    settings = request.app.state.settings
+    now_text = now.isoformat()
+    with db.connect(settings.database_path) as conn:
+        session = SessionRepository(conn).authenticate(session_digest, now_text)
+        if session is None or session["id"] != expected_session_id:
+            raise HTTPException(
+                status.HTTP_401_UNAUTHORIZED,
+                "active contribution session required",
+            )
+        if session["submission_count"] >= 5:
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                "submission limit exceeded",
+            )
+        contributor = conn.execute(
+            "SELECT email_digest FROM contributors WHERE id = ?",
+            (session["contributor_id"],),
+        ).fetchone()
+        if contributor is None:
+            raise HTTPException(
+                status.HTTP_401_UNAUTHORIZED,
+                "active contribution session required",
+            )
+        since = (now - timedelta(hours=24)).isoformat()
+        if (
+            RateLimitRepository(conn).count_since(
+                "submission_email", contributor["email_digest"], since
+            )
+            >= _EMAIL_DAILY_LIMIT
+        ):
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                "submission limit exceeded",
+            )
+
+
 def _artifact_values(artifact: StoredArtifact, now: datetime) -> dict[str, object]:
     return {
         "storage_key": artifact.storage_key,
@@ -186,6 +229,7 @@ def create_submission(
     now = _now(request)
     _, session_digest, initial_session, _ = _authenticate(request, now)
     _check_upload_limits(artifacts)
+    _preflight_limits(request, session_digest, initial_session["id"], now)
     remote_ip = _remote_ip(request)
     try:
         request.app.state.turnstile_verifier.verify(payload.turnstile_token, remote_ip)
@@ -204,23 +248,14 @@ def create_submission(
     try:
         for upload in artifacts:
             stored_artifacts.append(artifact_store.sanitize(upload, submission_id))
-    except ArtifactRejected:
-        _discard(artifact_store, stored_artifacts)
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "artifact rejected") from None
-    except ArtifactStorageError:
-        _discard(artifact_store, stored_artifacts)
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE, "artifact storage unavailable"
-        ) from None
+        token_codec = TokenCodec(settings.read_key("token"))
+        raw_capabilities = {
+            purpose: request.app.state.secret_factory()
+            for purpose in _CAPABILITY_PURPOSES
+        }
+        expires_at = (now + _CAPABILITY_LIFETIME).isoformat()
+        now_text = now.isoformat()
 
-    token_codec = TokenCodec(settings.read_key("token"))
-    raw_capabilities = {
-        purpose: request.app.state.secret_factory() for purpose in _CAPABILITY_PURPOSES
-    }
-    expires_at = (now + _CAPABILITY_LIFETIME).isoformat()
-    now_text = now.isoformat()
-
-    try:
         with db.connect(settings.database_path) as conn:
             with db.transaction(conn):
                 sessions = SessionRepository(conn)
@@ -302,6 +337,14 @@ def create_submission(
                         }
                     ],
                 )
+    except ArtifactRejected:
+        _discard(artifact_store, stored_artifacts)
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "artifact rejected") from None
+    except ArtifactStorageError:
+        _discard(artifact_store, stored_artifacts)
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "artifact storage unavailable"
+        ) from None
     except (SubmissionLimitExceeded, RateLimitExceeded):
         _discard(artifact_store, stored_artifacts)
         raise HTTPException(

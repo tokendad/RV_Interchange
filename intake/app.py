@@ -11,6 +11,7 @@ from intake.db import migrate
 from intake.routers.submissions import router as submissions_router
 from intake.routers.verification import router as verification_router
 from intake.security import new_secret
+from intake.submission_guard import SubmissionUploadGuard
 from intake.turnstile import TurnstileVerifier
 
 
@@ -55,6 +56,7 @@ def create_app(
     app.state.turnstile_verifier = turnstile_verifier
     app.state.clock = clock
     app.state.secret_factory = secret_factory
+    app.add_middleware(SubmissionUploadGuard, settings=settings, clock=clock)
     app.include_router(verification_router)
     app.include_router(submissions_router)
 

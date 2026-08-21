@@ -29,26 +29,6 @@ ClaimType = Literal[
     "correction",
 ]
 
-_FORBIDDEN_PUBLIC_KEYS = {
-    "canonical_id",
-    "canonical_observation_id",
-    "canonical_observation_ids",
-    "confidence",
-    "confidence_score",
-    "create_edge",
-    "delete_edge",
-    "edge_id",
-    "graph_mutation",
-    "graph_mutations",
-    "graph_operation",
-    "graph_operations",
-    "observation_id",
-    "observation_ids",
-    "source_tier",
-    "tier",
-    "update_edge",
-}
-
 
 class _StrictInput(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
@@ -78,21 +58,97 @@ def validate_https_url(value: str) -> str:
     return value
 
 
+def _canonical_key_tokens(key: str) -> tuple[str, ...]:
+    normalized = unicodedata.normalize("NFKC", key)
+    if any(unicodedata.category(character).startswith("C") for character in normalized):
+        raise ValueError("invalid proposed claim")
+
+    separated: list[str] = []
+    for index, character in enumerate(normalized):
+        previous = normalized[index - 1] if index else ""
+        following = normalized[index + 1] if index + 1 < len(normalized) else ""
+        if (
+            separated
+            and character.isupper()
+            and (
+                previous.islower()
+                or previous.isdigit()
+                or (previous.isupper() and following.islower())
+            )
+        ):
+            separated.append("_")
+        separated.append(character.casefold())
+
+    tokens: list[str] = []
+    pending: list[str] = []
+    for character in "".join(separated):
+        if character.isalnum():
+            pending.append(character)
+        elif pending:
+            tokens.append("".join(pending))
+            pending = []
+    if pending:
+        tokens.append("".join(pending))
+    if not tokens:
+        raise ValueError("invalid proposed claim")
+    return tuple(tokens)
+
+
+def _reject_prohibited_key(tokens: tuple[str, ...]) -> None:
+    singular = tuple(token[:-1] if token.endswith("s") else token for token in tokens)
+    compact = "".join(tokens)
+    if any(token in {"canonical", "confidence", "graph", "tier"} for token in singular):
+        raise ValueError("canonical and graph mutations are not accepted")
+    if (
+        "canonical" in compact
+        or "confidence" in compact
+        or "sourcetier" in compact
+        or "observationid" in compact
+        or "edgeid" in compact
+        or compact.startswith("graph")
+        or any(
+            graph_namespace in compact
+            for graph_namespace in ("graphchange", "graphmutation", "graphoperation")
+        )
+        or any(
+            operation in compact
+            for operation in ("createedge", "deleteedge", "updateedge")
+        )
+    ):
+        raise ValueError("canonical and graph mutations are not accepted")
+    if any(token == "mutation" for token in singular):
+        raise ValueError("canonical and graph mutations are not accepted")
+    pairs = set(zip(singular, singular[1:]))
+    if pairs.intersection({("observation", "id"), ("edge", "id")}):
+        raise ValueError("canonical and graph mutations are not accepted")
+    if "edge" in singular and any(
+        token in {"create", "delete", "operation", "update"} for token in singular
+    ):
+        raise ValueError("canonical and graph mutations are not accepted")
+
+
+def _validate_url_like(tokens: tuple[str, ...], value: Any) -> None:
+    compact = "".join(tokens)
+    if not (
+        any(token.rstrip("s") in {"uri", "url"} for token in tokens)
+        or compact.endswith(("uri", "uris", "url", "urls"))
+    ):
+        return
+    if isinstance(value, list):
+        for item in value:
+            validate_https_url(item)
+        return
+    validate_https_url(value)
+
+
 def _validate_untrusted_value(value: Any) -> Any:
     if isinstance(value, dict):
         for key, nested in value.items():
             if not isinstance(key, str):
                 raise ValueError("invalid proposed claim")
-            normalized_key = key.casefold()
-            if normalized_key in _FORBIDDEN_PUBLIC_KEYS:
-                raise ValueError("canonical and graph mutations are not accepted")
-            if normalized_key == "url" or normalized_key.endswith("_url"):
-                validate_https_url(nested)
-            elif normalized_key.endswith("_urls"):
-                if not isinstance(nested, list):
-                    raise ValueError("invalid source URL")
-                for item in nested:
-                    validate_https_url(item)
+            tokens = _canonical_key_tokens(key)
+            _reject_prohibited_key(tokens)
+            _validate_url_like(tokens, nested)
             _validate_untrusted_value(nested)
     elif isinstance(value, list):
         for nested in value:

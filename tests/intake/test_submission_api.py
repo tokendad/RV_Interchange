@@ -1,3 +1,4 @@
+import asyncio
 import io
 import json
 import sqlite3
@@ -10,6 +11,7 @@ from PIL import Image
 
 from intake import db
 from intake.app import create_app
+from intake.artifacts import ArtifactStore
 from intake.config import Settings
 from intake.repositories import ContributorRepository, SessionRepository
 from intake.security import ContactCipher, TokenCodec
@@ -210,6 +212,118 @@ def _image_bytes(image_format="PNG", *, size=(7, 5), color=(17, 34, 51)) -> byte
     return output.getvalue()
 
 
+def _multipart_body(metadata, artifacts, boundary="guard-boundary") -> bytes:
+    parts = [
+        (
+            f"--{boundary}\r\n"
+            'Content-Disposition: form-data; name="metadata"\r\n'
+            "Content-Type: application/json\r\n\r\n"
+        ).encode()
+        + json.dumps(metadata).encode()
+        + b"\r\n"
+    ]
+    for filename, content, media_type in artifacts:
+        parts.append(
+            (
+                f"--{boundary}\r\n"
+                f'Content-Disposition: form-data; name="artifacts"; filename="{filename}"\r\n'
+                f"Content-Type: {media_type}\r\n\r\n"
+            ).encode()
+            + content
+            + b"\r\n"
+        )
+    parts.append(f"--{boundary}--\r\n".encode())
+    return b"".join(parts)
+
+
+def _invoke_asgi(app, chunks, headers):
+    receive_calls = 0
+    messages = []
+
+    async def run():
+        nonlocal receive_calls
+        index = 0
+
+        async def receive():
+            nonlocal receive_calls, index
+            receive_calls += 1
+            chunk = chunks[index]
+            index += 1
+            return {
+                "type": "http.request",
+                "body": chunk,
+                "more_body": index < len(chunks),
+            }
+
+        async def send(message):
+            messages.append(message)
+
+        scope = {
+            "type": "http",
+            "asgi": {"version": "3.0"},
+            "http_version": "1.1",
+            "method": "POST",
+            "scheme": "https",
+            "path": "/submission/v1/submissions",
+            "raw_path": b"/submission/v1/submissions",
+            "query_string": b"",
+            "headers": headers,
+            "client": ("2001:db8::1", 50000),
+            "server": ("testserver", 443),
+        }
+        await app(scope, receive, send)
+
+    asyncio.run(run())
+    response_start = next(
+        message for message in messages if message["type"] == "http.response.start"
+    )
+    return response_start["status"], receive_calls
+
+
+def test_submission_guard_authenticates_before_consuming_multipart_body(settings):
+    db.migrate(settings.database_path)
+    app = create_app(settings, turnstile_verifier=RecordingTurnstile())
+    image = _image_bytes()
+    body = _multipart_body(
+        _metadata(),
+        [(f"evidence-{index}.png", image, "image/png") for index in range(6)],
+    )
+
+    response_status, receive_calls = _invoke_asgi(
+        app,
+        [body],
+        [(b"content-type", b"multipart/form-data; boundary=guard-boundary")],
+    )
+
+    assert response_status == 401
+    assert receive_calls == 0
+
+
+def test_submission_guard_stops_authenticated_oversize_file_stream_early(harness):
+    boundary = "stream-boundary"
+    header = (
+        f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="artifacts"; filename="large.png"\r\n'
+        "Content-Type: image/png\r\n\r\n"
+    ).encode()
+    chunks = [header] + [b"x" * (1024 * 1024)] * 10 + [b"x"]
+    chunks.append(f"\r\n--{boundary}--\r\n".encode())
+    signed_session = harness.client.cookies.get(SESSION_COOKIE)
+
+    response_status, receive_calls = _invoke_asgi(
+        harness.client.app,
+        chunks,
+        [
+            (b"content-type", f"multipart/form-data; boundary={boundary}".encode()),
+            (b"cookie", f"{SESSION_COOKIE}={signed_session}".encode()),
+            (b"x-csrf-token", CSRF_TOKEN.encode()),
+        ],
+    )
+
+    assert response_status == 413
+    assert receive_calls < len(chunks)
+
+
 @pytest.mark.parametrize(
     "intent",
     ["installation_result", "documentation_citation", "data_correction"],
@@ -403,6 +517,46 @@ def test_claims_cannot_request_canonical_or_graph_mutations(harness, forbidden_k
     _assert_no_submission_writes(harness)
 
 
+@pytest.mark.parametrize(
+    "forbidden_key",
+    [
+        "confidence_effect",
+        "source_tiers",
+        "canonicalObservationId",
+        "graphOperations",
+        "Ｃａｎｏｎｉｃａｌ＿ObservationId",
+        "confidenceeffect",
+        "sourcetiers",
+        "canonicalobservationid",
+        "graphoperations",
+        "proposedgraphoperations",
+    ],
+)
+def test_claim_validation_rejects_nested_semantic_key_variants(harness, forbidden_key):
+    metadata = _metadata()
+    metadata["claims"][0]["proposed"] = {
+        "outer": {"inner": {forbidden_key: "attacker-controlled"}}
+    }
+
+    response = harness.post(metadata)
+
+    assert response.status_code == 422
+    _assert_no_submission_writes(harness)
+
+
+@pytest.mark.parametrize("url_key", ["sourceUrl", "sourceurl"])
+def test_claim_validation_checks_nested_source_url_variants(harness, url_key):
+    metadata = _metadata()
+    metadata["claims"][0]["proposed"] = {
+        "outer": {url_key: "http://example.com/untrusted"}
+    }
+
+    response = harness.post(metadata)
+
+    assert response.status_code == 422
+    _assert_no_submission_writes(harness)
+
+
 def test_caller_cannot_supply_submission_or_canonical_ids(harness):
     metadata = _metadata()
     metadata["id"] = "4cf3371c-80f4-40cd-b07d-c085280cfa80"
@@ -495,6 +649,53 @@ def test_email_allows_only_twenty_submissions_per_day(harness):
         )
 
 
+def test_exhausted_session_preflight_does_not_invoke_sanitation(harness, monkeypatch):
+    with db.connect(harness.settings.database_path) as conn:
+        conn.execute(
+            "UPDATE submission_sessions SET submission_count = 5 WHERE id = ?",
+            (harness.session_id,),
+        )
+
+    def fail_if_sanitized(*args, **kwargs):
+        raise AssertionError("sanitation must not run for an exhausted session")
+
+    monkeypatch.setattr(ArtifactStore, "sanitize", fail_if_sanitized)
+
+    response = harness.post(
+        _metadata(), artifacts=[("evidence.png", _image_bytes(), "image/png")]
+    )
+
+    assert response.status_code == 429
+    _assert_no_submission_writes(harness, expected_session_count=5)
+
+
+def test_exhausted_email_preflight_does_not_invoke_sanitation(harness, monkeypatch):
+    with db.connect(harness.settings.database_path) as conn:
+        with db.transaction(conn):
+            conn.executemany(
+                """
+                INSERT INTO rate_limit_events (id, scope, subject_digest, occurred_at)
+                VALUES (?, 'submission_email', ?, ?)
+                """,
+                [
+                    (f"preflight-event-{index}", harness.email_digest, NOW.isoformat())
+                    for index in range(20)
+                ],
+            )
+
+    def fail_if_sanitized(*args, **kwargs):
+        raise AssertionError("sanitation must not run for an exhausted email")
+
+    monkeypatch.setattr(ArtifactStore, "sanitize", fail_if_sanitized)
+
+    response = harness.post(
+        _metadata(), artifacts=[("evidence.png", _image_bytes(), "image/png")]
+    )
+
+    assert response.status_code == 429
+    _assert_no_submission_writes(harness)
+
+
 def test_submission_rejects_more_than_five_artifacts(harness):
     image = _image_bytes()
     artifacts = [(f"evidence-{index}.png", image, "image/png") for index in range(6)]
@@ -578,6 +779,42 @@ def test_sql_failure_rolls_back_all_rows_and_discards_derivatives(harness):
     assert not any(path.is_file() for path in harness.settings.artifact_root.rglob("*"))
     with db.connect(harness.settings.database_path) as conn:
         assert conn.execute("SELECT COUNT(*) FROM rate_limit_events").fetchone()[0] == 0
+
+
+def test_secret_factory_failure_discards_sanitized_derivatives(harness):
+    def fail_secret_generation():
+        raise RuntimeError("simulated secret generation failure")
+
+    harness.client.app.state.secret_factory = fail_secret_generation
+
+    with pytest.raises(RuntimeError, match="simulated secret generation failure"):
+        harness.post(
+            _metadata(),
+            artifacts=[("evidence.png", _image_bytes(), "image/png")],
+        )
+
+    _assert_no_submission_writes(harness)
+    assert not any(path.is_file() for path in harness.settings.artifact_root.rglob("*"))
+
+
+def test_token_key_read_failure_discards_sanitized_derivatives(harness, monkeypatch):
+    original_read_key = Settings.read_key
+
+    def fail_token_key(settings, purpose):
+        if purpose == "token":
+            raise RuntimeError("simulated token key failure")
+        return original_read_key(settings, purpose)
+
+    monkeypatch.setattr(Settings, "read_key", fail_token_key)
+
+    with pytest.raises(RuntimeError, match="simulated token key failure"):
+        harness.post(
+            _metadata(),
+            artifacts=[("evidence.png", _image_bytes(), "image/png")],
+        )
+
+    _assert_no_submission_writes(harness)
+    assert not any(path.is_file() for path in harness.settings.artifact_root.rglob("*"))
 
 
 def _assert_no_submission_writes(
