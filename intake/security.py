@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 
 _CONTACT_AAD = b"rvi-contact-v1"
+_VERIFICATION_TOKEN_AAD = b"rvi-verification-token-v1"
 _NONCE_BYTES = 12
 _LOCAL_PART = re.compile(r"[a-z0-9.!#$%&'*+/=?^_`{|}~-]+", re.ASCII)
 _DOMAIN_LABEL = re.compile(r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?", re.ASCII)
@@ -81,6 +82,33 @@ class ContactCipher:
             return plaintext.decode("utf-8")
         except (InvalidTag, UnicodeDecodeError):
             raise ValueError("invalid contact ciphertext") from None
+
+
+class VerificationTokenCipher:
+    """Encrypt verification tokens for private outbox delivery only."""
+
+    def __init__(self, key: bytes):
+        self._cipher = AESGCM(_require_key(key))
+
+    def encrypt(self, token: str) -> bytes:
+        nonce = secrets.token_bytes(_NONCE_BYTES)
+        ciphertext = self._cipher.encrypt(
+            nonce, token.encode("utf-8"), _VERIFICATION_TOKEN_AAD
+        )
+        return nonce + ciphertext
+
+    def decrypt(self, ciphertext: bytes) -> str:
+        if not isinstance(ciphertext, bytes) or len(ciphertext) < _NONCE_BYTES + 16:
+            raise ValueError("invalid verification token ciphertext")
+        nonce = ciphertext[:_NONCE_BYTES]
+        encrypted = ciphertext[_NONCE_BYTES:]
+        try:
+            plaintext = self._cipher.decrypt(
+                nonce, encrypted, _VERIFICATION_TOKEN_AAD
+            )
+            return plaintext.decode("utf-8")
+        except (InvalidTag, UnicodeDecodeError):
+            raise ValueError("invalid verification token ciphertext") from None
 
 
 def new_secret() -> str:

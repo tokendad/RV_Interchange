@@ -1,11 +1,13 @@
 import base64
 
 import pytest
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from intake.config import Settings
 from intake.security import (
     ContactCipher,
     TokenCodec,
+    VerificationTokenCipher,
     new_secret,
     normalize_email,
     verify_csrf,
@@ -62,6 +64,39 @@ def test_contact_cipher_rejects_tampering_without_disclosure():
         cipher.decrypt(bytes(ciphertext))
 
     assert "person@example.com" not in str(caught.value)
+    assert encoded_ciphertext not in str(caught.value)
+
+
+def test_verification_token_cipher_uses_fresh_dedicated_authenticated_context():
+    key = b"v" * 32
+    cipher = VerificationTokenCipher(key)
+    token = "verification-token-secret"
+
+    first = cipher.encrypt(token)
+    second = cipher.encrypt(token)
+
+    assert first != second
+    assert cipher.decrypt(first) == token
+    assert cipher.decrypt(second) == token
+    assert AESGCM(key).decrypt(
+        first[:12], first[12:], b"rvi-verification-token-v1"
+    ) == token.encode("utf-8")
+    with pytest.raises(ValueError, match="invalid contact ciphertext"):
+        ContactCipher(key).decrypt(first)
+
+
+def test_verification_token_cipher_rejects_tampering_without_disclosure():
+    cipher = VerificationTokenCipher(b"v" * 32)
+    ciphertext = bytearray(cipher.encrypt("verification-token-secret"))
+    ciphertext[-1] ^= 1
+    encoded_ciphertext = base64.urlsafe_b64encode(ciphertext).decode("ascii")
+
+    with pytest.raises(
+        ValueError, match="invalid verification token ciphertext"
+    ) as caught:
+        cipher.decrypt(bytes(ciphertext))
+
+    assert "verification-token-secret" not in str(caught.value)
     assert encoded_ciphertext not in str(caught.value)
 
 
