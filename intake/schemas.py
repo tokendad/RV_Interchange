@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from intake.intents import SubmissionMetadata
 
@@ -36,11 +36,48 @@ class SubmissionReceipt(BaseModel):
     capabilities: SubmissionCapabilities
 
 
+class _StrictCapabilityInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+
+class StatusQuery(_StrictCapabilityInput):
+    submission_id: str = Field(min_length=1, max_length=64)
+    capability: str = Field(min_length=32, max_length=512)
+
+
+class FollowUpMetadata(_StrictCapabilityInput):
+    capability: str = Field(min_length=32, max_length=512)
+    message: str = Field(min_length=1, max_length=4000)
+
+
+class WithdrawalRequest(_StrictCapabilityInput):
+    capability: str = Field(min_length=32, max_length=512)
+
+
+class PublicSubmissionStatus(BaseModel):
+    submission_id: str
+    status: str
+    public_reason: str | None
+    evidence_state: str
+    integration_state: str
+    updated_at: str
+
+
+class OwnerMutationReceipt(BaseModel):
+    submission_id: str
+    status: Literal["under_review", "withdrawn"]
+
+
 __all__ = [
+    "FollowUpMetadata",
+    "OwnerMutationReceipt",
+    "PublicSubmissionStatus",
+    "StatusQuery",
     "SubmissionMetadata",
     "SubmissionReceipt",
     "VerificationExchange",
     "VerificationRequest",
     "VerificationRequested",
     "VerificationSession",
+    "WithdrawalRequest",
 ]

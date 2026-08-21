@@ -325,7 +325,7 @@ class SubmissionRepository:
         if isinstance(context_json, str):
             context_json = json.loads(context_json)
         follow_ups.append(context_json)
-        self.conn.execute(
+        cursor = self.conn.execute(
             """
             UPDATE submissions
             SET context_json = ?, status = 'under_review', updated_at = ?
@@ -333,6 +333,8 @@ class SubmissionRepository:
             """,
             (_compact_json(context), now, submission_id),
         )
+        if cursor.rowcount != 1:
+            raise RepositoryConflict("submission does not accept follow-up evidence")
 
     def withdraw(self, submission_id: str, now: str) -> None:
         cursor = self.conn.execute(
@@ -341,6 +343,7 @@ class SubmissionRepository:
             SET status = 'withdrawn', withdrawn_at = ?, updated_at = ?
             WHERE id = ?
               AND status IN ('received', 'held', 'under_review', 'needs_information')
+              AND integration_state = 'not_applicable'
             """,
             (now, now, submission_id),
         )
@@ -406,7 +409,19 @@ class CapabilityRepository:
         *,
         consume: bool = False,
     ) -> sqlite3.Row | None:
-        row = self.conn.execute(
+        if consume:
+            return self.conn.execute(
+                """
+                UPDATE submission_capabilities
+                SET consumed_at = ?
+                WHERE submission_id = ? AND purpose = ? AND token_digest = ?
+                  AND expires_at > ?
+                  AND consumed_at IS NULL AND revoked_at IS NULL
+                RETURNING *
+                """,
+                (now, submission_id, purpose, token_digest, now),
+            ).fetchone()
+        return self.conn.execute(
             """
             SELECT * FROM submission_capabilities
             WHERE submission_id = ? AND purpose = ? AND token_digest = ?
@@ -414,18 +429,6 @@ class CapabilityRepository:
             """,
             (submission_id, purpose, token_digest, now),
         ).fetchone()
-        if row is None:
-            return None
-        if consume:
-            self.conn.execute(
-                """
-                UPDATE submission_capabilities
-                SET consumed_at = ?
-                WHERE id = ? AND consumed_at IS NULL AND revoked_at IS NULL
-                """,
-                (now, row["id"]),
-            )
-        return row
 
 
 class ArtifactRepository:
