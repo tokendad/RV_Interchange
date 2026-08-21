@@ -3,6 +3,7 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 
 def _required_file(name: str) -> Path:
@@ -18,10 +19,22 @@ def _required_file(name: str) -> Path:
 
 
 def _required_key_file(name: str) -> Path:
-    path = _required_file(name)
-    if len(path.read_bytes()) != 32:
-        raise RuntimeError(f"{name} must contain exactly 32 bytes")
+    path = Path(os.environ[name])
+    _read_key_file(path, name)
     return path
+
+
+def _read_key_file(path: Path, label: str) -> bytes:
+    """Read and revalidate a cryptographic key without disclosing its value."""
+    if not path.is_absolute() or not path.is_file():
+        raise RuntimeError(f"{label} must name an existing absolute file")
+    try:
+        key = path.read_bytes()
+    except OSError as error:
+        raise RuntimeError(f"{label} must name a readable file") from error
+    if len(key) != 32:
+        raise RuntimeError(f"{label} must contain exactly 32 bytes")
+    return key
 
 
 def _required_nonempty_file(name: str) -> Path:
@@ -41,6 +54,22 @@ class Settings:
     ip_key_path: Path
     turnstile_secret_path: Path
     trust_cf_connecting_ip: bool = False
+
+    def read_key(
+        self, purpose: Literal["contact", "token", "session", "ip"]
+    ) -> bytes:
+        """Read a configured key, revalidating it at the point of use."""
+        paths = {
+            "contact": self.contact_key_path,
+            "token": self.token_key_path,
+            "session": self.session_key_path,
+            "ip": self.ip_key_path,
+        }
+        try:
+            path = paths[purpose]
+        except KeyError as error:
+            raise ValueError("unknown cryptographic key purpose") from error
+        return _read_key_file(path, f"{purpose} key file")
 
     @classmethod
     def from_env(cls) -> "Settings":
