@@ -157,6 +157,66 @@ def test_repositories_create_random_uuid_identifiers(persisted):
     assert all(str(uuid.UUID(value)) == value for value in public_ids)
 
 
+def test_submission_accepts_server_preallocated_uuid_for_every_child(persisted):
+    db, repositories, conn = persisted
+    preallocated_id = "4cf3371c-80f4-40cd-b07d-c085280cfa80"
+
+    with db.transaction(conn):
+        contributor_id = _contributor(repositories, conn)
+        payload = _submission_payload(contributor_id)
+        payload["id"] = preallocated_id
+        claims, artifacts, capabilities, outbox = _children()
+        submission_id = repositories.SubmissionRepository(conn).create_with_children(
+            payload,
+            claims,
+            artifacts,
+            capabilities,
+            outbox,
+        )
+
+    assert submission_id == preallocated_id
+    assert conn.execute("SELECT id FROM submissions").fetchone()[0] == preallocated_id
+    for table in (
+        "submission_claims",
+        "submission_artifacts",
+        "submission_capabilities",
+        "email_outbox",
+    ):
+        assert {
+            row[0] for row in conn.execute(f"SELECT submission_id FROM {table}")
+        } == {preallocated_id}
+
+
+@pytest.mark.parametrize(
+    "invalid_id",
+    ["not-a-uuid", "4CF3371C-80F4-40CD-B07D-C085280CFA80"],
+)
+def test_submission_rejects_invalid_preallocated_uuid_before_writes(
+    persisted, invalid_id
+):
+    db, repositories, conn = persisted
+
+    with db.transaction(conn):
+        contributor_id = _contributor(repositories, conn)
+    payload = _submission_payload(contributor_id)
+    payload["id"] = invalid_id
+
+    with pytest.raises(ValueError, match="invalid submission id"):
+        with db.transaction(conn):
+            repositories.SubmissionRepository(conn).create_with_children(
+                payload, *_children()
+            )
+
+    assert conn.execute("SELECT COUNT(*) FROM submissions").fetchone()[0] == 0
+    for table in (
+        "submission_claims",
+        "submission_artifacts",
+        "submission_capabilities",
+        "email_outbox",
+    ):
+        assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
+
+
 def test_token_digests_are_unique(persisted):
     db, repositories, conn = persisted
 

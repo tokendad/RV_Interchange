@@ -23,6 +23,16 @@ def _new_id() -> str:
     return str(uuid.uuid4())
 
 
+def _canonical_uuid(value: Any) -> str:
+    try:
+        parsed = uuid.UUID(value)
+    except (AttributeError, TypeError, ValueError):
+        raise ValueError("invalid submission id") from None
+    if not isinstance(value, str) or str(parsed) != value:
+        raise ValueError("invalid submission id")
+    return value
+
+
 def _compact_json(value: Any) -> str:
     if isinstance(value, str):
         value = json.loads(value)
@@ -227,8 +237,8 @@ class SubmissionRepository:
         capabilities: Sequence[Mapping[str, Any]],
         outbox: Sequence[Mapping[str, Any]],
     ) -> str:
-        submission_id = _new_id()
         values = dict(submission)
+        submission_id = _canonical_uuid(values["id"]) if "id" in values else _new_id()
         values["id"] = submission_id
         values.setdefault("status", "received")
         values.setdefault("priority", "normal")
