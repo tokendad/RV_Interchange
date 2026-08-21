@@ -1,6 +1,6 @@
 """Validated public request and response shapes for submission intake."""
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -42,16 +42,16 @@ class _StrictCapabilityInput(BaseModel):
 
 class StatusQuery(_StrictCapabilityInput):
     submission_id: str = Field(min_length=1, max_length=64)
-    capability: str = Field(min_length=32, max_length=512)
+    capability: Any = None
 
 
 class FollowUpMetadata(_StrictCapabilityInput):
-    capability: str = Field(min_length=32, max_length=512)
+    capability: Any = None
     message: str = Field(min_length=1, max_length=4000)
 
 
 class WithdrawalRequest(_StrictCapabilityInput):
-    capability: str = Field(min_length=32, max_length=512)
+    capability: Any = None
 
 
 class PublicSubmissionStatus(BaseModel):

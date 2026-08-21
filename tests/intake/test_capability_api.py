@@ -1,14 +1,19 @@
+import asyncio
 import io
 import json
 import sqlite3
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
 from intake import db
+from intake import artifacts as artifact_module
+from intake.routers import capabilities as capability_routes
 from intake.app import create_app
 from intake.config import Settings
 from intake.repositories import (
@@ -25,6 +30,7 @@ FOLLOW_UP_SECRET = "follow-up-capability-secret-" * 2
 WITHDRAWAL_SECRET = "withdrawal-capability-secret-" * 2
 OTHER_STATUS_SECRET = "other-status-capability-secret-" * 2
 GENERIC_NOT_FOUND = {"detail": "capability not found"}
+MISSING = object()
 
 
 class MutableClock:
@@ -251,6 +257,56 @@ def test_capability_is_bound_to_submission_even_across_contributors(harness):
     assert response.json() == GENERIC_NOT_FOUND
 
 
+@pytest.mark.parametrize("endpoint", ["status", "follow-up", "withdrawal"])
+@pytest.mark.parametrize(
+    "invalid_capability",
+    [
+        MISSING,
+        None,
+        "short-secret",
+        "oversized-secret-marker-" * 30,
+        "extreme-oversized-secret-marker-" * 1000,
+        12345,
+        {"secret": "wrong-type-marker"},
+    ],
+    ids=[
+        "absent",
+        "null",
+        "short",
+        "oversized",
+        "extreme-oversized",
+        "number",
+        "object",
+    ],
+)
+def test_malformed_capabilities_are_constant_non_reflective_not_found(
+    harness, endpoint, invalid_capability
+):
+    body = {} if invalid_capability is MISSING else {"capability": invalid_capability}
+    if endpoint == "status":
+        response = harness.client.post(
+            "/submission/v1/status-queries",
+            json={"submission_id": harness.submission_id, **body},
+        )
+    elif endpoint == "withdrawal":
+        response = harness.client.post(
+            f"/submission/v1/submissions/{harness.submission_id}/withdrawals",
+            json=body,
+        )
+    else:
+        response = harness.follow_up({"message": "Additional evidence.", **body})
+
+    assert response.status_code == 404
+    assert response.json() == GENERIC_NOT_FOUND
+    for marker in (
+        "short-secret",
+        "oversized-secret-marker",
+        "extreme-oversized-secret-marker",
+        "wrong-type-marker",
+    ):
+        assert marker not in response.text
+
+
 def test_replacing_status_capability_revokes_the_previous_secret(harness):
     replacement = "replacement-status-capability-" * 2
     codec = TokenCodec(harness.settings.read_key("token"))
@@ -454,6 +510,44 @@ def test_follow_up_transaction_failure_discards_image_and_preserves_capability(h
     )
 
 
+def test_follow_up_rechecks_expiry_after_sanitation_inside_transaction(
+    harness, monkeypatch
+):
+    with db.connect(harness.settings.database_path) as conn:
+        conn.execute(
+            "UPDATE submissions SET status = 'needs_information' WHERE id = ?",
+            (harness.submission_id,),
+        )
+    original_sanitize = artifact_module.ArtifactStore.sanitize
+
+    def sanitize_after_expiry(store, upload, submission_id):
+        result = original_sanitize(store, upload, submission_id)
+        harness.clock.value = NOW + timedelta(days=31)
+        return result
+
+    monkeypatch.setattr(
+        artifact_module.ArtifactStore, "sanitize", sanitize_after_expiry
+    )
+
+    response = harness.follow_up(
+        {"capability": FOLLOW_UP_SECRET, "message": "Additional evidence."},
+        [("measurement.jpg", _image_bytes(), "image/jpeg")],
+    )
+
+    assert response.status_code == 404
+    assert response.json() == GENERIC_NOT_FOUND
+    with db.connect(harness.settings.database_path) as conn:
+        assert conn.execute(
+            "SELECT consumed_at FROM submission_capabilities "
+            "WHERE submission_id = ? AND purpose = 'follow_up'",
+            (harness.submission_id,),
+        ).fetchone()[0] is None
+        assert conn.execute("SELECT COUNT(*) FROM submission_artifacts").fetchone()[0] == 0
+    assert not any(
+        path.is_file() for path in harness.settings.artifact_root.rglob("*")
+    )
+
+
 def test_withdrawal_is_pre_promotion_and_single_use(harness):
     first = harness.client.post(
         f"/submission/v1/submissions/{harness.submission_id}/withdrawals",
@@ -477,6 +571,32 @@ def test_withdrawal_is_pre_promotion_and_single_use(harness):
             (harness.submission_id,),
         ).fetchone()
     assert dict(row) == {"status": "withdrawn", "withdrawn_at": NOW.isoformat()}
+
+
+def test_withdrawal_rechecks_expiry_after_immediate_lock(harness, monkeypatch):
+    original_transaction = capability_routes.db.transaction
+
+    @contextmanager
+    def expire_after_lock(conn):
+        with original_transaction(conn):
+            harness.clock.value = NOW + timedelta(days=31)
+            yield conn
+
+    monkeypatch.setattr(capability_routes.db, "transaction", expire_after_lock)
+
+    response = harness.client.post(
+        f"/submission/v1/submissions/{harness.submission_id}/withdrawals",
+        json={"capability": WITHDRAWAL_SECRET},
+    )
+
+    assert response.status_code == 404
+    assert response.json() == GENERIC_NOT_FOUND
+    with db.connect(harness.settings.database_path) as conn:
+        assert conn.execute(
+            "SELECT consumed_at FROM submission_capabilities "
+            "WHERE submission_id = ? AND purpose = 'withdrawal'",
+            (harness.submission_id,),
+        ).fetchone()[0] is None
 
 
 @pytest.mark.parametrize("integration_state", ["pending", "integrated"])
@@ -552,8 +672,6 @@ def test_follow_up_guard_authorizes_metadata_before_reading_artifact_stream(harn
         "server": ("testserver", 443),
     }
 
-    import asyncio
-
     asyncio.run(harness.client.app(scope, receive, send))
 
     start = next(message for message in sent if message["type"] == "http.response.start")
@@ -565,3 +683,131 @@ def test_follow_up_guard_authorizes_metadata_before_reading_artifact_stream(harn
         if message["type"] == "http.response.body"
     )
     assert json.loads(body) == GENERIC_NOT_FOUND
+
+
+@pytest.mark.parametrize(
+    "content_type",
+    [None, "application/json", "multipart/form-data"],
+    ids=["missing", "wrong", "missing-boundary"],
+)
+def test_follow_up_guard_rejects_invalid_content_type_before_body_receive(
+    harness, content_type
+):
+    receive_calls = 0
+    sent = []
+
+    async def receive():
+        nonlocal receive_calls
+        receive_calls += 1
+        return {"type": "http.request", "body": b"private body", "more_body": False}
+
+    async def send(message):
+        sent.append(message)
+
+    headers = [(b"host", b"testserver")]
+    if content_type is not None:
+        headers.append((b"content-type", content_type.encode()))
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "https",
+        "path": f"/submission/v1/submissions/{harness.submission_id}/follow-ups",
+        "raw_path": b"",
+        "query_string": b"",
+        "headers": headers,
+        "client": ("127.0.0.1", 1234),
+        "server": ("testserver", 443),
+    }
+
+    asyncio.run(harness.client.app(scope, receive, send))
+
+    start = next(message for message in sent if message["type"] == "http.response.start")
+    body = b"".join(
+        message.get("body", b"")
+        for message in sent
+        if message["type"] == "http.response.body"
+    )
+    assert start["status"] == 400
+    assert json.loads(body) == {"detail": "invalid multipart body"}
+    assert receive_calls == 0
+
+
+def test_follow_up_disk_spool_excludes_capability_from_coalesced_chunk(
+    harness, monkeypatch
+):
+    with db.connect(harness.settings.database_path) as conn:
+        conn.execute(
+            "UPDATE submissions SET status = 'needs_information' WHERE id = ?",
+            (harness.submission_id,),
+        )
+    real_spool = capability_routes.tempfile.SpooledTemporaryFile
+    captures = []
+
+    @contextmanager
+    def recording_spool(*args, **kwargs):
+        with real_spool(*args, **kwargs) as spool:
+            yield spool
+            rolled = spool._rolled
+            spool.seek(0)
+            captures.append((rolled, spool.read()))
+
+    monkeypatch.setattr(
+        capability_routes,
+        "tempfile",
+        SimpleNamespace(SpooledTemporaryFile=recording_spool),
+    )
+    boundary = "coalesced-follow-up-boundary"
+    artifact_marker = b"artifact-body-marker"
+    body = (
+        f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="metadata"\r\n'
+        "Content-Type: application/json\r\n\r\n"
+        + json.dumps(
+            {"capability": FOLLOW_UP_SECRET, "message": "Additional evidence."}
+        )
+        + "\r\n"
+        + f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="artifacts"; filename="large.png"\r\n'
+        + "Content-Type: image/png\r\n\r\n"
+    ).encode() + artifact_marker + b"x" * (2 * 1024 * 1024) + (
+        f"\r\n--{boundary}--\r\n"
+    ).encode()
+    sent = []
+    received = False
+
+    async def receive():
+        nonlocal received
+        if received:
+            return {"type": "http.disconnect"}
+        received = True
+        return {"type": "http.request", "body": body, "more_body": False}
+
+    async def send(message):
+        sent.append(message)
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "https",
+        "path": f"/submission/v1/submissions/{harness.submission_id}/follow-ups",
+        "raw_path": b"",
+        "query_string": b"",
+        "headers": [
+            (b"host", b"testserver"),
+            (b"content-type", f"multipart/form-data; boundary={boundary}".encode()),
+        ],
+        "client": ("127.0.0.1", 1234),
+        "server": ("testserver", 443),
+    }
+
+    asyncio.run(harness.client.app(scope, receive, send))
+
+    start = next(message for message in sent if message["type"] == "http.response.start")
+    assert start["status"] == 400
+    assert captures and any(rolled for rolled, _ in captures)
+    assert any(artifact_marker in content for _, content in captures)
+    assert all(FOLLOW_UP_SECRET.encode() not in content for _, content in captures)

@@ -46,6 +46,7 @@ router = APIRouter(prefix="/submission/v1")
 _MAX_ARTIFACTS = 5
 _MAX_TOTAL_FILE_BYTES = 25 * 1024 * 1024
 _MAX_MULTIPART_BYTES = _MAX_TOTAL_FILE_BYTES + 1024 * 1024
+_MAX_MEMORY_PREFIX_BYTES = 16 * 1024
 _UNVERIFIED_RETENTION = timedelta(days=7)
 _NOT_FOUND_DETAIL = "capability not found"
 
@@ -57,12 +58,19 @@ def _now(request: Request) -> datetime:
     return value.astimezone(timezone.utc)
 
 
-def _digest(request: Request, capability: str) -> str:
-    return TokenCodec(request.app.state.settings.read_key("token")).digest(capability)
-
-
 def _not_found() -> HTTPException:
     return HTTPException(status.HTTP_404_NOT_FOUND, _NOT_FOUND_DETAIL)
+
+
+def _capability_secret(value: Any) -> str:
+    if not isinstance(value, str) or not 32 <= len(value) <= 512:
+        raise _not_found()
+    return value
+
+
+def _digest(request: Request, capability: Any) -> str:
+    secret = _capability_secret(capability)
+    return TokenCodec(request.app.state.settings.read_key("token")).digest(secret)
 
 
 def _require_capability(
@@ -196,12 +204,13 @@ def create_follow_up(
             stored_artifacts.append(artifact_store.sanitize(upload, submission_id))
         with db.connect(settings.database_path) as conn:
             with db.transaction(conn):
+                mutation_now_text = _now(request).isoformat()
                 _require_capability(
                     CapabilityRepository(conn),
                     submission_id,
                     "follow_up",
                     token_digest,
-                    now_text,
+                    mutation_now_text,
                     consume=True,
                 )
                 artifact_repository = ArtifactRepository(conn)
@@ -214,7 +223,7 @@ def create_follow_up(
                 SubmissionRepository(conn).append_follow_up(
                     submission_id,
                     {"message": payload.message, "artifact_ids": artifact_ids},
-                    now_text,
+                    mutation_now_text,
                 )
     except ArtifactRejected:
         _discard(artifact_store, stored_artifacts)
@@ -243,20 +252,20 @@ def create_follow_up(
 def withdraw_submission(
     request: Request, submission_id: str, payload: WithdrawalRequest
 ):
-    now_text = _now(request).isoformat()
     token_digest = _digest(request, payload.capability)
     try:
         with db.connect(request.app.state.settings.database_path) as conn:
             with db.transaction(conn):
+                mutation_now_text = _now(request).isoformat()
                 _require_capability(
                     CapabilityRepository(conn),
                     submission_id,
                     "withdrawal",
                     token_digest,
-                    now_text,
+                    mutation_now_text,
                     consume=True,
                 )
-                SubmissionRepository(conn).withdraw(submission_id, now_text)
+                SubmissionRepository(conn).withdraw(submission_id, mutation_now_text)
     except RepositoryConflict:
         raise HTTPException(
             status.HTTP_409_CONFLICT, "submission cannot be withdrawn"
@@ -307,6 +316,10 @@ class _FileLimitTracker:
             "on_headers_finished": self.on_headers_finished,
         }
 
+    @property
+    def authenticated(self) -> bool:
+        return self._authenticated
+
     def on_part_begin(self) -> None:
         self._current_file_bytes = 0
         self._current_is_file = False
@@ -328,7 +341,7 @@ class _FileLimitTracker:
             return
         self._metadata.extend(data[start:end])
         if len(self._metadata) > 8192:
-            raise _GuardRejected(422, "invalid follow-up metadata")
+            raise _GuardRejected(404, _NOT_FOUND_DETAIL)
 
     def on_part_end(self) -> None:
         if self._current_field == b"metadata" and not self._current_is_file:
@@ -371,11 +384,15 @@ class _FileLimitTracker:
             raise RuntimeError("application clock must return an aware datetime")
         now_text = now.astimezone(timezone.utc).isoformat()
         codec = TokenCodec(self.settings.read_key("token"))
+        try:
+            secret = _capability_secret(payload.capability)
+        except HTTPException:
+            raise _GuardRejected(404, _NOT_FOUND_DETAIL) from None
         with db.connect(self.settings.database_path) as conn:
             capability = CapabilityRepository(conn).authorize(
                 self.submission_id,
                 "follow_up",
-                codec.digest(payload.capability),
+                codec.digest(secret),
                 now_text,
             )
         if capability is None:
@@ -402,6 +419,12 @@ class FollowUpUploadGuard:
             await self.app(scope, receive, send)
             return
         headers = Headers(scope=scope)
+        boundary = self._boundary(headers)
+        if boundary is None:
+            await self._respond(
+                scope, receive, send, 400, "invalid multipart body"
+            )
+            return
         if self._declared_too_large(headers):
             await self._respond(scope, receive, send, 413, "artifact limits exceeded")
             return
@@ -410,9 +433,15 @@ class FollowUpUploadGuard:
             with tempfile.SpooledTemporaryFile(
                 max_size=1024 * 1024, mode="w+b", dir=artifact_root
             ) as buffered:
-                body_size = await self._consume(scope, receive, headers, buffered)
+                prefix, buffered_size = await self._consume(
+                    scope, receive, boundary, buffered
+                )
                 buffered.seek(0)
-                await self.app(scope, self._replay(buffered, body_size), send)
+                await self.app(
+                    scope,
+                    self._replay(prefix, buffered, buffered_size),
+                    send,
+                )
         except _GuardRejected as error:
             await self._respond(
                 scope, receive, send, error.status_code, error.detail
@@ -448,15 +477,33 @@ class FollowUpUploadGuard:
         except ValueError:
             return True
 
+    @staticmethod
+    def _boundary(headers: Headers) -> bytes | None:
+        content_type, options = parse_options_header(headers.get("content-type"))
+        boundary = options.get(b"boundary")
+        if (
+            content_type != b"multipart/form-data"
+            or not isinstance(boundary, bytes)
+            or not boundary
+        ):
+            return None
+        return boundary
+
     async def _consume(
         self,
         scope: Scope,
         receive: Receive,
-        headers: Headers,
+        boundary: bytes,
         buffered: Any,
-    ) -> int:
-        parser = self._parser(scope, headers)
+    ) -> tuple[bytes, int]:
+        tracker = self._tracker(scope)
+        parser = MultipartParser(boundary, tracker.callbacks)
+        open_marker = b"\r\n--" + boundary + b"\r\n"
+        close_marker = b"\r\n--" + boundary + b"--"
+        prefix = bytearray()
+        prefix_complete = False
         body_size = 0
+        buffered_size = 0
         while True:
             message = await receive()
             if message["type"] == "http.disconnect":
@@ -467,34 +514,73 @@ class FollowUpUploadGuard:
             body_size += len(body)
             if body_size > _MAX_MULTIPART_BYTES:
                 raise _MultipartLimitExceeded("artifact limits exceeded")
-            if parser is not None:
+            if not prefix_complete:
+                prefix.extend(body)
+                split_end = self._first_boundary_end(
+                    prefix, open_marker, close_marker
+                )
+                if split_end is None:
+                    if len(prefix) > _MAX_MEMORY_PREFIX_BYTES:
+                        raise _GuardRejected(404, _NOT_FOUND_DETAIL)
+                else:
+                    suffix = bytes(prefix[split_end:])
+                    del prefix[split_end:]
+                    parser.write(prefix)
+                    if not tracker.authenticated:
+                        raise _GuardRejected(404, _NOT_FOUND_DETAIL)
+                    prefix_complete = True
+                    if suffix:
+                        parser.write(suffix)
+                        buffered.write(suffix)
+                        buffered_size += len(suffix)
+            else:
                 parser.write(body)
-            buffered.write(body)
+                buffered.write(body)
+                buffered_size += len(body)
             if not message.get("more_body", False):
                 break
-        if parser is not None:
-            parser.finalize()
-        return body_size
+        if not prefix_complete:
+            raise MultipartParseError("invalid multipart body")
+        parser.finalize()
+        return bytes(prefix), buffered_size
 
-    def _parser(self, scope: Scope, headers: Headers) -> MultipartParser | None:
-        content_type, options = parse_options_header(headers.get("content-type"))
-        boundary = options.get(b"boundary")
-        if content_type != b"multipart/form-data" or boundary is None:
-            return None
+    def _tracker(self, scope: Scope) -> _FileLimitTracker:
         path = scope["path"]
         prefix = "/submission/v1/submissions/"
         suffix = "/follow-ups"
         submission_id = path[len(prefix) : -len(suffix)]
-        tracker = _FileLimitTracker(self.settings, self.clock, submission_id)
-        return MultipartParser(boundary, tracker.callbacks)
+        return _FileLimitTracker(self.settings, self.clock, submission_id)
 
     @staticmethod
-    def _replay(buffered: Any, body_size: int) -> Receive:
-        remaining = body_size
-        empty_sent = False
+    def _first_boundary_end(
+        prefix: bytearray,
+        open_marker: bytes,
+        close_marker: bytes,
+    ) -> int | None:
+        positions = [
+            (index, len(marker))
+            for marker in (open_marker, close_marker)
+            if (index := prefix.find(marker)) >= 0
+        ]
+        if not positions:
+            return None
+        index, marker_length = min(positions)
+        return index + marker_length
+
+    @staticmethod
+    def _replay(prefix: bytes, buffered: Any, buffered_size: int) -> Receive:
+        prefix_pending = True
+        remaining = buffered_size
 
         async def replay() -> Message:
-            nonlocal remaining, empty_sent
+            nonlocal prefix_pending, remaining
+            if prefix_pending:
+                prefix_pending = False
+                return {
+                    "type": "http.request",
+                    "body": prefix,
+                    "more_body": remaining > 0,
+                }
             if remaining:
                 body = buffered.read(min(READ_CHUNK_BYTES, remaining))
                 remaining -= len(body)
@@ -503,9 +589,6 @@ class FollowUpUploadGuard:
                     "body": body,
                     "more_body": remaining > 0,
                 }
-            if not empty_sent:
-                empty_sent = True
-                return {"type": "http.request", "body": b"", "more_body": False}
             return {"type": "http.disconnect"}
 
         return replay
