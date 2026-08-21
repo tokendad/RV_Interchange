@@ -17,6 +17,14 @@ def rendered_compose(*profiles):
     env = os.environ.copy()
     env.pop("COMPOSE_PROFILES", None)
     env["RVINTERCHANGE_TUNNEL_TOKEN"] = "test-token"
+    for variable in (
+        "RVI_CONTACT_KEY_FILE",
+        "RVI_TOKEN_KEY_FILE",
+        "RVI_SESSION_KEY_FILE",
+        "RVI_IP_KEY_FILE",
+        "RVI_TURNSTILE_SECRET_FILE",
+    ):
+        env[variable] = "/dev/null"
     command = ["docker", "compose", "-f", str(COMPOSE)]
     for profile in profiles:
         command.extend(["--profile", profile])
@@ -57,3 +65,24 @@ def test_production_compose_network_and_mount_boundaries():
     )
     assert tool_mount["read_only"] is True
     assert services["rvinterchange-cloudflared"]["profiles"] == ["tunnel"]
+
+
+def test_intake_profile_isolated_from_public_and_canonical_paths():
+    default_config = rendered_compose()
+    intake_config = rendered_compose("intake")
+
+    assert set(intake_config["services"]) == set(default_config["services"]) | {
+        "rvinterchange-intake"
+    }
+
+    intake = intake_config["services"]["rvinterchange-intake"]
+    assert intake["profiles"] == ["intake"]
+    assert "ports" not in intake
+    assert {
+        mount["target"]
+        for mount in intake["volumes"]
+        if not mount.get("read_only", False)
+    } == {"/app/data", "/app/artifacts"}
+    assert "/app/Docs/Tools" not in {mount["target"] for mount in intake["volumes"]}
+    assert all("components.db" not in mount["source"] for mount in intake["volumes"])
+    assert all(mount.get("read_only", True) for mount in intake["secrets"])

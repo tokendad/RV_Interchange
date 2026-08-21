@@ -72,3 +72,54 @@ services:
         condition: service_healthy
       rvinterchange-review:
         condition: service_healthy
+
+  rvinterchange-intake:
+    container_name: rvinterchange-intake
+    build:
+      context: ..
+      dockerfile: intake/Dockerfile
+    image: rvinterchange-intake:latest
+    restart: unless-stopped
+    profiles: ["intake"]
+    environment:
+      TZ: America/New_York
+      RVI_INTAKE_DB_PATH: /app/data/submissions.db
+      RVI_ARTIFACT_ROOT: /app/artifacts
+      RVI_CONTACT_KEY_FILE: /run/secrets/contact_key
+      RVI_TOKEN_KEY_FILE: /run/secrets/token_key
+      RVI_SESSION_KEY_FILE: /run/secrets/session_key
+      RVI_IP_KEY_FILE: /run/secrets/ip_key
+      RVI_TURNSTILE_SECRET_FILE: /run/secrets/turnstile_secret
+      RVI_TRUST_CF_CONNECTING_IP: "false"
+    volumes:
+      - /data/DockerConfigs/RVInterchange/intake/data:/app/data
+      - /data/DockerConfigs/RVInterchange/intake/artifacts:/app/artifacts
+    secrets:
+      - source: intake_contact_key
+        target: contact_key
+      - source: intake_token_key
+        target: token_key
+      - source: intake_session_key
+        target: session_key
+      - source: intake_ip_key
+        target: ip_key
+      - source: intake_turnstile_secret
+        target: turnstile_secret
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8487/health/')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+secrets:
+  intake_contact_key:
+    file: ${RVI_CONTACT_KEY_FILE:?RVI_CONTACT_KEY_FILE is required}
+  intake_token_key:
+    file: ${RVI_TOKEN_KEY_FILE:?RVI_TOKEN_KEY_FILE is required}
+  intake_session_key:
+    file: ${RVI_SESSION_KEY_FILE:?RVI_SESSION_KEY_FILE is required}
+  intake_ip_key:
+    file: ${RVI_IP_KEY_FILE:?RVI_IP_KEY_FILE is required}
+  intake_turnstile_secret:
+    file: ${RVI_TURNSTILE_SECRET_FILE:?RVI_TURNSTILE_SECRET_FILE is required}
