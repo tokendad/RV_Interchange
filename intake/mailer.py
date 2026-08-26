@@ -28,4 +28,3 @@ class TransactionalMailer(Protocol):
 
     def send(self, message: TransactionalMessage) -> str | None:
         """Deliver one message and return an optional provider reference."""
-
