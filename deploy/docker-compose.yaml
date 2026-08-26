@@ -74,7 +74,6 @@ services:
         condition: service_healthy
 
   rvinterchange-intake:
-    container_name: rvinterchange-intake
     build:
       context: ..
       dockerfile: intake/Dockerfile
@@ -92,8 +91,8 @@ services:
       RVI_TURNSTILE_SECRET_FILE: /run/secrets/turnstile_secret
       RVI_TRUST_CF_CONNECTING_IP: "false"
     volumes:
-      - /data/DockerConfigs/RVInterchange/intake/data:/app/data
-      - /data/DockerConfigs/RVInterchange/intake/artifacts:/app/artifacts
+      - ${RVI_INTAKE_DATA_DIR:-/data/DockerConfigs/RVInterchange/intake/data}:/app/data
+      - ${RVI_INTAKE_ARTIFACT_DIR:-/data/DockerConfigs/RVInterchange/intake/artifacts}:/app/artifacts
     secrets:
       - source: intake_contact_key
         target: contact_key
@@ -114,12 +113,12 @@ services:
 
 secrets:
   intake_contact_key:
-    file: ${RVI_CONTACT_KEY_FILE:?RVI_CONTACT_KEY_FILE is required}
+    file: ${RVI_CONTACT_KEY_FILE:-/data/DockerConfigs/RVInterchange/intake/secrets/contact_key}
   intake_token_key:
-    file: ${RVI_TOKEN_KEY_FILE:?RVI_TOKEN_KEY_FILE is required}
+    file: ${RVI_TOKEN_KEY_FILE:-/data/DockerConfigs/RVInterchange/intake/secrets/token_key}
   intake_session_key:
-    file: ${RVI_SESSION_KEY_FILE:?RVI_SESSION_KEY_FILE is required}
+    file: ${RVI_SESSION_KEY_FILE:-/data/DockerConfigs/RVInterchange/intake/secrets/session_key}
   intake_ip_key:
-    file: ${RVI_IP_KEY_FILE:?RVI_IP_KEY_FILE is required}
+    file: ${RVI_IP_KEY_FILE:-/data/DockerConfigs/RVInterchange/intake/secrets/ip_key}
   intake_turnstile_secret:
-    file: ${RVI_TURNSTILE_SECRET_FILE:?RVI_TURNSTILE_SECRET_FILE is required}
+    file: ${RVI_TURNSTILE_SECRET_FILE:-/data/DockerConfigs/RVInterchange/intake/secrets/turnstile_secret}

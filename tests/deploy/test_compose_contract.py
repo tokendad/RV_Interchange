@@ -11,20 +11,24 @@ ROOT = Path(__file__).resolve().parents[2]
 COMPOSE = ROOT / "deploy" / "docker-compose.yaml"
 
 
-def rendered_compose(*profiles):
+def rendered_compose(
+    *profiles, configure_intake_secrets=True, environment=None
+):
     if shutil.which("docker") is None:
         pytest.skip("docker compose is required for the deployment contract test")
     env = os.environ.copy()
     env.pop("COMPOSE_PROFILES", None)
     env["RVINTERCHANGE_TUNNEL_TOKEN"] = "test-token"
-    for variable in (
-        "RVI_CONTACT_KEY_FILE",
-        "RVI_TOKEN_KEY_FILE",
-        "RVI_SESSION_KEY_FILE",
-        "RVI_IP_KEY_FILE",
-        "RVI_TURNSTILE_SECRET_FILE",
-    ):
-        env[variable] = "/dev/null"
+    if configure_intake_secrets:
+        for variable in (
+            "RVI_CONTACT_KEY_FILE",
+            "RVI_TOKEN_KEY_FILE",
+            "RVI_SESSION_KEY_FILE",
+            "RVI_IP_KEY_FILE",
+            "RVI_TURNSTILE_SECRET_FILE",
+        ):
+            env[variable] = "/dev/null"
+    env.update(environment or {})
     command = ["docker", "compose", "-f", str(COMPOSE)]
     for profile in profiles:
         command.extend(["--profile", profile])
@@ -86,3 +90,37 @@ def test_intake_profile_isolated_from_public_and_canonical_paths():
     assert "/app/Docs/Tools" not in {mount["target"] for mount in intake["volumes"]}
     assert all("components.db" not in mount["source"] for mount in intake["volumes"])
     assert all(mount.get("read_only", True) for mount in intake["secrets"])
+
+
+def test_non_intake_profiles_do_not_require_intake_secret_configuration():
+    default_config = rendered_compose(configure_intake_secrets=False)
+    tunnel_config = rendered_compose(
+        "tunnel", configure_intake_secrets=False
+    )
+
+    assert "rvinterchange-intake" not in default_config["services"]
+    assert "rvinterchange-intake" not in tunnel_config["services"]
+
+
+def test_intake_storage_sources_can_be_isolated_for_restore_drills(tmp_path):
+    data_dir = tmp_path / "data"
+    artifact_dir = tmp_path / "artifacts"
+    config = rendered_compose(
+        "intake",
+        environment={
+            "RVI_INTAKE_DATA_DIR": str(data_dir),
+            "RVI_INTAKE_ARTIFACT_DIR": str(artifact_dir),
+        },
+    )
+
+    intake = config["services"]["rvinterchange-intake"]
+    assert "container_name" not in intake
+    writable = {
+        mount["target"]: mount["source"]
+        for mount in intake["volumes"]
+        if not mount.get("read_only", False)
+    }
+    assert writable == {
+        "/app/data": str(data_dir),
+        "/app/artifacts": str(artifact_dir),
+    }
