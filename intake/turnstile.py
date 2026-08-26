@@ -23,7 +23,7 @@ class TurnstileVerifier:
         if not isinstance(secret, str) or not secret:
             raise ValueError("turnstile secret must not be empty")
         self._secret = secret
-        self._client = client or httpx.Client()
+        self._client = client or httpx.Client(trust_env=False)
         self._owns_client = client is None
 
     def verify(self, token: str, remote_ip: str) -> None:

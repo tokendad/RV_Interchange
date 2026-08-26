@@ -13,6 +13,15 @@ from intake.turnstile import (
 SITEVERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
 
+def test_owned_client_ignores_ambient_proxy_configuration(monkeypatch):
+    monkeypatch.setenv("ALL_PROXY", "unsupported://proxy.invalid")
+    monkeypatch.setenv("all_proxy", "unsupported://proxy.invalid")
+
+    verifier = TurnstileVerifier("provider-secret")
+
+    verifier.close()
+
+
 def test_turnstile_posts_only_approved_fields_with_five_second_timeout():
     observed = {}
 
