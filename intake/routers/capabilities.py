@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import tempfile
+import uuid
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Any
@@ -71,6 +72,19 @@ def _capability_secret(value: Any) -> str:
 def _digest(request: Request, capability: Any) -> str:
     secret = _capability_secret(capability)
     return TokenCodec(request.app.state.settings.read_key("token")).digest(secret)
+
+
+def _status_envelope(value: Any) -> tuple[str, str]:
+    if not isinstance(value, dict) or set(value) != {"submission_id", "capability"}:
+        raise _not_found()
+    submission_id = value["submission_id"]
+    try:
+        parsed = uuid.UUID(submission_id)
+    except (AttributeError, TypeError, ValueError):
+        raise _not_found() from None
+    if not isinstance(submission_id, str) or str(parsed) != submission_id:
+        raise _not_found()
+    return submission_id, _capability_secret(value["capability"])
 
 
 def _require_capability(
@@ -154,17 +168,18 @@ def _discard(store: ArtifactStore, stored: list[StoredArtifact]) -> None:
 
 @router.post("/status-queries", response_model=PublicSubmissionStatus)
 def status_query(request: Request, payload: StatusQuery):
+    submission_id, capability = _status_envelope(payload.root)
     now = _now(request).isoformat()
-    token_digest = _digest(request, payload.capability)
+    token_digest = _digest(request, capability)
     with db.connect(request.app.state.settings.database_path) as conn:
         _require_capability(
             CapabilityRepository(conn),
-            payload.submission_id,
+            submission_id,
             "status",
             token_digest,
             now,
         )
-        public_status = SubmissionRepository(conn).public_status(payload.submission_id)
+        public_status = SubmissionRepository(conn).public_status(submission_id)
     if public_status is None:
         raise _not_found()
     return public_status
@@ -498,8 +513,10 @@ class FollowUpUploadGuard:
     ) -> tuple[bytes, int]:
         tracker = self._tracker(scope)
         parser = MultipartParser(boundary, tracker.callbacks)
-        open_marker = b"\r\n--" + boundary + b"\r\n"
-        close_marker = b"\r\n--" + boundary + b"--"
+        markers = (
+            b"\r\n--" + boundary + b"\r\n",
+            b"\r\n--" + boundary + b"--",
+        )
         prefix = bytearray()
         prefix_complete = False
         body_size = 0
@@ -515,28 +532,27 @@ class FollowUpUploadGuard:
             if body_size > _MAX_MULTIPART_BYTES:
                 raise _MultipartLimitExceeded("artifact limits exceeded")
             if not prefix_complete:
-                prefix.extend(body)
-                split_end = self._first_boundary_end(
-                    prefix, open_marker, close_marker
-                )
-                if split_end is None:
-                    if len(prefix) > _MAX_MEMORY_PREFIX_BYTES:
+                consumed = self._boundary_consumed(prefix, body, markers)
+                if consumed is None:
+                    remaining_budget = _MAX_MEMORY_PREFIX_BYTES - len(prefix)
+                    if len(body) > remaining_budget:
                         raise _GuardRejected(404, _NOT_FOUND_DETAIL)
+                    prefix.extend(body)
                 else:
-                    suffix = bytes(prefix[split_end:])
-                    del prefix[split_end:]
+                    if len(prefix) + consumed > _MAX_MEMORY_PREFIX_BYTES:
+                        raise _GuardRejected(404, _NOT_FOUND_DETAIL)
+                    prefix.extend(body[:consumed])
                     parser.write(prefix)
                     if not tracker.authenticated:
                         raise _GuardRejected(404, _NOT_FOUND_DETAIL)
                     prefix_complete = True
-                    if suffix:
-                        parser.write(suffix)
-                        buffered.write(suffix)
-                        buffered_size += len(suffix)
+                    buffered_size += self._write_artifact_segment(
+                        parser, buffered, memoryview(body)[consumed:]
+                    )
             else:
-                parser.write(body)
-                buffered.write(body)
-                buffered_size += len(body)
+                buffered_size += self._write_artifact_segment(
+                    parser, buffered, memoryview(body)
+                )
             if not message.get("more_body", False):
                 break
         if not prefix_complete:
@@ -552,20 +568,42 @@ class FollowUpUploadGuard:
         return _FileLimitTracker(self.settings, self.clock, submission_id)
 
     @staticmethod
-    def _first_boundary_end(
+    def _boundary_consumed(
         prefix: bytearray,
-        open_marker: bytes,
-        close_marker: bytes,
+        body: bytes,
+        markers: tuple[bytes, bytes],
     ) -> int | None:
-        positions = [
-            (index, len(marker))
-            for marker in (open_marker, close_marker)
-            if (index := prefix.find(marker)) >= 0
-        ]
-        if not positions:
+        candidates: list[tuple[int, int]] = []
+        for marker in markers:
+            if (index := body.find(marker)) >= 0:
+                candidates.append((len(prefix) + index, index + len(marker)))
+            overlap_limit = min(len(prefix), len(marker) - 1)
+            for overlap in range(overlap_limit, 0, -1):
+                if prefix.endswith(marker[:overlap]) and body.startswith(
+                    marker[overlap:]
+                ):
+                    candidates.append(
+                        (len(prefix) - overlap, len(marker) - overlap)
+                    )
+                    break
+        if not candidates:
             return None
-        index, marker_length = min(positions)
-        return index + marker_length
+        _, consumed = min(candidates)
+        return consumed
+
+    @staticmethod
+    def _write_artifact_segment(
+        parser: MultipartParser,
+        buffered: Any,
+        segment: memoryview,
+    ) -> int:
+        written = 0
+        while written < len(segment):
+            end = min(written + READ_CHUNK_BYTES, len(segment))
+            parser.write(bytes(segment[written:end]))
+            buffered.write(segment[written:end])
+            written = end
+        return written
 
     @staticmethod
     def _replay(prefix: bytes, buffered: Any, buffered_size: int) -> Receive:

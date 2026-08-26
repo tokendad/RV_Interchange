@@ -257,6 +257,26 @@ def test_capability_is_bound_to_submission_even_across_contributors(harness):
     assert response.json() == GENERIC_NOT_FOUND
 
 
+@pytest.mark.parametrize(
+    "invalid_submission_id",
+    [MISSING, None, "", "not-a-uuid", 12345, {"id": "wrong-type"}, ["wrong-type"]],
+    ids=["absent", "null", "empty", "malformed", "number", "object", "list"],
+)
+def test_invalid_status_submission_ids_are_constant_non_reflective_not_found(
+    harness, invalid_submission_id
+):
+    raw_capability = "valid-raw-capability-reflection-marker-" * 2
+    payload = {"capability": raw_capability}
+    if invalid_submission_id is not MISSING:
+        payload["submission_id"] = invalid_submission_id
+
+    response = harness.client.post("/submission/v1/status-queries", json=payload)
+
+    assert response.status_code == 404
+    assert response.json() == GENERIC_NOT_FOUND
+    assert raw_capability not in response.text
+
+
 @pytest.mark.parametrize("endpoint", ["status", "follow-up", "withdrawal"])
 @pytest.mark.parametrize(
     "invalid_capability",
@@ -811,3 +831,79 @@ def test_follow_up_disk_spool_excludes_capability_from_coalesced_chunk(
     assert captures and any(rolled for rolled, _ in captures)
     assert any(artifact_marker in content for _, content in captures)
     assert all(FOLLOW_UP_SECRET.encode() not in content for _, content in captures)
+
+
+def test_follow_up_coalesced_chunk_keeps_prefix_allocation_within_16_kib(
+    harness, monkeypatch
+):
+    with db.connect(harness.settings.database_path) as conn:
+        conn.execute(
+            "UPDATE submissions SET status = 'needs_information' WHERE id = ?",
+            (harness.submission_id,),
+        )
+    peak_lengths = []
+
+    class TrackingBytearray(bytearray):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            peak_lengths.append(len(self))
+
+        def extend(self, value):
+            super().extend(value)
+            peak_lengths.append(len(self))
+
+    monkeypatch.setattr(
+        capability_routes, "bytearray", TrackingBytearray, raising=False
+    )
+    boundary = "bounded-coalesced-boundary"
+    artifact_marker = b"multi-megabyte-artifact-marker"
+    body = (
+        f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="metadata"\r\n'
+        "Content-Type: application/json\r\n\r\n"
+        + json.dumps(
+            {"capability": FOLLOW_UP_SECRET, "message": "Additional evidence."}
+        )
+        + "\r\n"
+        + f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="artifacts"; filename="large.png"\r\n'
+        + "Content-Type: image/png\r\n\r\n"
+    ).encode() + artifact_marker + b"x" * (3 * 1024 * 1024) + (
+        f"\r\n--{boundary}--\r\n"
+    ).encode()
+    sent = []
+    received = False
+
+    async def receive():
+        nonlocal received
+        if received:
+            return {"type": "http.disconnect"}
+        received = True
+        return {"type": "http.request", "body": body, "more_body": False}
+
+    async def send(message):
+        sent.append(message)
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "https",
+        "path": f"/submission/v1/submissions/{harness.submission_id}/follow-ups",
+        "raw_path": b"",
+        "query_string": b"",
+        "headers": [
+            (b"host", b"testserver"),
+            (b"content-type", f"multipart/form-data; boundary={boundary}".encode()),
+        ],
+        "client": ("127.0.0.1", 1234),
+        "server": ("testserver", 443),
+    }
+
+    asyncio.run(harness.client.app(scope, receive, send))
+
+    start = next(message for message in sent if message["type"] == "http.response.start")
+    assert start["status"] == 400
+    assert peak_lengths
+    assert max(peak_lengths) <= 16 * 1024

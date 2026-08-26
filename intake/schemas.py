@@ -2,7 +2,7 @@
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 from intake.intents import SubmissionMetadata
 
@@ -40,9 +40,8 @@ class _StrictCapabilityInput(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
 
-class StatusQuery(_StrictCapabilityInput):
-    submission_id: str = Field(min_length=1, max_length=64)
-    capability: Any = None
+class StatusQuery(RootModel[Any]):
+    pass
 
 
 class FollowUpMetadata(_StrictCapabilityInput):
