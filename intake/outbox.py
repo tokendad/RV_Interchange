@@ -1,5 +1,6 @@
 """Transactional outbox worker without a production delivery adapter."""
 
+import base64
 import json
 import logging
 from datetime import datetime, timedelta, timezone
@@ -14,7 +15,7 @@ from intake.mailer import (
     TransactionalMessage,
 )
 from intake.repositories import OutboxRepository
-from intake.security import ContactCipher
+from intake.security import ContactCipher, VerificationTokenCipher
 
 
 _RETRY_DELAYS = (60, 300, 1_800, 7_200, 7_200)
@@ -34,6 +35,7 @@ class OutboxWorker:
     ):
         self._database_path = Path(database_path)
         self._contact_cipher = ContactCipher(contact_key)
+        self._verification_token_cipher = VerificationTokenCipher(contact_key)
         self._mailer = mailer
         self._logger = logger or logging.getLogger(__name__)
 
@@ -99,6 +101,7 @@ class OutboxWorker:
         template_data = json.loads(row["template_data_json"])
         if not isinstance(template_data, dict):
             raise ValueError("invalid template data")
+        template_data = self._render_template_data(row["template"], template_data)
         return TransactionalMessage(
             message_id=row["id"],
             recipient=recipient,
@@ -106,6 +109,30 @@ class OutboxWorker:
             template_data=template_data,
             submission_id=row["submission_id"],
         )
+
+    def _render_template_data(
+        self, template: str, template_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        if template == "verify_email":
+            if set(template_data) != {
+                "expires_at",
+                "verification_token_ciphertext",
+            }:
+                raise ValueError("invalid verification template data")
+            encoded_token = template_data["verification_token_ciphertext"]
+            if not isinstance(encoded_token, str):
+                raise ValueError("invalid verification template data")
+            encrypted_token = base64.b64decode(encoded_token, validate=True)
+            raw_token = self._verification_token_cipher.decrypt(encrypted_token)
+            return {
+                "expires_at": template_data["expires_at"],
+                "verification_token": raw_token,
+            }
+        if template == "submission_received":
+            if set(template_data) != {"status", "submission_id"}:
+                raise ValueError("invalid receipt template data")
+            return template_data
+        raise ValueError("unknown mail template")
 
     def _mark_retry(
         self, message_id: str, retry_at: str, error_code: str, now: str

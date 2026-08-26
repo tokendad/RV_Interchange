@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 from datetime import datetime, timedelta, timezone
@@ -11,7 +12,7 @@ from intake.mailer import (
 )
 from intake.outbox import OutboxWorker
 from intake.repositories import OutboxRepository
-from intake.security import ContactCipher
+from intake.security import ContactCipher, VerificationTokenCipher
 
 
 NOW = datetime(2026, 8, 21, 12, 0, tzinfo=timezone.utc)
@@ -55,6 +56,9 @@ def outbox_path(tmp_path):
 
 def _enqueue(path, *, now=NOW, ciphertext=None):
     ciphertext = ciphertext or ContactCipher(CONTACT_KEY).encrypt(RECIPIENT)
+    encrypted_token = VerificationTokenCipher(CONTACT_KEY).encrypt(
+        SECRET_TEMPLATE_VALUE
+    )
     with db.connect(path) as conn:
         with db.transaction(conn):
             return OutboxRepository(conn).enqueue(
@@ -62,7 +66,10 @@ def _enqueue(path, *, now=NOW, ciphertext=None):
                     "template": "verify_email",
                     "recipient_ciphertext": ciphertext,
                     "template_data_json": {
-                        "verification_token": SECRET_TEMPLATE_VALUE,
+                        "expires_at": "2026-08-21T12:15:00+00:00",
+                        "verification_token_ciphertext": base64.b64encode(
+                            encrypted_token
+                        ).decode("ascii"),
                     },
                     "next_attempt_at": now.isoformat(),
                     "created_at": now.isoformat(),
@@ -87,7 +94,10 @@ def test_success_claims_commits_sends_and_records_provider_reference(outbox_path
     message = mailer.messages[0]
     assert message.recipient == RECIPIENT
     assert message.template == "verify_email"
-    assert message.template_data == {"verification_token": SECRET_TEMPLATE_VALUE}
+    assert message.template_data == {
+        "expires_at": "2026-08-21T12:15:00+00:00",
+        "verification_token": SECRET_TEMPLATE_VALUE,
+    }
     row = _row(outbox_path)
     assert row["state"] == "sent"
     assert row["attempt_count"] == 1
