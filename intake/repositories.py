@@ -496,6 +496,103 @@ class OutboxRepository:
         _insert(self.conn, "email_outbox", self._COLUMNS, values)
         return message_id
 
+    def claim_next(self, now: str, stale_before: str) -> sqlite3.Row | None:
+        row = self.conn.execute(
+            """
+            SELECT id
+            FROM email_outbox
+            WHERE attempt_count < 6
+              AND (
+                (state IN ('pending', 'retry') AND next_attempt_at <= ?)
+                OR (
+                    state = 'sending'
+                    AND (claimed_at IS NULL OR claimed_at <= ?)
+                )
+              )
+            ORDER BY next_attempt_at, created_at, id
+            LIMIT 1
+            """,
+            (now, stale_before),
+        ).fetchone()
+        if row is None:
+            return None
+        return self.conn.execute(
+            """
+            UPDATE email_outbox
+            SET state = 'sending', attempt_count = attempt_count + 1,
+                claimed_at = ?, updated_at = ?
+            WHERE id = ? AND attempt_count < 6
+            RETURNING *
+            """,
+            (now, now, row["id"]),
+        ).fetchone()
+
+    def fail_stale_exhausted(self, now: str, stale_before: str) -> int:
+        cursor = self.conn.execute(
+            """
+            UPDATE email_outbox
+            SET state = 'failed', last_error = 'attempt_limit_reached',
+                updated_at = ?
+            WHERE state = 'sending' AND attempt_count >= 6
+              AND (claimed_at IS NULL OR claimed_at <= ?)
+            """,
+            (now, stale_before),
+        )
+        return cursor.rowcount
+
+    def mark_sent(
+        self,
+        message_id: str,
+        provider_reference: str | None,
+        now: str,
+    ) -> None:
+        self._transition(
+            message_id,
+            """
+            UPDATE email_outbox
+            SET state = 'sent', provider_reference = ?, sent_at = ?,
+                updated_at = ?, last_error = NULL
+            WHERE id = ? AND state = 'sending'
+            """,
+            (provider_reference, now, now, message_id),
+        )
+
+    def mark_retry(
+        self,
+        message_id: str,
+        next_attempt_at: str,
+        error_code: str,
+        now: str,
+    ) -> None:
+        self._transition(
+            message_id,
+            """
+            UPDATE email_outbox
+            SET state = 'retry', next_attempt_at = ?, last_error = ?,
+                updated_at = ?
+            WHERE id = ? AND state = 'sending' AND attempt_count < 6
+            """,
+            (next_attempt_at, error_code, now, message_id),
+        )
+
+    def mark_failed(self, message_id: str, error_code: str, now: str) -> None:
+        self._transition(
+            message_id,
+            """
+            UPDATE email_outbox
+            SET state = 'failed', last_error = ?, updated_at = ?
+            WHERE id = ? AND state = 'sending'
+            """,
+            (error_code, now, message_id),
+        )
+
+    def _transition(
+        self, message_id: str, statement: str, parameters: tuple[Any, ...]
+    ) -> None:
+        cursor = self.conn.execute(statement, parameters)
+        if cursor.rowcount != 1:
+            raise RepositoryConflict("outbox state changed before delivery update")
+
 
 class RateLimitRepository:
     def __init__(self, conn: sqlite3.Connection):
