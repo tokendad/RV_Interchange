@@ -1,55 +1,56 @@
-function wireRawForm(formId, outputId, buildPath) {
-  const form = document.getElementById(formId);
-  const output = document.getElementById(outputId);
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    output.className = "";
-    output.textContent = "Loading...";
+const queue = document.getElementById("queue");
+const detail = document.getElementById("detail");
+const badge = document.getElementById("reviewer-badge");
+let reviewer = { roles: [] };
 
-    const path = buildPath();
-    const { ok, status, body, error, elapsedMs, url } = await rviFetch(path);
-
-    const header = error
-      ? `Request failed: ${error} (${url})`
-      : `HTTP ${status} — ${elapsedMs.toFixed(1)}ms — ${url}`;
-    output.className = ok ? "" : "error";
-    output.textContent = `${header}\n\n${JSON.stringify(body, null, 2)}`;
-  });
+async function request(path, options = {}) {
+  const response = await fetch(path, { ...options, headers: { "Content-Type": "application/json", ...(options.headers || {}) } });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.detail || `HTTP ${response.status}`);
+  return body;
 }
 
-wireRawForm("search-form", "search-output", () => {
-  const q = document.getElementById("search-q").value;
-  const limit = document.getElementById("search-limit").value;
-  return `/public/v1/search?q=${encodeURIComponent(q)}&limit=${encodeURIComponent(limit)}`;
-});
+function el(tag, className, content) { const node = document.createElement(tag); if (className) node.className = className; if (content !== undefined) node.append(document.createTextNode(content)); return node; }
 
-wireRawForm("resolve-form", "resolve-output", () => {
-  const ns = document.getElementById("resolve-ns").value;
-  const identifier = document.getElementById("resolve-identifier").value;
-  return `/public/v1/resolve?ns=${encodeURIComponent(ns)}&identifier=${encodeURIComponent(identifier)}`;
-});
-
-wireRawForm("replacements-form", "replacements-output", () => {
-  const ns = document.getElementById("replacements-ns").value;
-  const identifier = document.getElementById("replacements-identifier").value;
-  return `/public/v1/replacements?ns=${encodeURIComponent(ns)}&identifier=${encodeURIComponent(identifier)}`;
-});
-
-async function loadLogs() {
-  const output = document.getElementById("logs-output");
-  output.className = "";
-  output.textContent = "Loading...";
-
-  const { ok, status, body, error } = await rviFetch("/debug/v1/logs?lines=100");
-
-  if (!ok) {
-    output.className = "error";
-    output.textContent = error ? `Request failed: ${error}` : `HTTP ${status}`;
-    return;
-  }
-
-  output.textContent = body.lines.length > 0 ? body.lines.join("\n") : "(no log lines yet)";
+async function loadSession() {
+  reviewer = await request("/review/v1/session");
+  badge.textContent = `${reviewer.email} · ${reviewer.roles.join(", ") || "no role"}`;
 }
 
-document.getElementById("logs-refresh").addEventListener("click", loadLogs);
-loadLogs();
+async function loadQueue() {
+  queue.replaceChildren(el("p", "muted", "Loading queue…"));
+  try {
+    const status = document.getElementById("status-filter").value;
+    const page = await request(`/review/v1/queue${status ? `?status=${encodeURIComponent(status)}` : ""}`);
+    queue.replaceChildren(...(page.items.length ? page.items.map(queueCard) : [el("p", "muted", "No submissions match this filter.")]));
+  } catch (error) { queue.replaceChildren(el("p", "error", error.message)); }
+}
+
+function queueCard(item) {
+  const button = el("button", "queue-card"); button.type = "button"; button.dataset.submissionId = item.id;
+  button.append(el("span", `priority priority-${item.priority}`, item.priority)); button.append(el("strong", "queue-summary", item.summary));
+  button.append(el("span", "queue-meta", `${item.intent.replaceAll("_", " ")} · ${item.pending_claim_count} pending claim${item.pending_claim_count === 1 ? "" : "s"}`));
+  button.addEventListener("click", () => loadDetail(item.id)); return button;
+}
+
+async function loadDetail(id) { detail.replaceChildren(el("p", "muted", "Loading submission…")); try { renderDetail(await request(`/review/v1/submissions/${encodeURIComponent(id)}`)); } catch (error) { detail.replaceChildren(el("p", "error", error.message)); } }
+
+function renderDetail(data) {
+  const submission = data.submission; const header = el("div", "detail-header");
+  header.append(el("span", `priority priority-${submission.priority}`, submission.priority), el("h2", null, submission.summary), el("p", "detail-meta", `${submission.intent.replaceAll("_", " ")} · ${submission.status}`));
+  const claims = el("section", "claims"); claims.append(el("h3", null, "Claims")); for (const claim of data.claims) claims.append(claimCard(submission.id, claim));
+  const states = el("div", "state-strip"); states.append(state("Acceptance", submission.status), state("Promotion", submission.evidence_state), state("Integration", submission.integration_state)); detail.replaceChildren(header, states, claims);
+}
+
+function state(label, value) { const node = el("div", "state"); node.append(el("span", "state-label", label), el("strong", null, value)); return node; }
+function claimCard(submissionId, claim) {
+  const card = el("article", "claim-card"); const body = el("div"); body.append(el("span", "claim-type", claim.claim_type.replaceAll("_", " ")), el("p", "claim-value", JSON.stringify(claim.proposed_json)), el("span", `claim-status claim-${claim.status}`, claim.status)); card.append(body);
+  if (reviewer.roles.includes("admin") && claim.status === "pending") { const actions = el("div", "claim-actions"); for (const action of ["accepted", "rejected", "duplicate"]) { const button = el("button", "action-button", action); button.type = "button"; button.addEventListener("click", () => decide(submissionId, claim.id, action)); actions.append(button); } card.append(actions); }
+  if (reviewer.roles.includes("trusted") || reviewer.roles.includes("admin")) { const button = el("button", "advisory-button", "Add advisory assessment"); button.type = "button"; button.addEventListener("click", () => assess(submissionId, claim.id)); card.append(button); } return card;
+}
+
+async function decide(submissionId, claimId, action) { const reason = window.prompt("Reason code (required):", "source_verified"); if (!reason) return; try { await request(`/review/v1/submissions/${submissionId}/claims/${claimId}/decision`, { method: "POST", body: JSON.stringify({ action, reason_code: reason, idempotency_key: crypto.randomUUID() }) }); await loadDetail(submissionId); await loadQueue(); } catch (error) { window.alert(error.message); } }
+async function assess(submissionId, claimId) { const reason = window.prompt("Assessment reason (required):", "additional corroboration"); if (!reason) return; try { await request(`/review/v1/submissions/${submissionId}/claims/${claimId}/assessment`, { method: "POST", body: JSON.stringify({ assessment: "endorse", reason, idempotency_key: crypto.randomUUID() }) }); window.alert("Advisory assessment recorded."); } catch (error) { window.alert(error.message); } }
+
+document.getElementById("status-filter").addEventListener("change", loadQueue);
+Promise.all([loadSession(), loadQueue()]).catch((error) => { badge.textContent = "Access required"; queue.replaceChildren(el("p", "error", error.message)); });

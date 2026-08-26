@@ -137,8 +137,7 @@ def test_review_image_owns_admin_assets():
         "review/nginx.conf",
         "review/index.html",
         "review/admin.js",
-        "web/api-client.js",
-        "web/style.css",
+        "review/style.css",
     }
     assert not (ROOT / "web/admin.html").exists()
     assert not (ROOT / "web/admin.js").exists()
@@ -152,8 +151,10 @@ def test_review_proxy_exposes_only_existing_debug_contract():
         "location = /public/v1/resolve",
         "location = /public/v1/replacements",
         "location = /debug/v1/logs",
+        "location = /review/v1/session",
+        "location = /review/v1/queue",
+        "location ^~ /review/v1/submissions/",
     }
-    assert "return 503" in blocks["location ^~ /review/v1/"]
     for denied in (
         "location ^~ /submission/v1/",
         "location = /docs",
