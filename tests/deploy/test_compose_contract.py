@@ -48,6 +48,7 @@ def test_production_compose_network_and_mount_boundaries():
     default_config = rendered_compose()
     assert set(default_config["services"]) == {
         "rvinterchange-api",
+        "rvinterchange-review-api",
         "rvinterchange-review",
         "rvinterchange-web",
     }
@@ -58,6 +59,7 @@ def test_production_compose_network_and_mount_boundaries():
         "rvinterchange-api",
         "rvinterchange-cloudflared",
         "rvinterchange-review",
+        "rvinterchange-review-api",
         "rvinterchange-web",
     }
     assert "ports" not in services["rvinterchange-api"]

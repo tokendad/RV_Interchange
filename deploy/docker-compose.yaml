@@ -52,8 +52,35 @@ services:
     depends_on:
       rvinterchange-api:
         condition: service_healthy
+      rvinterchange-review-api:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  rvinterchange-review-api:
+    container_name: rvinterchange-review-api
+    build:
+      context: ..
+      dockerfile: review/api.Dockerfile
+    image: rvinterchange-review-api:latest
+    restart: unless-stopped
+    environment:
+      TZ: America/New_York
+      RVI_INTAKE_DB_PATH: /app/data/submissions.db
+      RVI_ACCESS_ISSUER: ${RVI_ACCESS_ISSUER:-https://rvinterchange.cloudflareaccess.com}
+      RVI_ACCESS_AUDIENCE: ${RVI_ACCESS_AUDIENCE:-unset}
+      RVI_ACCESS_JWKS_URL: ${RVI_ACCESS_JWKS_URL:-https://rvinterchange.cloudflareaccess.com/cdn-cgi/access/certs}
+      RVI_REVIEW_DIGEST_KEY_FILE: /run/secrets/review_digest_key
+    volumes:
+      - ${RVI_INTAKE_DATA_DIR:-/data/DockerConfigs/RVInterchange/intake/data}:/app/data
+    secrets:
+      - review_digest_key
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8488/health/')"]
       interval: 30s
       timeout: 5s
       start_period: 10s
@@ -112,6 +139,8 @@ services:
       retries: 3
 
 secrets:
+  review_digest_key:
+    file: ${RVI_TOKEN_KEY_FILE:-/data/DockerConfigs/RVInterchange/intake/secrets/token_key}
   intake_contact_key:
     file: ${RVI_CONTACT_KEY_FILE:-/data/DockerConfigs/RVInterchange/intake/secrets/contact_key}
   intake_token_key:

@@ -40,6 +40,8 @@ class ReviewerAuthorizer:
     def require(self, request: Request, roles: set[str] | frozenset[str] = frozenset(), capability: str | None = None) -> ReviewerIdentity:
         assertion = request.headers.get("Cf-Access-Jwt-Assertion")
         try:
+            if not assertion:
+                raise ValueError("missing access assertion")
             payload = self.validator.validate(assertion)
             email = payload.get("email")
             if not isinstance(email, str) or not email:
