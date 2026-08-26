@@ -2,7 +2,7 @@ const NAV_LINKS = [
   { id: "lookup", label: "Parts Lookup", href: "/" },
   { id: "coverage", label: "Data Coverage", href: "/coverage.html" },
   { id: "how-it-works", label: "How It Works", href: "/how-it-works.html" },
-  { id: "contribute", label: "Contribute", href: "https://github.com/tokendad/RV_Interchange" },
+  { id: "contribute", label: "Contribute", href: "https://review.rvinterchange.com/" },
 ];
 
 function renderHeader(activeId) {

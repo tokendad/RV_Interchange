@@ -167,3 +167,11 @@ def test_review_proxy_exposes_only_existing_debug_contract():
 def test_review_back_link_targets_the_canonical_public_site():
     html = read("review/index.html")
     assert 'href="https://rvinterchange.com/"' in html
+
+
+def test_public_contribute_link_targets_the_review_page():
+    source = read("web/chrome.js")
+    assert (
+        '{ id: "contribute", label: "Contribute", '
+        'href: "https://review.rvinterchange.com/" }'
+    ) in source
