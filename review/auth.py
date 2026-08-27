@@ -49,12 +49,22 @@ class ReviewerAuthorizer:
             digest = hmac.new(self.settings.reviewer_digest_key, email.strip().lower().encode(), hashlib.sha256).hexdigest()
             role_rows = self.conn.execute("SELECT role FROM reviewer_roles WHERE email_digest = ? AND active = 1 AND revoked_at IS NULL", (digest,)).fetchall()
             roles_found = frozenset(row[0] for row in role_rows)
+            if not roles_found:
+                raise ValueError("reviewer is not allowlisted")
             cap_rows = self.conn.execute("SELECT capability FROM reviewer_capabilities WHERE email_digest = ? AND active = 1 AND revoked_at IS NULL", (digest,)).fetchall()
             capabilities = frozenset(row[0] for row in cap_rows)
         except Exception:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "valid review identity required") from None
-        if roles and not roles_found.intersection(roles):
+        role_allowed = bool(roles_found.intersection(roles)) if roles else False
+        capability_allowed = capability in capabilities if capability else False
+        if roles and capability and not (role_allowed or capability_allowed):
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, "review authorization required"
+            )
+        if roles and not capability and not role_allowed:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "review role required")
-        if capability and capability not in capabilities:
-            raise HTTPException(status.HTTP_403_FORBIDDEN, "review capability required")
+        if capability and not roles and not capability_allowed:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, "review capability required"
+            )
         return ReviewerIdentity(email, digest, roles_found, capabilities)

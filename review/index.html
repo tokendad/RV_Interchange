@@ -10,7 +10,12 @@
   <header class="review-header"><div><span class="eyebrow">RV INTERCHANGE</span><h1>Review queue</h1><a href="https://rvinterchange.com/">Back to lookup</a></div><div id="reviewer-badge" class="badge">Checking access…</div></header>
   <main class="review-shell">
     <aside class="queue-pane" aria-label="Submission queue">
-      <div class="queue-toolbar"><label for="status-filter">Queue status</label><select id="status-filter"><option value="">Open submissions</option><option value="received">Received</option><option value="under_review">Under review</option><option value="needs_information">Needs information</option></select></div>
+      <div class="queue-toolbar">
+        <label for="status-filter">Queue status</label>
+        <select id="status-filter"><option value="">Open submissions</option><option value="received">Received</option><option value="under_review">Under review</option><option value="needs_information">Needs information</option></select>
+        <label for="priority-filter">Priority</label>
+        <select id="priority-filter"><option value="">All priorities</option><option value="safety">Safety</option><option value="high">High</option><option value="normal">Normal</option></select>
+      </div>
       <div id="queue" class="queue-list" aria-live="polite"><p class="muted">Loading queue…</p></div>
     </aside>
     <section id="detail" class="detail-pane" aria-live="polite"><div class="empty-state"><span class="empty-mark">✦</span><h2>Select a submission</h2><p>Sanitized evidence and claim decisions will appear here.</p></div></section>

@@ -14,8 +14,14 @@ def test_review_page_is_queue_not_legacy_debug_console():
     assert 'id="queue"' in html and 'id="detail"' in html
     assert "search-form" not in html
     assert "Resolve" not in html
+    assert 'id="priority-filter"' in html
     assert "/review/v1/queue" in script
-    assert "request-information" not in script
+    assert "/request-information" in script
+    assert "/spam" in script
+    assert '["endorse", "dispute"]' in script
+    assert 'capabilities.includes("publisher")' in script
+    assert "target-context" in script
+    assert "artifact-list" in script
 
 
 def test_review_ui_uses_nocturne_visual_contract():

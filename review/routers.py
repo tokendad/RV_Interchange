@@ -42,7 +42,7 @@ def router(settings, validator=None):
 
     @api.post("/submissions/{submission_id}/claims/{claim_id}/decision")
     def decision(submission_id: str, claim_id: str, payload: ClaimDecision, request: Request):
-        reviewer = identity(request, {"admin"})
+        reviewer = identity(request, {"admin"}, "publisher")
         try:
             with connection() as conn, db.transaction(conn):
                 return ReviewRepository(conn).decide_claim(submission_id, claim_id, action=payload.action, reason_code=payload.reason_code, note=payload.note, reviewer_digest=reviewer.email_digest, idempotency_key=payload.idempotency_key)
@@ -51,17 +51,15 @@ def router(settings, validator=None):
 
     @api.post("/submissions/{submission_id}/request-information")
     def request_information(submission_id: str, payload: InformationRequest, request: Request):
-        reviewer = identity(request, {"admin"})
+        reviewer = identity(request, {"admin"}, "publisher")
         try:
             with connection() as conn, db.transaction(conn):
-                row = conn.execute("SELECT status FROM submissions WHERE id = ?", (submission_id,)).fetchone()
-                if row is None:
-                    raise ReviewConflict("submission not found")
-                if row["status"] not in ("received", "held", "under_review"):
-                    raise ReviewConflict("submission cannot request information")
-                conn.execute("UPDATE submissions SET status = 'needs_information', public_reason = ?, updated_at = datetime('now') WHERE id = ?", (payload.reason, submission_id))
-                conn.execute("INSERT INTO review_decisions VALUES (lower(hex(randomblob(16))), ?, ?, NULL, ?, 'request_information', ?, ?, ?, 'needs_information', datetime('now'))", (payload.idempotency_key, submission_id, reviewer.email_digest, payload.reason, payload.reason, row["status"]))
-                return {"submission_id": submission_id, "status": "needs_information"}
+                return ReviewRepository(conn).request_information(
+                    submission_id,
+                    reason=payload.reason,
+                    reviewer_digest=reviewer.email_digest,
+                    idempotency_key=payload.idempotency_key,
+                )
         except ReviewConflict as error:
             raise HTTPException(status.HTTP_409_CONFLICT, str(error)) from None
 
