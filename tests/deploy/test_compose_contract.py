@@ -48,6 +48,7 @@ def test_production_compose_network_and_mount_boundaries():
     default_config = rendered_compose()
     assert set(default_config["services"]) == {
         "rvinterchange-api",
+        "rvinterchange-review-api",
         "rvinterchange-review",
         "rvinterchange-web",
     }
@@ -58,6 +59,7 @@ def test_production_compose_network_and_mount_boundaries():
         "rvinterchange-api",
         "rvinterchange-cloudflared",
         "rvinterchange-review",
+        "rvinterchange-review-api",
         "rvinterchange-web",
     }
     assert "ports" not in services["rvinterchange-api"]
@@ -69,6 +71,8 @@ def test_production_compose_network_and_mount_boundaries():
     )
     assert tool_mount["read_only"] is True
     assert services["rvinterchange-cloudflared"]["profiles"] == ["tunnel"]
+    assert services["rvinterchange-review-api"]["environment"]["RVI_REVIEW_DIGEST_KEY_FILE"] == "/run/secrets/review_digest_key"
+    assert config["secrets"]["review_digest_key"]["file"].endswith("/review_digest_key")
 
 
 def test_intake_profile_isolated_from_public_and_canonical_paths():

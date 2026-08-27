@@ -137,23 +137,20 @@ def test_review_image_owns_admin_assets():
         "review/nginx.conf",
         "review/index.html",
         "review/admin.js",
-        "web/api-client.js",
-        "web/style.css",
+        "review/style.css",
     }
     assert not (ROOT / "web/admin.html").exists()
     assert not (ROOT / "web/admin.js").exists()
 
 
-def test_review_proxy_exposes_only_existing_debug_contract():
+def test_review_proxy_exposes_only_moderation_contract():
     blocks = location_blocks(read("review/nginx.conf"))
     proxied = {name for name, body in blocks.items() if "proxy_pass" in body}
     assert proxied == {
-        "location = /public/v1/search",
-        "location = /public/v1/resolve",
-        "location = /public/v1/replacements",
-        "location = /debug/v1/logs",
+        "location = /review/v1/session",
+        "location = /review/v1/queue",
+        "location ^~ /review/v1/submissions/",
     }
-    assert "return 503" in blocks["location ^~ /review/v1/"]
     for denied in (
         "location ^~ /submission/v1/",
         "location = /docs",
@@ -162,8 +159,23 @@ def test_review_proxy_exposes_only_existing_debug_contract():
         "location /",
     ):
         assert "proxy_pass" not in blocks[denied]
+    for removed in (
+        "location = /public/v1/search",
+        "location = /public/v1/resolve",
+        "location = /public/v1/replacements",
+        "location = /debug/v1/logs",
+    ):
+        assert removed not in blocks
 
 
 def test_review_back_link_targets_the_canonical_public_site():
     html = read("review/index.html")
     assert 'href="https://rvinterchange.com/"' in html
+
+
+def test_public_contribute_link_targets_the_review_page():
+    source = read("web/chrome.js")
+    assert (
+        '{ id: "contribute", label: "Contribute", '
+        'href: "https://review.rvinterchange.com/" }'
+    ) in source
