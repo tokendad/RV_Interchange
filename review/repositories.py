@@ -92,7 +92,7 @@ class ReviewRepository:
                FROM submission_artifacts WHERE submission_id = ? ORDER BY created_at, id""", (submission_id,)
         ).fetchall()
         decisions = self.conn.execute(
-            """SELECT claim_id, action, reason_code, note, prior_status,
+            """SELECT claim_id, action, reason_code, prior_status,
                       resulting_status, created_at FROM review_decisions
                WHERE submission_id = ? ORDER BY created_at, id""", (submission_id,)
         ).fetchall()

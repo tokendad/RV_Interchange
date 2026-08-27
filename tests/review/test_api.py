@@ -172,3 +172,26 @@ def test_detail_exposes_redacted_advisory_audit(tmp_path):
     assert detail.status_code == 200
     assert detail.json()["audit"][0]["assessment"] == "dispute"
     assert "reviewer_digest" not in detail.json()["audit"][0]
+
+
+def test_trusted_detail_does_not_expose_admin_notes(tmp_path):
+    settings = Settings.for_tests(tmp_path / "review")
+    sid, claim_id = _seed(settings)
+    admin_validator, admin_headers = _auth(settings, "admin@example.com")
+    with db.connect(settings.database_path) as conn:
+        digest = hmac.new(settings.reviewer_digest_key, b"trusted@example.com", hashlib.sha256).hexdigest()
+        conn.execute("INSERT INTO reviewer_roles VALUES (?, 'trusted', 1, 'now', NULL)", (digest,))
+    trusted_validator, trusted_headers = _auth(settings, "trusted@example.com")
+    with TestClient(create_app(settings, admin_validator)) as client:
+        response = client.post(
+            f"/review/v1/submissions/{sid}/claims/{claim_id}/decision",
+            headers=admin_headers,
+            json={"action": "accepted", "reason_code": "verified", "note": "internal-only", "idempotency_key": "note-1"},
+        )
+    with TestClient(create_app(settings, trusted_validator)) as client:
+        detail = client.get(f"/review/v1/submissions/{sid}", headers=trusted_headers)
+
+    assert response.status_code == 200
+    assert detail.status_code == 200
+    assert "note" not in detail.json()["audit"][0]
+    assert "internal-only" not in detail.text
