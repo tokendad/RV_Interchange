@@ -108,7 +108,6 @@ function renderDetail(data) {
           edge: submission.target_edge_key_json,
           namespace: submission.target_namespace,
           identifier: submission.target_identifier,
-          context: JSON.parse(submission.context_json || "{}"),
         },
         null,
         2,
@@ -144,7 +143,17 @@ function renderDetail(data) {
     }
   }
 
-  detail.replaceChildren(header, states, target, submissionActions, claims, artifacts);
+  const audit = el("section", "audit-list");
+  audit.append(el("h3", null, "Review audit"));
+  if (!data.audit.length) audit.append(el("p", "muted", "No review activity yet."));
+  for (const entry of data.audit) {
+    const label = entry.type === "assessment"
+      ? `${entry.assessment} · claim ${entry.claim_id || "submission"} · ${entry.reason}`
+      : `${entry.action} · ${entry.reason_code} · ${entry.resulting_status}`;
+    audit.append(el("div", "audit-card", `${label} · ${entry.created_at}`));
+  }
+
+  detail.replaceChildren(header, states, target, submissionActions, claims, artifacts, audit);
 }
 
 function state(label, value) {

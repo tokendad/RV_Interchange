@@ -29,11 +29,11 @@ RVI_ACCESS_ISSUER=https://<tenant>.cloudflareaccess.com
 RVI_ACCESS_AUDIENCE=<application-audience>
 RVI_ACCESS_JWKS_URL=https://<tenant>.cloudflareaccess.com/cdn-cgi/access/certs
 RVI_TOKEN_KEY_FILE=/data/DockerConfigs/RVInterchange/intake/secrets/token_key
+RVI_REVIEW_DIGEST_KEY_FILE=/data/DockerConfigs/RVInterchange/intake/secrets/review_digest_key
 ```
 
-The token-key default is retained for compatibility with the current local
-deployment; use a dedicated reviewer digest key when the role store is first
-provisioned. Never commit keys, JWT assertions, contributor contact data,
+Use a dedicated reviewer digest key distinct from the intake token key. Never
+commit keys, JWT assertions, contributor contact data,
 uploaded artifacts, or `submissions.db`.
 
 The review migration is applied automatically when the API starts. Grant or

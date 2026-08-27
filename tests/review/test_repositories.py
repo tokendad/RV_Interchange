@@ -27,7 +27,7 @@ def test_queue_detail_decision_and_advisory_are_redacted_and_idempotent(tmp_path
         assert page["items"][0]["priority"] == "safety"
         assert "contributor_id" not in page["items"][0]
         detail = review.detail(sid)
-        assert detail["submission"]["context_json"] == json.dumps({"private": "omit"}, separators=(",", ":"), sort_keys=True)
+        assert "context_json" not in detail["submission"]
         claim_id = detail["claims"][0]["id"]
         decision = review.decide_claim(sid, claim_id, action="accepted", reason_code="source_verified", note=None, reviewer_digest="reviewer", idempotency_key="k1")
         assert decision["submission_status"] == "accepted"
@@ -44,7 +44,16 @@ def test_assessment_never_changes_claim_state(tmp_path):
         review = ReviewRepository(conn)
         claim_id = review.detail(sid)["claims"][0]["id"]
         review.add_assessment(sid, claim_id, assessment="endorse", reason="clear photo", reviewer_digest="r", idempotency_key="a1")
-        assert review.detail(sid)["claims"][0]["status"] == "pending"
+        detail = review.detail(sid)
+        assert detail["claims"][0]["status"] == "pending"
+        assert detail["audit"][0] == {
+            "type": "assessment",
+            "claim_id": claim_id,
+            "assessment": "endorse",
+            "reason": "clear photo",
+            "created_at": detail["audit"][0]["created_at"],
+        }
+        assert "reviewer_digest" not in detail["audit"][0]
 
 
 def test_claim_decision_rejects_submission_outside_reviewable_states(tmp_path):
@@ -141,3 +150,13 @@ def test_queue_cursor_preserves_priority_order_across_pages(tmp_path):
 
     assert first["items"][0]["id"] == safety_id
     assert second["items"][0]["id"] == high_id
+
+
+def test_partially_accepted_submissions_are_not_in_open_queue(tmp_path):
+    path = tmp_path / "submissions.db"
+    db.migrate(path)
+    with db.connect(path) as conn:
+        sid = _submission(conn, status="partially_accepted")
+        page = ReviewRepository(conn).queue()
+
+    assert sid not in {item["id"] for item in page["items"]}

@@ -25,7 +25,7 @@ class ReviewRepository:
         self.conn = conn
 
     def queue(self, *, status=None, priority=None, cursor=None, limit=50):
-        clauses = ["s.status NOT IN ('withdrawn', 'accepted', 'rejected', 'duplicate')"]
+        clauses = ["s.status NOT IN ('withdrawn', 'accepted', 'rejected', 'duplicate', 'partially_accepted')"]
         args: list[Any] = []
         priority_rank = "CASE s.priority WHEN 'safety' THEN 0 WHEN 'high' THEN 1 ELSE 2 END"
         if status:
@@ -35,17 +35,21 @@ class ReviewRepository:
             clauses.append("s.priority = ?")
             args.append(priority)
         if cursor:
-            parts = cursor.split("|", 2)
+            parts = cursor.split("|")
             if len(parts) == 3:
                 rank, created_at, item_id = parts
+                if rank not in {"0", "1", "2"}:
+                    raise ValueError("invalid cursor")
                 clauses.append(
                     f"({priority_rank} > ? OR ({priority_rank} = ? AND (s.created_at, s.id) > (?, ?)))"
                 )
                 args.extend((int(rank), int(rank), created_at, item_id))
-            else:
+            elif len(parts) == 2:
                 created_at, item_id = parts
                 clauses.append("(s.created_at, s.id) > (?, ?)")
                 args.extend((created_at, item_id))
+            else:
+                raise ValueError("invalid cursor")
         limit = min(max(int(limit), 1), 100)
         rows = self.conn.execute(
             f"""
@@ -71,7 +75,7 @@ class ReviewRepository:
     def detail(self, submission_id: str):
         row = self.conn.execute(
             """SELECT id, intent, status, target_component_id, target_edge_key_json,
-                      target_namespace, target_identifier, summary, context_json, priority,
+                      target_namespace, target_identifier, summary, priority,
                       evidence_state, integration_state, created_at, updated_at
                FROM submissions WHERE id = ?""", (submission_id,)
         ).fetchone()
@@ -87,8 +91,20 @@ class ReviewRepository:
                       size_bytes, width, height, scan_status, retention_class, created_at
                FROM submission_artifacts WHERE submission_id = ? ORDER BY created_at, id""", (submission_id,)
         ).fetchall()
+        decisions = self.conn.execute(
+            """SELECT claim_id, action, reason_code, note, prior_status,
+                      resulting_status, created_at FROM review_decisions
+               WHERE submission_id = ? ORDER BY created_at, id""", (submission_id,)
+        ).fetchall()
+        assessments = self.conn.execute(
+            """SELECT claim_id, assessment, reason, created_at FROM review_assessments
+               WHERE submission_id = ? ORDER BY created_at, id""", (submission_id,)
+        ).fetchall()
+        audit = [dict(row, type="decision") for row in decisions]
+        audit.extend(dict(row, type="assessment") for row in assessments)
+        audit.sort(key=lambda entry: entry["created_at"])
         return {"submission": dict(row), "claims": [self._json_claim(c) for c in claims],
-                "artifacts": [dict(a) for a in artifacts]}
+                "artifacts": [dict(a) for a in artifacts], "audit": audit}
 
     @staticmethod
     def _json_claim(row):

@@ -28,8 +28,11 @@ def router(settings, validator=None):
     @api.get("/queue")
     def queue(request: Request, status_filter: str | None = Query(None, alias="status"), priority: str | None = None, cursor: str | None = None, limit: int = Query(50, ge=1, le=100)):
         identity(request, {"trusted", "admin"})
-        with connection() as conn:
-            return ReviewRepository(conn).queue(status=status_filter, priority=priority, cursor=cursor, limit=limit)
+        try:
+            with connection() as conn:
+                return ReviewRepository(conn).queue(status=status_filter, priority=priority, cursor=cursor, limit=limit)
+        except ValueError:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "invalid cursor") from None
 
     @api.get("/submissions/{submission_id}")
     def detail(submission_id: str, request: Request):

@@ -73,6 +73,7 @@ def test_review_api_requires_assertion_and_supports_queue_and_decision(tmp_path)
         assert replay.json() == response.json()
         collision = client.post(f"/review/v1/submissions/{sid}/claims/{claim_id}/decision", headers=headers, json={"action": "rejected", "reason_code": "different", "idempotency_key": "decision-1"})
         assert collision.status_code == 409
+        assert client.get("/review/v1/queue?cursor=bad", headers=headers).status_code == 422
 
 
 def test_request_information_replay_is_stable_and_redacted(tmp_path):
@@ -145,3 +146,29 @@ def test_trusted_assessment_replay_is_stable_without_internal_identity(tmp_path)
         "claim_id": claim_id,
         "assessment": "endorse",
     }
+
+
+def test_detail_exposes_redacted_advisory_audit(tmp_path):
+    settings = Settings.for_tests(tmp_path / "review")
+    sid, claim_id = _seed(
+        settings, email="trusted@example.com", role="trusted"
+    )
+    validator, headers = _auth(settings, "trusted@example.com")
+    with TestClient(create_app(settings, validator)) as client:
+        response = client.post(
+            f"/review/v1/submissions/{sid}/claims/{claim_id}/assessment",
+            headers=headers,
+            json={
+                "assessment": "dispute",
+                "reason": "The source is ambiguous.",
+                "idempotency_key": "audit-1",
+            },
+        )
+        detail = client.get(
+            f"/review/v1/submissions/{sid}", headers=headers
+        )
+
+    assert response.status_code == 200
+    assert detail.status_code == 200
+    assert detail.json()["audit"][0]["assessment"] == "dispute"
+    assert "reviewer_digest" not in detail.json()["audit"][0]

@@ -140,7 +140,7 @@ services:
 
 secrets:
   review_digest_key:
-    file: ${RVI_TOKEN_KEY_FILE:-/data/DockerConfigs/RVInterchange/intake/secrets/token_key}
+    file: ${RVI_REVIEW_DIGEST_KEY_FILE:-/data/DockerConfigs/RVInterchange/intake/secrets/review_digest_key}
   intake_contact_key:
     file: ${RVI_CONTACT_KEY_FILE:-/data/DockerConfigs/RVInterchange/intake/secrets/contact_key}
   intake_token_key:
