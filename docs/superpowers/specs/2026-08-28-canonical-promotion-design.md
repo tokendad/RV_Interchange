@@ -69,6 +69,7 @@ All identifiers are UUID strings and all timestamps are UTC ISO 8601 values.
 ### `observation_drafts`
 
 - `id`: primary key and canonical origin identifier.
+- `idempotency_key`: unique key for replay-safe draft creation.
 - `submission_id`: foreign key to the quarantined submission.
 - `created_by_digest`: reviewer digest for the active admin.
 - `source_type`: controlled canonical observation source type.
@@ -110,7 +111,8 @@ into canonical evidence.
 ### `promotion_receipts`
 
 - `id`: promotion UUID.
-- `idempotency_key`: unique client replay key.
+- `idempotency_key`: the unique client key used for the successful or
+  reconciled receipt creation.
 - `observation_draft_id`: unique canonical idempotency key.
 - `canonical_observation_id`: integer observation identifier.
 - `canonical_payload_sha256`: digest confirmed by the publisher.
@@ -124,6 +126,18 @@ The draft identifier, not the client replay key, is the cross-database
 idempotency key. A second idempotency key for the same draft returns the same
 promotion receipt. Reuse of one client key for different request semantics
 returns `409`.
+
+### `promotion_replay_keys`
+
+- `idempotency_key`: primary key for every first-use or later replay key.
+- `promotion_id`: foreign key to the one promotion receipt.
+- `request_sha256`: digest of draft ID, confirmed payload digest, and final
+  source tier.
+- `created_at`.
+
+Receipt creation inserts its initial key here. A compatible new key for an
+already promoted draft is appended before returning the existing receipt. This
+prevents that alias from later being reused for a different draft or tier.
 
 ### `promotion_events`
 
@@ -162,6 +176,13 @@ No contributor contact, abuse digest, capability, IP-derived value, private
 moderation note, raw artifact path, or reviewer email enters the canonical
 database.
 
+The confirmation digest covers the evidence content and origin: draft and
+submission IDs, source fields, normalized extracted JSON, final source tier,
+and sorted artifact IDs. It excludes actor identity, timestamps, and client
+idempotency keys. Those are action metadata, not publisher-confirmed evidence.
+This separation lets a different currently authorized publisher reconcile a
+committed canonical insert after the original request process fails.
+
 ## Normalization and source-tier policy
 
 Draft creation runs the same strict resolver-key classification and
@@ -196,7 +217,9 @@ and reviewer confidence never improve the tier.
 ## Draft and promotion workflow
 
 1. An admin selects one accepted or partially accepted submission and creates a
-   draft from explicit accepted claim IDs and optional clean artifact IDs.
+   draft from explicit accepted claim IDs and optional clean artifact IDs using
+   a bounded idempotency key. An exact replay returns the existing draft; reuse
+   for different content returns `409`.
 2. The server validates ownership of every join, normalizes extracted fields,
    derives the default source tier, stores the draft, and returns its version.
 3. An admin requests readiness with the last observed version. The server
@@ -240,9 +263,11 @@ illusion:
 If step 2 commits and step 3 fails or the process exits, the intake transaction
 rolls back and the request returns a retryable server error without inserting
 again. The next request finds the canonical origin, verifies that its stored
-payload digest matches the ready draft, and creates the missing receipt. A
-mismatched origin is a fail-closed integrity incident: return `409`, write no
-receipt, and require operator investigation.
+payload digest matches the ready draft, and creates the missing receipt. The
+receipt preserves the original promoting digest stored on the canonical
+observation; a `promotion_reconciled` event separately records the identity that
+completed reconciliation. A mismatched origin is a fail-closed integrity
+incident: return `409`, write no receipt, and require operator investigation.
 
 The implementation provides a deterministic failure-injection seam between the
 canonical commit and receipt commit. Tests must demonstrate one canonical row,
