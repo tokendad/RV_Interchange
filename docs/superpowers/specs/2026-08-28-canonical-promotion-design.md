@@ -210,8 +210,10 @@ and reviewer confidence never improve the tier.
 6. The server first reconciles by draft origin in `observations.db`. If no
    canonical origin exists, it inserts the observation and origin atomically.
 7. The server records or reconstructs the intake promotion receipt, transitions
-   the draft to `promoted`, sets submission `evidence_state = 'promoted'`, and
-   leaves `integration_state = 'pending'`.
+   the draft to `promoted`, sets the existing public submission
+   `evidence_state = 'available'`, and leaves `integration_state = 'pending'`.
+   The private review UI derives its explicit `promoted` label from the receipt;
+   it does not overload the public evidence-state vocabulary.
 8. A replay returns the same canonical observation and promotion identifiers.
 
 Withdrawal is allowed only before promotion. A withdrawn submission cannot
