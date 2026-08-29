@@ -143,10 +143,18 @@ if [ "$original_sha256" != "$backup_sha256" ]; then
 fi
 staged_path=$(sudo mktemp "$canonical_dir/.observations.db.restore.XXXXXX")
 cleanup_staged() {
+  local status=$?
+  trap - EXIT
   if [ -n "${staged_path:-}" ] && \
      { sudo test -e "$staged_path" || sudo test -L "$staged_path"; }; then
-    sudo rm -f -- "$staged_path" || true
+    if ! sudo rm -f -- "$staged_path"; then
+      echo "Failed to remove staged replacement: $staged_path" >&2
+      if [ "$status" -eq 0 ]; then
+        status=1
+      fi
+    fi
   fi
+  exit "$status"
 }
 trap cleanup_staged EXIT
 if ! sudo install -o root -g root -m 0600 "$replacement_snapshot" "$staged_path"; then
@@ -163,9 +171,16 @@ if [ "$(sudo sqlite3 "$staged_path" "PRAGMA integrity_check;")" != "ok" ]; then
   echo "Refusing restoration because the staged database integrity check failed" >&2
   exit 1
 fi
+table_kind=$(sudo sqlite3 "$staged_path" \
+  "SELECT type FROM sqlite_master WHERE name = 'observations';")
+if [ "$table_kind" != "table" ]; then
+  echo "Refusing restoration because the staged observations relation is not a table" >&2
+  exit 1
+fi
+expected_observation_columns="id,source_type,source_name,url,fetched_at,fetched_by,content_hash,raw_content,extracted,extraction_method,source_tier"
 schema_columns=$(sudo sqlite3 "$staged_path" \
-  "SELECT count(*) FROM pragma_table_info('observations') WHERE name IN ('id', 'source_type', 'source_name', 'url', 'raw_content', 'extracted_json', 'extraction_method', 'fetched_at', 'fetched_by', 'source_tier');")
-if [ "$schema_columns" != "10" ]; then
+  "SELECT group_concat(name, ',') FROM (SELECT name FROM pragma_table_info('observations') ORDER BY cid);")
+if [ "$schema_columns" != "$expected_observation_columns" ]; then
   echo "Refusing restoration because the staged database lacks the canonical observations schema" >&2
   exit 1
 fi
