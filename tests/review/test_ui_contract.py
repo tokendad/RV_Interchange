@@ -28,3 +28,16 @@ def test_review_ui_uses_nocturne_visual_contract():
     css = read("review/style.css")
     assert "color-scheme: dark" in css
     assert "--lavender" in css
+
+
+def test_review_ui_exposes_distinct_draft_and_promotion_actions():
+    html = read("review/index.html")
+    script = read("review/admin.js")
+    assert 'id="evidence-workflow"' in html
+    assert "/observation-drafts" in script
+    assert "/canonical-preview" in script
+    assert "/promotions" in script
+    assert "canPromote" in script
+    assert 'roles.includes("admin")' in script
+    assert 'capabilities.includes("publisher")' in script
+    assert "integration pending" in script.lower()

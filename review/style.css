@@ -11,3 +11,14 @@ button, select { font: inherit; } button { color: inherit; } .review-header { di
 .submission-actions { margin-bottom: 24px; }
 .artifact-card { padding: 14px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
 .action-button:focus-visible, .advisory-button:focus-visible { background: #302345; }
+.evidence-workflow { display: grid; gap: 14px; margin: 28px 0; padding: 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.evidence-workflow h3, .draft-editor h4, .promotion-panel h4 { color: var(--lavender); font-size: 15px; }
+.draft-editor, .promotion-panel { display: grid; gap: 12px; padding: 15px; background: var(--surface); border: 1px solid var(--line); border-radius: 7px; }
+.field { display: grid; gap: 5px; color: var(--muted); font-size: 12px; }
+.field input, .field select, .field textarea { width: 100%; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 5px; padding: 8px; }
+.field textarea { min-height: 78px; resize: vertical; }
+.selection-group { display: grid; gap: 7px; border: 1px solid var(--line); border-radius: 5px; padding: 10px; }
+.selection-group label { display: flex; gap: 8px; align-items: baseline; color: var(--muted); font-size: 12px; }
+.preview-output { overflow: auto; max-height: 240px; margin: 0; padding: 10px; color: var(--muted); background: #0f0d16; border-radius: 5px; white-space: pre-wrap; word-break: break-word; }
+.workflow-message { min-height: 1.5em; }
+.workflow-ok, .integration-note { color: var(--gold); }
