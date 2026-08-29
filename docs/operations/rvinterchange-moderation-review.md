@@ -73,7 +73,8 @@ snapshot="$PWD/Docs/Tools/observations.db"
 "${compose[@]}" stop rvinterchange-review-api
 test -f "$snapshot"
 sudo install -d -o root -g root -m 0700 "$canonical_dir"
-if sudo test -e "$canonical_dir/observations.db"; then
+if sudo test -e "$canonical_dir/observations.db" || \
+   sudo test -L "$canonical_dir/observations.db"; then
   echo "Refusing to overwrite initialized canonical database" >&2
   exit 1
 fi
@@ -97,6 +98,57 @@ stack. Do not run this initialization against a live review API. Replacing an
 initialized canonical database is not initialization: use a separate,
 backup-verified restoration procedure that retains the original database for
 investigation.
+
+## Controlled canonical restoration
+
+Use this exceptional procedure only during a reviewed maintenance window. It
+replaces an initialized canonical store only after retaining a verified
+original. The review API must stay stopped for the entire procedure; do not use
+the isolated promotion drill or any production intake path as a restoration
+input.
+
+```bash
+compose=(docker compose --env-file /data/DockerConfigs/.env -f deploy/docker-compose.yaml)
+canonical_dir=/data/DockerConfigs/RVInterchange/canonical
+replacement_snapshot=/secure/verified/observations.db
+backup_dir="/data/DockerConfigs/RVInterchange/backups/canonical-$(date -u +%Y%m%dT%H%M%SZ)"
+
+"${compose[@]}" stop rvinterchange-review-api
+if ! sudo test -f "$canonical_dir/observations.db" || \
+   sudo test -L "$canonical_dir/observations.db"; then
+  echo "Refusing restoration without a regular canonical database to retain" >&2
+  exit 1
+fi
+test -f "$replacement_snapshot"
+sudo sqlite3 "$canonical_dir/observations.db" "PRAGMA wal_checkpoint(TRUNCATE);"
+sudo install -d -o root -g root -m 0700 "$backup_dir"
+sudo cp --preserve=mode,ownership,timestamps \
+  "$canonical_dir/observations.db" "$backup_dir/observations.db"
+original_sha256=$(sudo sha256sum "$canonical_dir/observations.db" | awk '{print $1}')
+backup_sha256=$(sudo sha256sum "$backup_dir/observations.db" | awk '{print $1}')
+test "$original_sha256" = "$backup_sha256"
+staged_path=$(sudo mktemp "$canonical_dir/.observations.db.restore.XXXXXX")
+sudo install -o root -g root -m 0600 "$replacement_snapshot" "$staged_path"
+replacement_sha256=$(sha256sum "$replacement_snapshot" | awk '{print $1}')
+staged_sha256=$(sudo sha256sum "$staged_path" | awk '{print $1}')
+test "$replacement_sha256" = "$staged_sha256"
+sudo mv -f "$staged_path" "$canonical_dir/observations.db"
+sudo chown root:root "$canonical_dir" "$canonical_dir/observations.db"
+sudo chmod 0700 "$canonical_dir"
+sudo chmod 0600 "$canonical_dir/observations.db"
+test "$(sudo sqlite3 "$canonical_dir/observations.db" "PRAGMA integrity_check;")" = "ok"
+```
+
+Record the matching original/backup and replacement/staged SHA-256 values and
+have the restoration reviewed before restarting the review API. Keep
+`backup_dir` unchanged for investigation; do not remove the original before the
+review boundary is complete. After that review, restart only the review API and
+verify its health before restoring Access traffic:
+
+```bash
+"${compose[@]}" up -d --build --no-deps rvinterchange-review-api
+curl -fsS http://127.0.0.1:8486/health/
+```
 
 Check the service and boundary before opening the Access hostname:
 
