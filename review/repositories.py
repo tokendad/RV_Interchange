@@ -7,6 +7,10 @@ from typing import Any
 
 from intake import db
 
+# Draft persistence lives in its own module, but remains part of the review
+# repository surface for callers that own the complete moderation workflow.
+from review.drafts import DraftRepository
+
 
 class ReviewConflict(RuntimeError):
     pass

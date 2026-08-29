@@ -4,9 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from intake import db
 from review.auth import ReviewerAuthorizer
+from review.canonical import CanonicalIntegrityError
 from review.drafts import DraftConflict, DraftRepository
+from review.promotion import PromotionConflict, PromotionNotFound, PromotionService
 from review.repositories import ReviewConflict, ReviewRepository
-from review.schemas import Assessment, ClaimDecision, DraftCreate, DraftReady, InformationRequest
+from review.schemas import Assessment, ClaimDecision, DraftCreate, DraftReady, InformationRequest, PromotionRequest
 
 
 def router(settings, validator=None):
@@ -81,6 +83,51 @@ def router(settings, validator=None):
                 )
         except DraftConflict as error:
             raise HTTPException(status.HTTP_409_CONFLICT, str(error)) from None
+
+    @api.get("/observation-drafts/{draft_id}/canonical-preview")
+    def canonical_preview(
+        draft_id: str, request: Request,
+        final_source_tier: int = Query(..., ge=1, le=9),
+    ):
+        with connection() as conn:
+            ReviewerAuthorizer(conn, settings, validator).require_all(
+                request, roles={"admin"}, capabilities={"publisher"}
+            )
+            try:
+                return PromotionService(
+                    conn, settings.observations_database_path
+                ).preview(draft_id, final_source_tier=final_source_tier)
+            except PromotionNotFound:
+                raise HTTPException(status.HTTP_404_NOT_FOUND, "draft not found") from None
+            except (PromotionConflict, CanonicalIntegrityError):
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT, "promotion cannot be previewed"
+                ) from None
+
+    @api.post("/observation-drafts/{draft_id}/promotions")
+    def promote(draft_id: str, payload: PromotionRequest, request: Request):
+        with connection() as conn:
+            reviewer = ReviewerAuthorizer(conn, settings, validator).require_all(
+                request, roles={"admin"}, capabilities={"publisher"}
+            )
+            try:
+                with db.transaction(conn):
+                    return PromotionService(
+                        conn, settings.observations_database_path
+                    ).promote(
+                        draft_id,
+                        expected_version=payload.expected_version,
+                        confirmed_payload_sha256=payload.canonical_payload_sha256,
+                        idempotency_key=payload.idempotency_key,
+                        final_source_tier=payload.final_source_tier,
+                        reviewer_digest=reviewer.email_digest,
+                    )
+            except PromotionNotFound:
+                raise HTTPException(status.HTTP_404_NOT_FOUND, "draft not found") from None
+            except (PromotionConflict, CanonicalIntegrityError, DraftConflict):
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT, "promotion cannot be completed"
+                ) from None
 
     @api.post("/submissions/{submission_id}/claims/{claim_id}/decision")
     def decision(submission_id: str, claim_id: str, payload: ClaimDecision, request: Request):
