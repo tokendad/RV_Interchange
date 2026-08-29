@@ -36,9 +36,9 @@ def router(settings, validator=None):
 
     @api.get("/submissions/{submission_id}")
     def detail(submission_id: str, request: Request):
-        identity(request, {"trusted", "admin"})
+        reviewer = identity(request, {"trusted", "admin"})
         with connection() as conn:
-            value = ReviewRepository(conn).detail(submission_id)
+            value = ReviewRepository(conn).detail(submission_id, include_drafts="admin" in reviewer.roles)
         if value is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "submission not found")
         return value

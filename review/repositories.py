@@ -72,7 +72,7 @@ class ReviewRepository:
         )
         return {"items": [dict(row) for row in rows], "next_cursor": next_cursor}
 
-    def detail(self, submission_id: str):
+    def detail(self, submission_id: str, *, include_drafts: bool = False):
         row = self.conn.execute(
             """SELECT id, intent, status, target_component_id, target_edge_key_json,
                       target_namespace, target_identifier, summary, priority,
@@ -103,8 +103,18 @@ class ReviewRepository:
         audit = [dict(row, type="decision") for row in decisions]
         audit.extend(dict(row, type="assessment") for row in assessments)
         audit.sort(key=lambda entry: entry["created_at"])
-        return {"submission": dict(row), "claims": [self._json_claim(c) for c in claims],
-                "artifacts": [dict(a) for a in artifacts], "audit": audit}
+        result = {"submission": dict(row), "claims": [self._json_claim(c) for c in claims],
+                  "artifacts": [dict(a) for a in artifacts], "audit": audit}
+        if include_drafts:
+            from review.drafts import DraftRepository
+            result["drafts"] = [
+                {key: draft[key] for key in (
+                    "id", "submission_id", "source_type", "source_name", "source_url",
+                    "extracted", "default_source_tier", "state", "version", "created_at", "updated_at",
+                    "claim_ids", "artifact_ids")}
+                for draft in DraftRepository(self.conn).list_for_submission(submission_id)
+            ]
+        return result
 
     @staticmethod
     def _json_claim(row):

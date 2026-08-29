@@ -26,7 +26,7 @@ def test_migration_is_idempotent(tmp_path):
         assert [
             row[0]
             for row in conn.execute("SELECT version FROM schema_migrations").fetchall()
-        ] == [1, 2]
+        ] == [1, 2, 3]
 
 
 def test_migration_creates_only_quarantined_intake_tables(tmp_path):
@@ -55,6 +55,12 @@ def test_migration_creates_only_quarantined_intake_tables(tmp_path):
         "reviewer_capabilities",
         "review_decisions",
         "review_assessments",
+        "observation_drafts",
+        "observation_draft_claims",
+        "observation_draft_artifacts",
+        "promotion_receipts",
+        "promotion_replay_keys",
+        "promotion_events",
     } <= names
     assert "observations" not in names
     assert "components" not in names
@@ -151,4 +157,4 @@ def test_app_lifespan_applies_migrations_without_expanding_health(tmp_path):
         assert [
             row[0]
             for row in conn.execute("SELECT version FROM schema_migrations").fetchall()
-        ] == [1, 2]
+        ] == [1, 2, 3]
