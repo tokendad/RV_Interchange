@@ -21,7 +21,7 @@ function el(tag, className, content) {
 }
 
 function canDecide() {
-  return canPromote();
+  return reviewer.roles.includes("admin") || reviewer.capabilities.includes("publisher");
 }
 
 function canAdminister() {
@@ -101,7 +101,7 @@ function renderDetail(data) {
   const states = el("div", "state-strip");
   states.append(
     state("Acceptance", submission.status),
-    state("Promotion", submission.evidence_state),
+    state("Promotion", promotionState(data)),
     state("Integration", submission.integration_state),
   );
 
@@ -164,6 +164,10 @@ function renderDetail(data) {
 
   const workflow = renderEvidenceWorkflow(data);
   detail.replaceChildren(header, states, target, submissionActions, claims, artifacts, workflow, audit);
+}
+
+function promotionState(data) {
+  return (data.drafts || []).some((draft) => draft.state === "promoted") ? "promoted" : "pending";
 }
 
 function labeledControl(label, control) {
@@ -242,17 +246,20 @@ function renderDraftEditor(data, live) {
   return form;
 }
 
+function serializeDraftPayload(fields, submissionId, idempotencyKey) {
+  return { source_type: fields.source_type, source_name: fields.source_name, source_url: fields.source_url || null, raw_content: fields.raw_content, extracted: fields.extracted, claim_ids: fields.claim_ids, artifact_ids: fields.artifact_ids, idempotency_key: idempotencyKey };
+}
+
 function serializeDraft(form, submissionId) {
   const values = new FormData(form);
   let extracted;
   try { extracted = JSON.parse(values.get("extracted") || "{}"); } catch { throw new Error("Extracted JSON must be valid JSON."); }
-  return { source_type: values.get("source_type"), source_name: values.get("source_name"), source_url: values.get("source_url") || null, raw_content: values.get("raw_content"), extracted, claim_ids: values.getAll("claim_ids"), artifact_ids: values.getAll("artifact_ids"), idempotency_key: crypto.randomUUID(), submission_id: submissionId };
+  return serializeDraftPayload({ source_type: values.get("source_type"), source_name: values.get("source_name"), source_url: values.get("source_url"), raw_content: values.get("raw_content"), extracted, claim_ids: values.getAll("claim_ids"), artifact_ids: values.getAll("artifact_ids") }, submissionId, crypto.randomUUID());
 }
 
 async function createDraft(data, form, live) {
   try {
     const payload = serializeDraft(form, data.submission.id);
-    delete payload.submission_id;
     await request(`/review/v1/submissions/${encodeURIComponent(data.submission.id)}/observation-drafts`, { method: "POST", body: JSON.stringify(payload) });
     await loadDetail(data.submission.id);
     await loadQueue();
@@ -273,6 +280,12 @@ function renderPromotionPanel(data, draft, live) {
   if (draft.state !== "ready" || !canPromote()) return panel;
   const tier = inputControl(`final-tier-${draft.id}`, "number"); tier.min = draft.default_source_tier; tier.max = 9; tier.value = draft.default_source_tier;
   const confirm = inputControl(`publisher-confirm-${draft.id}`, "checkbox");
+  tier.addEventListener("change", () => {
+    panel.dataset.payloadHash = "";
+    panel.dataset.previewTier = "";
+    panel.querySelector(".preview-output").textContent = "";
+    showWorkflowMessage(live, "Final source tier changed; preview again before promoting.");
+  });
   const preview = actionButton("Preview canonical observation", async () => {
     try {
       const result = await request(`/review/v1/observation-drafts/${encodeURIComponent(draft.id)}/canonical-preview?final_source_tier=${encodeURIComponent(tier.value)}`);
@@ -284,13 +297,13 @@ function renderPromotionPanel(data, draft, live) {
     } catch (error) { showWorkflowError(live, error); }
   });
   const promote = actionButton("Confirm and promote", () => promoteDraft(data, draft, tier, confirm, panel, live));
-  panel.append(labeledControl("Final source tier", tier), labeledControl("Publisher confirmation", confirm), preview, promote, el("pre", "preview-output"));
+  panel.append(labeledControl("Final source tier", tier), el("p", "integration-note", "Promotion only records canonical evidence; public lookup has not changed. Integration remains pending."), labeledControl("Publisher confirmation", confirm), preview, promote, el("pre", "preview-output"));
   return panel;
 }
 
 async function promoteDraft(data, draft, tier, confirm, panel, live) {
   if (!confirm.checked) { showWorkflowMessage(live, "Publisher confirmation is required."); return; }
-  if (!panel.dataset.payloadHash) { showWorkflowMessage(live, "Preview the canonical observation before promoting."); return; }
+  if (!panel.dataset.payloadHash || panel.dataset.previewTier !== tier.value) { showWorkflowMessage(live, "Preview the canonical observation again before promoting."); return; }
   try {
     await request(`/review/v1/observation-drafts/${encodeURIComponent(draft.id)}/promotions`, { method: "POST", body: JSON.stringify({ expected_version: draft.version, canonical_payload_sha256: panel.dataset.payloadHash, idempotency_key: crypto.randomUUID(), final_source_tier: Number(tier.value) }) });
     await loadDetail(data.submission.id); await loadQueue();
