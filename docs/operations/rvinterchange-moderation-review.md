@@ -11,8 +11,10 @@ never rebuilds or writes `components.db`.
 - `rvinterchange-review` is the only review host entrypoint and binds locally at
   `127.0.0.1:8486`; Cloudflare Access protects `review.rvinterchange.com`.
 - The review proxy permits only `/review/v1/session`, `/review/v1/queue`,
-  `/review/v1/submissions/...`, `/health/`, and static assets. Catalog, debug,
-  intake, documentation, and OpenAPI routes are denied on this host.
+  `/review/v1/submissions/...`, `/review/v1/observation-drafts/...` (draft
+  readiness, canonical preview, and promotion), `/health/`, and static assets.
+  Catalog, debug, intake, documentation, and OpenAPI routes are denied on this
+  host.
 - Every API request requires a Cloudflare Access JWT. The JWT issuer, audience,
   signature, and expiry are validated before the normalized email is HMAC
   matched to an active local `trusted` or `admin` role. `publisher` is an

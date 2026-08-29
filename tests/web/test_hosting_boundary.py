@@ -150,7 +150,10 @@ def test_review_proxy_exposes_only_moderation_contract():
         "location = /review/v1/session",
         "location = /review/v1/queue",
         "location ^~ /review/v1/submissions/",
+        "location ^~ /review/v1/observation-drafts/",
     }
+    draft_workflow = blocks["location ^~ /review/v1/observation-drafts/"]
+    assert "proxy_pass http://rvinterchange-review-api:8488;" in draft_workflow
     for denied in (
         "location ^~ /submission/v1/",
         "location = /docs",
