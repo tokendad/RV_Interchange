@@ -4,8 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from intake import db
 from review.auth import ReviewerAuthorizer
+from review.drafts import DraftConflict, DraftRepository
 from review.repositories import ReviewConflict, ReviewRepository
-from review.schemas import Assessment, ClaimDecision, InformationRequest
+from review.schemas import Assessment, ClaimDecision, DraftCreate, DraftReady, InformationRequest
 
 
 def router(settings, validator=None):
@@ -42,6 +43,44 @@ def router(settings, validator=None):
         if value is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "submission not found")
         return value
+
+    @api.post(
+        "/submissions/{submission_id}/observation-drafts",
+        status_code=status.HTTP_201_CREATED,
+    )
+    def create_draft(submission_id: str, payload: DraftCreate, request: Request):
+        reviewer = identity(request, {"admin"})
+        try:
+            with connection() as conn, db.transaction(conn):
+                return DraftRepository(conn).create(
+                    submission_id,
+                    source_type=payload.source_type,
+                    source_name=payload.source_name,
+                    source_url=str(payload.source_url) if payload.source_url else None,
+                    raw_content=payload.raw_content,
+                    extracted=payload.extracted,
+                    claim_ids=payload.claim_ids,
+                    artifact_ids=payload.artifact_ids,
+                    reviewer_digest=reviewer.email_digest,
+                    idempotency_key=payload.idempotency_key,
+                )
+        except DraftConflict as error:
+            raise HTTPException(status.HTTP_409_CONFLICT, str(error)) from None
+        except ValueError as error:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)) from None
+
+    @api.post("/observation-drafts/{draft_id}/ready")
+    def ready_draft(draft_id: str, payload: DraftReady, request: Request):
+        reviewer = identity(request, {"admin"})
+        try:
+            with connection() as conn, db.transaction(conn):
+                return DraftRepository(conn).mark_ready(
+                    draft_id,
+                    expected_version=payload.expected_version,
+                    reviewer_digest=reviewer.email_digest,
+                )
+        except DraftConflict as error:
+            raise HTTPException(status.HTTP_409_CONFLICT, str(error)) from None
 
     @api.post("/submissions/{submission_id}/claims/{claim_id}/decision")
     def decision(submission_id: str, claim_id: str, payload: ClaimDecision, request: Request):

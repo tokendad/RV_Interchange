@@ -37,7 +37,7 @@ class ReviewerAuthorizer:
         self.settings = settings
         self.validator = validator or AccessTokenValidator(settings)
 
-    def require(self, request: Request, roles: set[str] | frozenset[str] = frozenset(), capability: str | None = None) -> ReviewerIdentity:
+    def _load_identity(self, request: Request) -> ReviewerIdentity:
         assertion = request.headers.get("Cf-Access-Jwt-Assertion")
         try:
             if not assertion:
@@ -55,6 +55,12 @@ class ReviewerAuthorizer:
             capabilities = frozenset(row[0] for row in cap_rows)
         except Exception:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "valid review identity required") from None
+        return ReviewerIdentity(email, digest, roles_found, capabilities)
+
+    def require(self, request: Request, roles: set[str] | frozenset[str] = frozenset(), capability: str | None = None) -> ReviewerIdentity:
+        identity = self._load_identity(request)
+        roles_found = identity.roles
+        capabilities = identity.capabilities
         role_allowed = bool(roles_found.intersection(roles)) if roles else False
         capability_allowed = capability in capabilities if capability else False
         if roles and capability and not (role_allowed or capability_allowed):
@@ -67,4 +73,18 @@ class ReviewerAuthorizer:
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN, "review capability required"
             )
-        return ReviewerIdentity(email, digest, roles_found, capabilities)
+        return identity
+
+    def require_all(
+        self,
+        request: Request,
+        *,
+        roles: set[str] | frozenset[str] = frozenset(),
+        capabilities: set[str] | frozenset[str] = frozenset(),
+    ) -> ReviewerIdentity:
+        identity = self._load_identity(request)
+        if not set(roles).issubset(identity.roles):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "review role required")
+        if not set(capabilities).issubset(identity.capabilities):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "review capability required")
+        return identity
