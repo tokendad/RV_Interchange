@@ -7,11 +7,13 @@ import jwt
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 
+from Docs.Tools import observations
 from intake import db, repositories
 from review.app import create_app
 from review.auth import AccessTokenValidator
 from review.config import Settings
 from review.repositories import ReviewRepository
+from tests.review.promotion_helpers import seed_accepted_evidence
 
 
 class JwksClient:
@@ -195,3 +197,185 @@ def test_trusted_detail_does_not_expose_admin_notes(tmp_path):
     assert detail.status_code == 200
     assert "note" not in detail.json()["audit"][0]
     assert "internal-only" not in detail.text
+
+
+def test_admin_creates_and_readies_draft_while_trusted_detail_hides_it(tmp_path):
+    settings = Settings.for_tests(tmp_path / "review")
+    db.migrate(settings.database_path)
+    with db.connect(settings.database_path) as conn:
+        _conn, submission_id, claim_id, artifact_id = seed_accepted_evidence(conn)
+        admin_digest = hmac.new(
+            settings.reviewer_digest_key, b"admin@example.com", hashlib.sha256
+        ).hexdigest()
+        trusted_digest = hmac.new(
+            settings.reviewer_digest_key, b"trusted@example.com", hashlib.sha256
+        ).hexdigest()
+        conn.execute(
+            "INSERT INTO reviewer_roles VALUES (?, 'admin', 1, 'now', NULL)",
+            (admin_digest,),
+        )
+        conn.execute(
+            "INSERT INTO reviewer_roles VALUES (?, 'trusted', 1, 'now', NULL)",
+            (trusted_digest,),
+        )
+    admin_validator, admin_headers = _auth(settings, "admin@example.com")
+    trusted_validator, trusted_headers = _auth(settings, "trusted@example.com")
+    payload = {
+        "source_type": "dataplate_photo",
+        "source_name": "Suburban data plate",
+        "source_url": None,
+        "raw_content": "Model SF-30FQ is visible.",
+        "extracted": {"model": "SF-30FQ"},
+        "claim_ids": [claim_id],
+        "artifact_ids": [artifact_id],
+        "idempotency_key": "draft-1",
+    }
+
+    with TestClient(create_app(settings, admin_validator)) as client:
+        created = client.post(
+            f"/review/v1/submissions/{submission_id}/observation-drafts",
+            headers=admin_headers,
+            json=payload,
+        )
+        assert created.status_code == 201
+        draft = created.json()
+        ready = client.post(
+            f"/review/v1/observation-drafts/{draft['id']}/ready",
+            headers=admin_headers,
+            json={"expected_version": draft["version"]},
+        )
+        detail = client.get(
+            f"/review/v1/submissions/{submission_id}", headers=admin_headers
+        )
+
+    assert ready.status_code == 200
+    assert ready.json()["state"] == "ready"
+    assert detail.status_code == 200
+    assert detail.json()["drafts"] == [
+        {
+            "id": draft["id"],
+            "submission_id": submission_id,
+            "source_type": "dataplate_photo",
+            "source_name": "Suburban data plate",
+            "source_url": None,
+            "extracted": {"model": "SF-30FQ"},
+            "default_source_tier": 2,
+            "state": "ready",
+            "version": 2,
+            "created_at": draft["created_at"],
+            "updated_at": ready.json()["updated_at"],
+            "claim_ids": [claim_id],
+            "artifact_ids": [artifact_id],
+        }
+    ]
+    assert "raw_content" not in detail.text
+    assert "created_by_digest" not in detail.text
+    assert "idempotency_key" not in detail.text
+
+    with TestClient(create_app(settings, trusted_validator)) as client:
+        denied = client.post(
+            f"/review/v1/submissions/{submission_id}/observation-drafts",
+            headers=trusted_headers,
+            json=payload,
+        )
+        trusted_detail = client.get(
+            f"/review/v1/submissions/{submission_id}", headers=trusted_headers
+        )
+
+    assert denied.status_code == 403
+    assert trusted_detail.status_code == 200
+    assert "drafts" not in trusted_detail.json()
+
+
+def test_draft_routes_reject_unexpected_request_fields(tmp_path):
+    settings = Settings.for_tests(tmp_path / "review")
+    db.migrate(settings.database_path)
+    with db.connect(settings.database_path) as conn:
+        _conn, submission_id, claim_id, artifact_id = seed_accepted_evidence(conn)
+        digest = hmac.new(
+            settings.reviewer_digest_key, b"admin@example.com", hashlib.sha256
+        ).hexdigest()
+        conn.execute(
+            "INSERT INTO reviewer_roles VALUES (?, 'admin', 1, 'now', NULL)", (digest,)
+        )
+    validator, headers = _auth(settings, "admin@example.com")
+    draft_payload = {
+        "source_type": "manufacturer_pdf",
+        "source_name": "Manufacturer sheet",
+        "source_url": None,
+        "raw_content": "Model SF-30FQ is visible.",
+        "extracted": {"model": "SF-30FQ"},
+        "claim_ids": [claim_id],
+        "artifact_ids": [artifact_id],
+        "idempotency_key": "draft-extra",
+        "unexpected": "value",
+    }
+
+    with TestClient(create_app(settings, validator)) as client:
+        rejected_create = client.post(
+            f"/review/v1/submissions/{submission_id}/observation-drafts",
+            headers=headers,
+            json=draft_payload,
+        )
+        rejected_extracted = client.post(
+            f"/review/v1/submissions/{submission_id}/observation-drafts",
+            headers=headers,
+            json={
+                key: value
+                for key, value in draft_payload.items()
+                if key != "unexpected"
+            }
+            | {
+                "extracted": {"model_number": "SF-30FQ"},
+            },
+        )
+        rejected_ready = client.post(
+            "/review/v1/observation-drafts/not-a-draft/ready",
+            headers=headers,
+            json={"expected_version": 1, "unexpected": "value"},
+        )
+
+    assert rejected_create.status_code == 422
+    assert rejected_extracted.status_code == 422
+    assert rejected_ready.status_code == 422
+
+
+def test_publisher_preview_and_promotion_require_all_authorization(tmp_path):
+    settings = Settings.for_tests(tmp_path / "review")
+    db.migrate(settings.database_path)
+    with db.connect(settings.database_path) as conn:
+        _conn, submission_id, claim_id, artifact_id = seed_accepted_evidence(conn)
+        admin_digest = hmac.new(settings.reviewer_digest_key, b"admin@example.com", hashlib.sha256).hexdigest()
+        publisher_digest = hmac.new(settings.reviewer_digest_key, b"publisher@example.com", hashlib.sha256).hexdigest()
+        conn.execute("INSERT INTO reviewer_roles VALUES (?, 'admin', 1, 'now', NULL)", (admin_digest,))
+        conn.execute("INSERT INTO reviewer_capabilities VALUES (?, 'publisher', 1, 'now', NULL)", (admin_digest,))
+        conn.execute("INSERT INTO reviewer_roles VALUES (?, 'trusted', 1, 'now', NULL)", (publisher_digest,))
+        conn.execute("INSERT INTO reviewer_capabilities VALUES (?, 'publisher', 1, 'now', NULL)", (publisher_digest,))
+    with observations.get_conn(settings.observations_database_path) as conn:
+        conn.executescript(observations.SCHEMA)
+        conn.commit()
+    admin_validator, admin_headers = _auth(settings, "admin@example.com")
+    publisher_validator, publisher_headers = _auth(settings, "publisher@example.com")
+    draft_payload = {
+        "source_type": "manufacturer_pdf", "source_name": "Install sheet",
+        "source_url": None, "raw_content": "Model SF-30FQ.",
+        "extracted": {"model": "SF-30FQ"}, "claim_ids": [claim_id],
+        "artifact_ids": [artifact_id], "idempotency_key": "draft-promotion",
+    }
+    with TestClient(create_app(settings, admin_validator)) as client:
+        created = client.post(f"/review/v1/submissions/{submission_id}/observation-drafts", headers=admin_headers, json=draft_payload)
+        draft = created.json()
+        ready = client.post(f"/review/v1/observation-drafts/{draft['id']}/ready", headers=admin_headers, json={"expected_version": 1})
+        preview = client.get(f"/review/v1/observation-drafts/{draft['id']}/canonical-preview?final_source_tier=2", headers=admin_headers)
+        promoted = client.post(f"/review/v1/observation-drafts/{draft['id']}/promotions", headers=admin_headers, json={
+            "expected_version": 2,
+            "canonical_payload_sha256": preview.json()["canonical_payload_sha256"],
+            "idempotency_key": "promotion-api-1", "final_source_tier": 2,
+        })
+    with TestClient(create_app(settings, publisher_validator)) as client:
+        denied = client.get(f"/review/v1/observation-drafts/{draft['id']}/canonical-preview?final_source_tier=2", headers=publisher_headers)
+    assert created.status_code == 201
+    assert ready.status_code == 200
+    assert preview.status_code == 200
+    assert promoted.status_code == 200
+    assert denied.status_code == 403

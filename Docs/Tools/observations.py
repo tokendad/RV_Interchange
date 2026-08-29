@@ -76,6 +76,7 @@ SOURCE_TYPES = {
     "manufacturer_page",
     "manual_measurement",
     "dataplate_photo",
+    "field_report",
     "retailer_prose",
     "forum_post",
     "dealer_call",
@@ -100,6 +101,17 @@ CREATE TABLE IF NOT EXISTS observations (
 CREATE INDEX IF NOT EXISTS idx_obs_url ON observations(url);
 CREATE INDEX IF NOT EXISTS idx_obs_source_name ON observations(source_name);
 CREATE INDEX IF NOT EXISTS idx_obs_hash ON observations(content_hash);
+
+CREATE TABLE IF NOT EXISTS observation_origins (
+    observation_id INTEGER PRIMARY KEY REFERENCES observations(id),
+    origin_type TEXT NOT NULL CHECK (origin_type = 'public_submission_draft'),
+    origin_id TEXT NOT NULL,
+    submission_id TEXT NOT NULL,
+    artifact_ids_json TEXT NOT NULL CHECK (json_valid(artifact_ids_json)),
+    canonical_payload_sha256 TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(origin_type, origin_id)
+);
 """
 
 
@@ -237,15 +249,16 @@ def latest_hash_for_url(conn, url):
     return row["content_hash"] if row else None
 
 
-def insert_observation(conn, *, source_type, source_name, url, raw_content,
-                        extracted, extraction_method, fetched_by):
+def append_observation(conn, *, source_type, source_name, url, raw_content,
+                       extracted, extraction_method, fetched_by,
+                       source_tier=None):
     h = content_hash(raw_content)
-    conn.execute(
+    cursor = conn.execute(
         """
         INSERT INTO observations
             (source_type, source_name, url, fetched_at, fetched_by,
-             content_hash, raw_content, extracted, extraction_method)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             content_hash, raw_content, extracted, extraction_method, source_tier)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             source_type,
@@ -257,10 +270,16 @@ def insert_observation(conn, *, source_type, source_name, url, raw_content,
             raw_content,
             json.dumps(extracted) if extracted is not None else None,
             extraction_method,
+            source_tier,
         ),
     )
+    return cursor.lastrowid
+
+
+def insert_observation(conn, **values):
+    observation_id = append_observation(conn, **values)
     conn.commit()
-    return conn.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+    return observation_id
 
 
 def load_extracted(args):

@@ -26,6 +26,51 @@ def request(assertion="token"):
     return Request({"type": "http", "headers": [(b"cf-access-jwt-assertion", assertion.encode())]})
 
 
+class AuthorizationHarness:
+    def __init__(self, conn, settings):
+        self.conn = conn
+        self.settings = settings
+        self.request = request()
+        self.authorizer = ReviewerAuthorizer(
+            conn, settings, Validator({"email": "reviewer@example.com"})
+        )
+        import hashlib
+        import hmac
+
+        self.email_digest = hmac.new(
+            settings.reviewer_digest_key,
+            b"reviewer@example.com",
+            hashlib.sha256,
+        ).hexdigest()
+
+    def grant(self, *, roles: set[str], capabilities: set[str]):
+        self.conn.execute(
+            "DELETE FROM reviewer_roles WHERE email_digest = ?", (self.email_digest,)
+        )
+        self.conn.execute(
+            "DELETE FROM reviewer_capabilities WHERE email_digest = ?",
+            (self.email_digest,),
+        )
+        for role in roles:
+            self.conn.execute(
+                "INSERT INTO reviewer_roles VALUES (?, ?, 1, 'now', NULL)",
+                (self.email_digest, role),
+            )
+        for capability in capabilities:
+            self.conn.execute(
+                "INSERT INTO reviewer_capabilities VALUES (?, ?, 1, 'now', NULL)",
+                (self.email_digest, capability),
+            )
+
+
+@pytest.fixture
+def auth_harness(tmp_path):
+    settings = Settings.for_tests(tmp_path / "db")
+    db.migrate(settings.database_path)
+    with db.connect(settings.database_path) as conn:
+        yield AuthorizationHarness(conn, settings)
+
+
 class JwksClient:
     def __init__(self, key):
         self.key = key
@@ -155,4 +200,35 @@ def test_publisher_capability_satisfies_admin_or_publisher_authorization(tmp_pat
         ).require(request(), {"admin"}, "publisher")
 
     assert identity.roles == {"trusted"}
+    assert identity.capabilities == {"publisher"}
+
+
+@pytest.mark.parametrize(
+    ("roles", "capabilities"),
+    [
+        ({"admin"}, set()),
+        ({"trusted"}, {"publisher"}),
+        ({"trusted"}, set()),
+        (set(), {"publisher"}),
+    ],
+)
+def test_require_all_rejects_partial_authority(auth_harness, roles, capabilities):
+    auth_harness.grant(roles=roles, capabilities=capabilities)
+
+    with pytest.raises(HTTPException) as error:
+        auth_harness.authorizer.require_all(
+            auth_harness.request, roles={"admin"}, capabilities={"publisher"}
+        )
+
+    assert error.value.status_code in {401, 403}
+
+
+def test_require_all_accepts_admin_with_publisher(auth_harness):
+    auth_harness.grant(roles={"admin"}, capabilities={"publisher"})
+
+    identity = auth_harness.authorizer.require_all(
+        auth_harness.request, roles={"admin"}, capabilities={"publisher"}
+    )
+
+    assert identity.roles == {"admin"}
     assert identity.capabilities == {"publisher"}
