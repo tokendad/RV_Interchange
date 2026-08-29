@@ -73,6 +73,10 @@ snapshot="$PWD/Docs/Tools/observations.db"
 "${compose[@]}" stop rvinterchange-review-api
 test -f "$snapshot"
 sudo install -d -o root -g root -m 0700 "$canonical_dir"
+if sudo test -e "$canonical_dir/observations.db"; then
+  echo "Refusing to overwrite initialized canonical database" >&2
+  exit 1
+fi
 sudo install -o root -g root -m 0600 "$snapshot" "$canonical_dir/observations.db"
 source_sha256=$(sha256sum "$snapshot" | awk '{print $1}')
 target_sha256=$(sudo sha256sum "$canonical_dir/observations.db" | awk '{print $1}')
@@ -89,7 +93,10 @@ artifact, not canonical promotion input. The canonical directory may contain
 only `observations.db` and SQLite journal files created for that database.
 
 After the checksum comparison succeeds, start or update the normal review
-stack. Do not run this initialization against a live review API.
+stack. Do not run this initialization against a live review API. Replacing an
+initialized canonical database is not initialization: use a separate,
+backup-verified restoration procedure that retains the original database for
+investigation.
 
 Check the service and boundary before opening the Access hostname:
 
