@@ -108,35 +108,78 @@ the isolated promotion drill or any production intake path as a restoration
 input.
 
 ```bash
+set -euo pipefail
+
 compose=(docker compose --env-file /data/DockerConfigs/.env -f deploy/docker-compose.yaml)
 canonical_dir=/data/DockerConfigs/RVInterchange/canonical
 replacement_snapshot=/secure/verified/observations.db
 backup_dir="/data/DockerConfigs/RVInterchange/backups/canonical-$(date -u +%Y%m%dT%H%M%SZ)"
 
-"${compose[@]}" stop rvinterchange-review-api
+if ! "${compose[@]}" stop rvinterchange-review-api; then
+  echo "Refusing restoration because the review API did not stop" >&2
+  exit 1
+fi
 if ! sudo test -f "$canonical_dir/observations.db" || \
    sudo test -L "$canonical_dir/observations.db"; then
   echo "Refusing restoration without a regular canonical database to retain" >&2
   exit 1
 fi
 test -f "$replacement_snapshot"
-sudo sqlite3 "$canonical_dir/observations.db" "PRAGMA wal_checkpoint(TRUNCATE);"
+if ! sudo sqlite3 "$canonical_dir/observations.db" "PRAGMA wal_checkpoint(TRUNCATE);"; then
+  echo "Refusing restoration because the canonical database cannot checkpoint" >&2
+  exit 1
+fi
 sudo install -d -o root -g root -m 0700 "$backup_dir"
-sudo cp --preserve=mode,ownership,timestamps \
-  "$canonical_dir/observations.db" "$backup_dir/observations.db"
+if ! sudo cp --preserve=mode,ownership,timestamps \
+  "$canonical_dir/observations.db" "$backup_dir/observations.db"; then
+  echo "Refusing restoration because the original backup failed" >&2
+  exit 1
+fi
 original_sha256=$(sudo sha256sum "$canonical_dir/observations.db" | awk '{print $1}')
 backup_sha256=$(sudo sha256sum "$backup_dir/observations.db" | awk '{print $1}')
-test "$original_sha256" = "$backup_sha256"
+if [ "$original_sha256" != "$backup_sha256" ]; then
+  echo "Refusing restoration because the original backup checksum differs" >&2
+  exit 1
+fi
 staged_path=$(sudo mktemp "$canonical_dir/.observations.db.restore.XXXXXX")
-sudo install -o root -g root -m 0600 "$replacement_snapshot" "$staged_path"
+cleanup_staged() {
+  if [ -n "${staged_path:-}" ] && \
+     { sudo test -e "$staged_path" || sudo test -L "$staged_path"; }; then
+    sudo rm -f -- "$staged_path" || true
+  fi
+}
+trap cleanup_staged EXIT
+if ! sudo install -o root -g root -m 0600 "$replacement_snapshot" "$staged_path"; then
+  echo "Refusing restoration because staging the replacement failed" >&2
+  exit 1
+fi
 replacement_sha256=$(sha256sum "$replacement_snapshot" | awk '{print $1}')
 staged_sha256=$(sudo sha256sum "$staged_path" | awk '{print $1}')
-test "$replacement_sha256" = "$staged_sha256"
-sudo mv -f "$staged_path" "$canonical_dir/observations.db"
+if [ "$replacement_sha256" != "$staged_sha256" ]; then
+  echo "Refusing restoration because the staged checksum differs" >&2
+  exit 1
+fi
+if [ "$(sudo sqlite3 "$staged_path" "PRAGMA integrity_check;")" != "ok" ]; then
+  echo "Refusing restoration because the staged database integrity check failed" >&2
+  exit 1
+fi
+schema_columns=$(sudo sqlite3 "$staged_path" \
+  "SELECT count(*) FROM pragma_table_info('observations') WHERE name IN ('id', 'source_type', 'source_name', 'url', 'raw_content', 'extracted_json', 'extraction_method', 'fetched_at', 'fetched_by', 'source_tier');")
+if [ "$schema_columns" != "10" ]; then
+  echo "Refusing restoration because the staged database lacks the canonical observations schema" >&2
+  exit 1
+fi
+if ! sudo mv -f "$staged_path" "$canonical_dir/observations.db"; then
+  echo "Restoration did not replace the canonical database" >&2
+  exit 1
+fi
 sudo chown root:root "$canonical_dir" "$canonical_dir/observations.db"
 sudo chmod 0700 "$canonical_dir"
 sudo chmod 0600 "$canonical_dir/observations.db"
-test "$(sudo sqlite3 "$canonical_dir/observations.db" "PRAGMA integrity_check;")" = "ok"
+if [ "$(sudo sqlite3 "$canonical_dir/observations.db" "PRAGMA integrity_check;")" != "ok" ]; then
+  echo "Restoration produced a database that failed the integrity check" >&2
+  exit 1
+fi
 ```
 
 Record the matching original/backup and replacement/staged SHA-256 values and
