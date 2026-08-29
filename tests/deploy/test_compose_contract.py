@@ -75,6 +75,28 @@ def test_production_compose_network_and_mount_boundaries():
     assert config["secrets"]["review_digest_key"]["file"].endswith("/review_digest_key")
 
 
+def test_review_api_mounts_only_dedicated_canonical_directory():
+    config = rendered_compose(
+        environment={"RVI_CANONICAL_DATA_DIR": "/tmp/rvi-canonical"}
+    )
+
+    service = config["services"]["rvinterchange-review-api"]
+    writable = {
+        mount["target"]: mount["source"]
+        for mount in service["volumes"]
+        if not mount.get("read_only", False)
+    }
+
+    assert writable["/app/canonical"] == "/tmp/rvi-canonical"
+    assert service["environment"]["RVI_OBSERVATIONS_DB_PATH"] == (
+        "/app/canonical/observations.db"
+    )
+    assert "/app/Docs/Tools" not in {
+        mount["target"] for mount in service["volumes"]
+    }
+    assert all("components.db" not in mount["source"] for mount in service["volumes"])
+
+
 def test_intake_profile_isolated_from_public_and_canonical_paths():
     default_config = rendered_compose()
     intake_config = rendered_compose("intake")

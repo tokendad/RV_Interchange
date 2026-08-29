@@ -71,12 +71,14 @@ services:
     environment:
       TZ: America/New_York
       RVI_INTAKE_DB_PATH: /app/data/submissions.db
+      RVI_OBSERVATIONS_DB_PATH: /app/canonical/observations.db
       RVI_ACCESS_ISSUER: ${RVI_ACCESS_ISSUER:-https://rvinterchange.cloudflareaccess.com}
       RVI_ACCESS_AUDIENCE: ${RVI_ACCESS_AUDIENCE:-unset}
       RVI_ACCESS_JWKS_URL: ${RVI_ACCESS_JWKS_URL:-https://rvinterchange.cloudflareaccess.com/cdn-cgi/access/certs}
       RVI_REVIEW_DIGEST_KEY_FILE: /run/secrets/review_digest_key
     volumes:
       - ${RVI_INTAKE_DATA_DIR:-/data/DockerConfigs/RVInterchange/intake/data}:/app/data
+      - ${RVI_CANONICAL_DATA_DIR:-/data/DockerConfigs/RVInterchange/canonical}:/app/canonical
     secrets:
       - review_digest_key
     healthcheck:
